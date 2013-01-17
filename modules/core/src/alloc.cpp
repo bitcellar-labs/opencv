@@ -42,7 +42,7 @@
 
 #include "precomp.hpp"
 
-#define CV_USE_SYSTEM_MALLOC 1
+#define CV_USE_SYSTEM_MALLOC 0
 
 namespace cv
 {
@@ -146,10 +146,10 @@ void SystemFree(void* ptr, size_t size)
 }
 #endif //WIN32
 
-struct AutoLock
+struct AutoLock_
 {
-    AutoLock(CriticalSection& _cs) : cs(&_cs) { cs->lock(); }
-    ~AutoLock() { cs->unlock(); }
+    AutoLock_(CriticalSection& _cs) : cs(&_cs) { cs->lock(); }
+    ~AutoLock_() { cs->unlock(); }
     CriticalSection* cs;
 };
 
@@ -283,7 +283,7 @@ struct BlockPool
 
     ~BlockPool()
     {
-        AutoLock lock(cs);
+        AutoLock_ lock(cs);
         while( pool )
         {
             BigBlock* nextBlock = pool->next;
@@ -295,7 +295,7 @@ struct BlockPool
 
     Block* alloc()
     {
-        AutoLock lock(cs);
+        AutoLock_ lock(cs);
         Block* block;
         if( !freeBlocks )
         {
@@ -314,7 +314,7 @@ struct BlockPool
 
     void free(Block* block)
     {
-        AutoLock lock(cs);
+        AutoLock_ lock(cs);
         block->prev = 0;
         block->next = freeBlocks;
         freeBlocks = block;
@@ -349,7 +349,7 @@ struct ThreadData
                     Block* next = block->next;
                     int allocated = block->allocated;
                     {
-                    AutoLock lock(block->cs);
+                    AutoLock_ lock(block->cs);
                     block->next = block->prev = 0;
                     block->threadData = 0;
                     Node *node = block->publicFreeList;
@@ -483,102 +483,7 @@ void* fastMalloc( size_t size )
         return adata;
     }
 
-    {
-    ThreadData* tls = ThreadData::get();
-    int idx = mallocTables.bin(size);
-    Block*& startPtr = tls->bins[idx][START];
-    Block*& gcPtr = tls->bins[idx][GC];
-    Block*& freePtr = tls->bins[idx][FREE], *block = freePtr;
-    checkList(tls, idx);
-    size = binSizeTab[idx];
-    STAT(
-        stat.nettoBytes += size;
-        stat.mallocCalls++;
-        );
-    uchar* data = 0;
-
-    for(;;)
-    {
-        if( block )
-        {
-            // try to find non-full block
-            for(;;)
-            {
-                CV_DbgAssert( block->next->prev == block && block->prev->next == block );
-                if( block->bumpPtr )
-                {
-                    data = block->bumpPtr;
-                    if( (block->bumpPtr += size) >= block->endPtr )
-                        block->bumpPtr = 0;
-                    break;
-                }
-
-                if( block->privateFreeList )
-                {
-                    data = (uchar*)block->privateFreeList;
-                    block->privateFreeList = block->privateFreeList->next;
-                    break;
-                }
-
-                if( block == startPtr )
-                    break;
-                block = block->next;
-            }
-#if 0
-            avg_k += _k;
-            avg_nk++;
-            if( avg_nk == 1000 )
-            {
-                printf("avg search iters per 1e3 allocs = %g\n", (double)avg_k/avg_nk );
-                avg_k = avg_nk = 0;
-            }
-#endif
-
-            freePtr = block;
-            if( !data )
-            {
-                block = gcPtr;
-                for( int k = 0; k < 2; k++ )
-                {
-                    SANITY_CHECK(block);
-                    CV_DbgAssert( block->next->prev == block && block->prev->next == block );
-                    if( block->publicFreeList )
-                    {
-                        {
-                        AutoLock lock(block->cs);
-                        block->privateFreeList = block->publicFreeList;
-                        block->publicFreeList = 0;
-                        }
-                        Node* node = block->privateFreeList;
-                        for(;node != 0; node = node->next)
-                            --block->allocated;
-                        data = (uchar*)block->privateFreeList;
-                        block->privateFreeList = block->privateFreeList->next;
-                        gcPtr = block->next;
-                        if( block->allocated+1 <= block->almostEmptyThreshold )
-                            tls->moveBlockToFreeList(block);
-                        break;
-                    }
-                    block = block->next;
-                }
-                if( !data )
-                    gcPtr = block;
-            }
-        }
-
-        if( data )
-            break;
-        block = mallocPool.alloc();
-        block->init(startPtr ? startPtr->prev : block, startPtr ? startPtr : block, (int)size, tls);
-        if( !startPtr )
-            startPtr = gcPtr = freePtr = block;
-        checkList(tls, block->binIdx);
-        SANITY_CHECK(block);
-    }
-
-    ++block->allocated;
-    return data;
-    }
+    return malloc( size );
 }
 
 void fastFree( void* ptr )
@@ -594,89 +499,7 @@ void fastFree( void* ptr )
         return;
     }
 
-    {
-    ThreadData* tls = ThreadData::get();
-    Node* node = (Node*)ptr;
-    Block* block = (Block*)((size_t)ptr & -(int)MEM_BLOCK_SIZE);
-    assert( block->signature == MEM_BLOCK_SIGNATURE );
-
-    if( block->threadData == tls )
-    {
-        STAT(
-        stat.nettoBytes -= block->objSize;
-        stat.freeCalls++;
-        float ratio = (float)stat.nettoBytes/stat.bruttoBytes;
-        if( stat.minUsageRatio > ratio )
-            stat.minUsageRatio = ratio;
-        );
-
-        SANITY_CHECK(block);
-
-        bool prevFilled = block->isFilled();
-        --block->allocated;
-        if( !block->isFilled() && (block->allocated == 0 || prevFilled) )
-        {
-            if( block->allocated == 0 )
-            {
-                int idx = block->binIdx;
-                Block*& startPtr = tls->bins[idx][START];
-                Block*& freePtr = tls->bins[idx][FREE];
-                Block*& gcPtr = tls->bins[idx][GC];
-
-                if( block == block->next )
-                {
-                    CV_DbgAssert( startPtr == block && freePtr == block && gcPtr == block );
-                    startPtr = freePtr = gcPtr = 0;
-                }
-                else
-                {
-                    if( freePtr == block )
-                        freePtr = block->next;
-                    if( gcPtr == block )
-                        gcPtr = block->next;
-                    if( startPtr == block )
-                        startPtr = block->next;
-                    block->prev->next = block->next;
-                    block->next->prev = block->prev;
-                }
-                mallocPool.free(block);
-                checkList(tls, idx);
-                return;
-            }
-
-            tls->moveBlockToFreeList(block);
-        }
-        node->next = block->privateFreeList;
-        block->privateFreeList = node;
-    }
-    else
-    {
-        AutoLock lock(block->cs);
-        SANITY_CHECK(block);
-
-        node->next = block->publicFreeList;
-        block->publicFreeList = node;
-        if( block->threadData == 0 )
-        {
-            // take ownership of the abandoned block.
-            // note that it can happen at the same time as
-            // ThreadData::deleteData() marks the blocks as abandoned,
-            // so this part of the algorithm needs to be checked for data races
-            int idx = block->binIdx;
-            block->threadData = tls;
-            Block*& startPtr = tls->bins[idx][START];
-
-            if( startPtr )
-            {
-                block->next = startPtr;
-                block->prev = startPtr->prev;
-                block->next->prev = block->prev->next = block;
-            }
-            else
-                startPtr = tls->bins[idx][FREE] = tls->bins[idx][GC] = block;
-        }
-    }
-    }
+    free( ptr );
 }
 
 #endif //CV_USE_SYSTEM_MALLOC
