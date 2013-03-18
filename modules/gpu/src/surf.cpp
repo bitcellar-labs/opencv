@@ -44,21 +44,20 @@
 
 using namespace cv;
 using namespace cv::gpu;
-using namespace std;
 
 #if !defined (HAVE_CUDA) || defined (CUDA_DISABLER)
 
 cv::gpu::SURF_GPU::SURF_GPU() { throw_nogpu(); }
 cv::gpu::SURF_GPU::SURF_GPU(double, int, int, bool, float, bool) { throw_nogpu(); }
 int cv::gpu::SURF_GPU::descriptorSize() const { throw_nogpu(); return 0;}
-void cv::gpu::SURF_GPU::uploadKeypoints(const vector<KeyPoint>&, GpuMat&) { throw_nogpu(); }
-void cv::gpu::SURF_GPU::downloadKeypoints(const GpuMat&, vector<KeyPoint>&) { throw_nogpu(); }
-void cv::gpu::SURF_GPU::downloadDescriptors(const GpuMat&, vector<float>&) { throw_nogpu(); }
+void cv::gpu::SURF_GPU::uploadKeypoints(const std::vector<KeyPoint>&, GpuMat&) { throw_nogpu(); }
+void cv::gpu::SURF_GPU::downloadKeypoints(const GpuMat&, std::vector<KeyPoint>&) { throw_nogpu(); }
+void cv::gpu::SURF_GPU::downloadDescriptors(const GpuMat&, std::vector<float>&) { throw_nogpu(); }
 void cv::gpu::SURF_GPU::operator()(const GpuMat&, const GpuMat&, GpuMat&) { throw_nogpu(); }
 void cv::gpu::SURF_GPU::operator()(const GpuMat&, const GpuMat&, GpuMat&, GpuMat&, bool) { throw_nogpu(); }
-void cv::gpu::SURF_GPU::operator()(const GpuMat&, const GpuMat&, vector<KeyPoint>&) { throw_nogpu(); }
-void cv::gpu::SURF_GPU::operator()(const GpuMat&, const GpuMat&, vector<KeyPoint>&, GpuMat&, bool) { throw_nogpu(); }
-void cv::gpu::SURF_GPU::operator()(const GpuMat&, const GpuMat&, vector<KeyPoint>&, vector<float>&, bool) { throw_nogpu(); }
+void cv::gpu::SURF_GPU::operator()(const GpuMat&, const GpuMat&, std::vector<KeyPoint>&) { throw_nogpu(); }
+void cv::gpu::SURF_GPU::operator()(const GpuMat&, const GpuMat&, std::vector<KeyPoint>&, GpuMat&, bool) { throw_nogpu(); }
+void cv::gpu::SURF_GPU::operator()(const GpuMat&, const GpuMat&, std::vector<KeyPoint>&, std::vector<float>&, bool) { throw_nogpu(); }
 void cv::gpu::SURF_GPU::releaseMemory() { throw_nogpu(); }
 
 #else /* !defined (HAVE_CUDA) */
@@ -75,10 +74,10 @@ namespace cv { namespace gpu { namespace device
         size_t bindMaskSumTex(PtrStepSz<unsigned int> maskSum);
 
         void icvCalcLayerDetAndTrace_gpu(const PtrStepf& det, const PtrStepf& trace, int img_rows, int img_cols,
-            int octave, int nOctaveLayers, const size_t sumOffset);
+            int octave, int nOctaveLayer);
 
         void icvFindMaximaInLayer_gpu(const PtrStepf& det, const PtrStepf& trace, int4* maxPosBuffer, unsigned int* maxCounter,
-            int img_rows, int img_cols, int octave, bool use_mask, int nLayers, const size_t maskOffset);
+            int img_rows, int img_cols, int octave, bool use_mask, int nLayers);
 
         void icvInterpolateKeypoint_gpu(const PtrStepf& det, const int4* maxPosBuffer, unsigned int maxCounter,
             float* featureX, float* featureY, int* featureLaplacian, int* featureOctave, float* featureSize, float* featureHessian,
@@ -86,8 +85,7 @@ namespace cv { namespace gpu { namespace device
 
         void icvCalcOrientation_gpu(const float* featureX, const float* featureY, const float* featureSize, float* featureDir, int nFeatures);
 
-        void compute_descriptors_gpu(const PtrStepSzf& descriptors,
-            const float* featureX, const float* featureY, const float* featureSize, const float* featureDir, int nFeatures);
+        void compute_descriptors_gpu(PtrStepSz<float4> descriptors, const float* featureX, const float* featureY, const float* featureSize, const float* featureDir, int nFeatures);
     }
 }}}
 
@@ -122,9 +120,6 @@ namespace
             CV_Assert(mask.empty() || (mask.size() == img.size() && mask.type() == CV_8UC1));
             CV_Assert(surf_.nOctaves > 0 && surf_.nOctaveLayers > 0);
 
-            if (!TargetArchs::builtWith(GLOBAL_ATOMICS) || !DeviceInfo().supports(GLOBAL_ATOMICS))
-                CV_Error(CV_StsNotImplemented, "The device doesn't support global atomics");
-
             const int min_size = calcSize(surf_.nOctaves - 1, 0);
             CV_Assert(img_rows - min_size >= 0);
             CV_Assert(img_cols - min_size >= 0);
@@ -135,8 +130,8 @@ namespace
             CV_Assert(layer_rows - 2 * min_margin > 0);
             CV_Assert(layer_cols - 2 * min_margin > 0);
 
-            maxFeatures = min(static_cast<int>(img.size().area() * surf.keypointsRatio), 65535);
-            maxCandidates = min(static_cast<int>(1.5 * maxFeatures), 65535);
+            maxFeatures = std::min(static_cast<int>(img.size().area() * surf.keypointsRatio), 65535);
+            maxCandidates = std::min(static_cast<int>(1.5 * maxFeatures), 65535);
 
             CV_Assert(maxFeatures > 0);
 
@@ -146,8 +141,8 @@ namespace
             loadGlobalConstants(maxCandidates, maxFeatures, img_rows, img_cols, surf_.nOctaveLayers, static_cast<float>(surf_.hessianThreshold));
 
             bindImgTex(img);
-            integralBuffered(img, surf_.sum, surf_.intBuffer);
 
+            integralBuffered(img, surf_.sum, surf_.intBuffer);
             sumOffset = bindSumTex(surf_.sum);
 
             if (use_mask)
@@ -174,10 +169,10 @@ namespace
 
                 loadOctaveConstants(octave, layer_rows, layer_cols);
 
-                icvCalcLayerDetAndTrace_gpu(surf_.det, surf_.trace, img_rows, img_cols, octave, surf_.nOctaveLayers, sumOffset);
+                icvCalcLayerDetAndTrace_gpu(surf_.det, surf_.trace, img_rows, img_cols, octave, surf_.nOctaveLayers);
 
                 icvFindMaximaInLayer_gpu(surf_.det, surf_.trace, surf_.maxPosBuffer.ptr<int4>(), counters.ptr<unsigned int>() + 1 + octave,
-                    img_rows, img_cols, octave, use_mask, surf_.nOctaveLayers, maskOffset);
+                    img_rows, img_cols, octave, use_mask, surf_.nOctaveLayers);
 
                 unsigned int maxCounter;
                 cudaSafeCall( cudaMemcpy(&maxCounter, counters.ptr<unsigned int>() + 1 + octave, sizeof(unsigned int), cudaMemcpyDeviceToHost) );
@@ -267,7 +262,7 @@ int cv::gpu::SURF_GPU::descriptorSize() const
     return extended ? 128 : 64;
 }
 
-void cv::gpu::SURF_GPU::uploadKeypoints(const vector<KeyPoint>& keypoints, GpuMat& keypointsGPU)
+void cv::gpu::SURF_GPU::uploadKeypoints(const std::vector<KeyPoint>& keypoints, GpuMat& keypointsGPU)
 {
     if (keypoints.empty())
         keypointsGPU.release();
@@ -299,7 +294,7 @@ void cv::gpu::SURF_GPU::uploadKeypoints(const vector<KeyPoint>& keypoints, GpuMa
     }
 }
 
-void cv::gpu::SURF_GPU::downloadKeypoints(const GpuMat& keypointsGPU, vector<KeyPoint>& keypoints)
+void cv::gpu::SURF_GPU::downloadKeypoints(const GpuMat& keypointsGPU, std::vector<KeyPoint>& keypoints)
 {
     const int nFeatures = keypointsGPU.cols;
 
@@ -335,7 +330,7 @@ void cv::gpu::SURF_GPU::downloadKeypoints(const GpuMat& keypointsGPU, vector<Key
     }
 }
 
-void cv::gpu::SURF_GPU::downloadDescriptors(const GpuMat& descriptorsGPU, vector<float>& descriptors)
+void cv::gpu::SURF_GPU::downloadDescriptors(const GpuMat& descriptorsGPU, std::vector<float>& descriptors)
 {
     if (descriptorsGPU.empty())
         descriptors.clear();
@@ -377,7 +372,7 @@ void cv::gpu::SURF_GPU::operator()(const GpuMat& img, const GpuMat& mask, GpuMat
     }
 }
 
-void cv::gpu::SURF_GPU::operator()(const GpuMat& img, const GpuMat& mask, vector<KeyPoint>& keypoints)
+void cv::gpu::SURF_GPU::operator()(const GpuMat& img, const GpuMat& mask, std::vector<KeyPoint>& keypoints)
 {
     GpuMat keypointsGPU;
 
@@ -386,7 +381,7 @@ void cv::gpu::SURF_GPU::operator()(const GpuMat& img, const GpuMat& mask, vector
     downloadKeypoints(keypointsGPU, keypoints);
 }
 
-void cv::gpu::SURF_GPU::operator()(const GpuMat& img, const GpuMat& mask, vector<KeyPoint>& keypoints,
+void cv::gpu::SURF_GPU::operator()(const GpuMat& img, const GpuMat& mask, std::vector<KeyPoint>& keypoints,
     GpuMat& descriptors, bool useProvidedKeypoints)
 {
     GpuMat keypointsGPU;
@@ -399,8 +394,8 @@ void cv::gpu::SURF_GPU::operator()(const GpuMat& img, const GpuMat& mask, vector
     downloadKeypoints(keypointsGPU, keypoints);
 }
 
-void cv::gpu::SURF_GPU::operator()(const GpuMat& img, const GpuMat& mask, vector<KeyPoint>& keypoints,
-    vector<float>& descriptors, bool useProvidedKeypoints)
+void cv::gpu::SURF_GPU::operator()(const GpuMat& img, const GpuMat& mask, std::vector<KeyPoint>& keypoints,
+    std::vector<float>& descriptors, bool useProvidedKeypoints)
 {
     GpuMat descriptorsGPU;
 

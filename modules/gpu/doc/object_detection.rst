@@ -199,7 +199,6 @@ Returns block descriptors computed for the whole image.
 The function is mainly used to learn the classifier.
 
 
-
 gpu::CascadeClassifier_GPU
 --------------------------
 .. ocv:class:: gpu::CascadeClassifier_GPU

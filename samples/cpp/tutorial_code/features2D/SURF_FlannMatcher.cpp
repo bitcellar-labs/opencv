@@ -11,6 +11,7 @@
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/nonfree/features2d.hpp"
 
+using namespace std;
 using namespace cv;
 
 void readme();
@@ -83,7 +84,7 @@ int main( int argc, char** argv )
   //-- Show detected matches
   imshow( "Good Matches", img_matches );
 
-  for( int i = 0; i < good_matches.size(); i++ )
+  for( int i = 0; i < (int)good_matches.size(); i++ )
   { printf( "-- Good Match [%d] Keypoint 1: %d  -- Keypoint 2: %d  \n", i, good_matches[i].queryIdx, good_matches[i].trainIdx ); }
 
   waitKey(0);

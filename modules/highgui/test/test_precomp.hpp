@@ -1,6 +1,6 @@
 #ifdef __GNUC__
 #  pragma GCC diagnostic ignored "-Wmissing-declarations"
-#  ifdef __clang__
+#  if defined __clang__ || defined __APPLE__
 #    pragma GCC diagnostic ignored "-Wmissing-prototypes"
 #    pragma GCC diagnostic ignored "-Wextra"
 #  endif
@@ -13,8 +13,8 @@
 # include "cvconfig.h"
 #endif
 
-#include "opencv2/ts/ts.hpp"
-#include "opencv2/imgproc/imgproc.hpp"
+#include "opencv2/ts.hpp"
+#include "opencv2/imgproc.hpp"
 #include "opencv2/imgproc/imgproc_c.h"
 #include <iostream>
 
