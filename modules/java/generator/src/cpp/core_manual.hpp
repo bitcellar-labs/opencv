@@ -1,13 +1,6 @@
 #pragma once
 
-#include "opencv2/core.hpp"
-
-namespace cv
-{
-
-CV_EXPORTS_W void setErrorVerbosity(bool verbose);
-
-}
+#include "opencv2/core/core.hpp"
 
 #if 0
 

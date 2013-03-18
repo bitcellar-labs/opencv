@@ -1,5 +1,3 @@
-#/usr/bin/env python
-
 import os, sys, fnmatch, re
 
 sys.path.append("../modules/python/src2/")
@@ -116,8 +114,6 @@ def compareSignatures(f, s):
         sarg = arg[1]
         ftype = re.sub(r"\b(cv|std)::", "", (farg[0] or ""))
         stype = re.sub(r"\b(cv|std)::", "", (sarg[0] or ""))
-        ftype = re.sub(r"\s+(\*|&)$", "\\1", ftype)
-        stype = re.sub(r"\s+(\*|&)$", "\\1", stype)
         if ftype != stype:
             return False, "type of argument #" + str(idx+1) + " mismatch"
         fname = farg[1] or "arg" + str(idx)
@@ -153,13 +149,11 @@ def formatSignature(s):
             if idx > 0:
                 _str += ", "
             argtype = re.sub(r"\bcv::", "", arg[0])
-            argtype = re.sub(r"\s+(\*|&)$", "\\1", arg[0])
             bidx = argtype.find('[')
             if bidx < 0:
-                _str += argtype
+                _str += argtype + " "
             else:
-                _str += argtype[:bidx]
-            _str += " "
+                _srt += argtype[:bidx]
             if arg[1]:
                 _str += arg[1]
             else:
@@ -199,7 +193,6 @@ def process_module(module, path):
     if module == "gpu":
         hdrlist.append(os.path.join(path, "..", "core", "include", "opencv2", "core", "cuda_devptrs.hpp"))
         hdrlist.append(os.path.join(path, "..", "core", "include", "opencv2", "core", "gpumat.hpp"))
-        hdrlist.append(os.path.join(path, "..", "core", "include", "opencv2", "core", "stream_accessor.hpp"))
 
     decls = []
     for hname in hdrlist:
@@ -328,7 +321,6 @@ def process_module(module, path):
             flookup[fn[0]] = flookup_entry
 
     if do_python_crosscheck:
-        pyclsnamespaces = ["cv." + x[3:].replace(".", "_") for x in clsnamespaces]
         for name, doc in rst.iteritems():
             decls = doc.get("decls")
             if not decls:
@@ -397,7 +389,7 @@ def process_module(module, path):
                     pname = signature[1][4:signature[1].find('(')]
                     cvname = "cv." + pname
                     parent = None
-                    for cl in pyclsnamespaces:
+                    for cl in clsnamespaces:
                         if cvname.startswith(cl + "."):
                             if cl.startswith(parent or ""):
                                 parent = cl

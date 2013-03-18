@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 '''
 Data matrix detector sample.
 Usage:
@@ -18,8 +16,6 @@ Keyboard shortcuts:
 
 import cv2
 import numpy as np
-
-# built-in modules
 import sys
 
 def data_matrix_demo(cap):

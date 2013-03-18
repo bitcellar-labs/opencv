@@ -124,29 +124,14 @@ inline int SplitIntelFeatures(const vector<string>& features)
     return result;
 }
 
-inline int SplitVersion(const vector<string>& features, const string& package_version)
+inline string SplitVersion(const vector<string>& features, const string& package_version)
 {
-    int result = 0;
+    string result;
 
     if ((features.size() > 1) && ('v' == features[1][0]))
     {
-        // Taking major and minor mart of library version from package name
-        string tmp1 = features[1].substr(1);
-        result += atoi(tmp1.substr(0,1).c_str())*1000000 + atoi(tmp1.substr(1,1).c_str())*10000;
-
-        // Taking release and build number from package revision
-        vector<string> tmp2 = SplitStringVector(package_version, '.');
-        if (tmp2.size() == 2)
-        {
-            // the 2nd digit is revision
-            result += atoi(tmp2[0].c_str())*100 + 00;
-        }
-        else
-        {
-            // the 2nd digit is part of library version
-            // the 3rd digit is revision
-            result += atoi(tmp2[0].c_str())*100 + atoi(tmp2[1].c_str());
-        }
+        result = features[1].substr(1);
+        result += SplitStringVector(package_version, '.')[0];
     }
     else
     {
@@ -201,26 +186,18 @@ inline int SplitPlatfrom(const vector<string>& features)
  * Second part is version. Version starts from "v" symbol. After "v" symbol version nomber without dot symbol added.
  * If platform is known third part is platform name
  * If platform is unknown it is defined by hardware capabilities using pattern: <arch>_<floating point and vectorization features>_<other features>
- * Example: armv7_neon
+ * Example: armv7_neon, armv5_vfpv3
  */
-PackageInfo::PackageInfo(int version, int platform, int cpu_id, std::string install_path):
-    Version(version),
-    Platform(platform),
-    CpuID(cpu_id),
-    InstallPath("")
+PackageInfo::PackageInfo(const string& version, int platform, int cpu_id, std::string install_path):
+Version(version),
+Platform(platform),
+CpuID(cpu_id),
+InstallPath("")
 {
     #ifndef __SUPPORT_TEGRA3
     Platform = PLATFORM_UNKNOWN;
     #endif
-
-    int major_version = version/1000000;
-    int minor_version = version/10000 - major_version*100;
-
-    char tmp[32];
-
-    sprintf(tmp, "%d%d", major_version, minor_version);
-
-    FullName = BasePackageName + std::string("_v") + std::string(tmp);
+    FullName = BasePackageName + "_v" + Version.substr(0, Version.size()-1);
     if (PLATFORM_UNKNOWN != Platform)
     {
         FullName += string("_") + JoinPlatform(platform);
@@ -318,7 +295,7 @@ PackageInfo::PackageInfo(int version, int platform, int cpu_id, std::string inst
             else
             {
                 LOGD("PackageInfo::PackageInfo: package arch unknown");
-                Version = 0;
+                Version.clear();
                 CpuID = ARCH_UNKNOWN;
                 Platform = PLATFORM_UNKNOWN;
             }
@@ -326,7 +303,7 @@ PackageInfo::PackageInfo(int version, int platform, int cpu_id, std::string inst
         else
         {
             LOGD("PackageInfo::PackageInfo: package arch unknown");
-            Version = 0;
+            Version.clear();
             CpuID = ARCH_UNKNOWN;
             Platform = PLATFORM_UNKNOWN;
         }
@@ -364,8 +341,8 @@ InstallPath(install_path)
         LOGD("Trying to load info library \"%s\"", tmp.c_str());
 
             void* handle;
-            InfoFunctionType name_func;
-            InfoFunctionType revision_func;
+            const char* (*name_func)();
+            const char* (*revision_func)();
 
             handle = dlopen(tmp.c_str(), RTLD_LAZY);
             if (handle)
@@ -373,8 +350,8 @@ InstallPath(install_path)
                 const char* error;
 
                 dlerror();
-                name_func = (InfoFunctionType)dlsym(handle, "GetPackageName");
-                revision_func = (InfoFunctionType)dlsym(handle, "GetRevision");
+                *(void **) (&name_func) = dlsym(handle, "GetPackageName");
+                *(void **) (&revision_func) = dlsym(handle, "GetRevision");
                 error = dlerror();
 
                 if (!error && revision_func && name_func)
@@ -393,7 +370,7 @@ InstallPath(install_path)
             {
                 LOGI("Info library not found in package");
                 LOGI("OpenCV Manager package does not contain any verison of OpenCV library");
-                Version = 0;
+                Version.clear();
                 CpuID = ARCH_UNKNOWN;
                 Platform = PLATFORM_UNKNOWN;
                 return;
@@ -405,7 +382,7 @@ InstallPath(install_path)
     if (!features.empty() && (BasePackageName == features[0]))
     {
         Version = SplitVersion(features, package_version);
-        if (0 == Version)
+        if (Version.empty())
         {
             CpuID = ARCH_UNKNOWN;
             Platform = PLATFORM_UNKNOWN;
@@ -415,24 +392,14 @@ InstallPath(install_path)
         Platform = SplitPlatfrom(features);
         if (PLATFORM_UNKNOWN != Platform)
         {
-            switch (Platform)
-            {
-                case PLATFORM_TEGRA2:
-                {
-                    CpuID = ARCH_ARMv7 | FEATURES_HAS_VFPv3d16;
-                } break;
-                case PLATFORM_TEGRA3:
-                {
-                    CpuID = ARCH_ARMv7 | FEATURES_HAS_VFPv3 | FEATURES_HAS_NEON;
-                } break;
-            }
+            CpuID = 0;
         }
         else
         {
             if (features.size() < 3)
             {
                 LOGD("It is not OpenCV library package for this platform");
-                Version = 0;
+                Version.clear();
                 CpuID = ARCH_UNKNOWN;
                 Platform = PLATFORM_UNKNOWN;
                 return;
@@ -466,7 +433,7 @@ InstallPath(install_path)
             else
             {
                 LOGD("It is not OpenCV library package for this platform");
-                Version = 0;
+                Version.clear();
                 CpuID = ARCH_UNKNOWN;
                 Platform = PLATFORM_UNKNOWN;
                 return;
@@ -476,7 +443,7 @@ InstallPath(install_path)
     else
     {
         LOGD("It is not OpenCV library package for this platform");
-        Version = 0;
+        Version.clear();
         CpuID = ARCH_UNKNOWN;
         Platform = PLATFORM_UNKNOWN;
         return;
@@ -485,7 +452,7 @@ InstallPath(install_path)
 
 bool PackageInfo::IsValid() const
 {
-    return !((0 == Version) && (PLATFORM_UNKNOWN == Platform) && (ARCH_UNKNOWN == CpuID));
+    return !(Version.empty() && (PLATFORM_UNKNOWN == Platform) && (ARCH_UNKNOWN == CpuID));
 }
 
 int PackageInfo::GetPlatform() const
@@ -503,7 +470,7 @@ string PackageInfo::GetFullName() const
     return FullName;
 }
 
-int PackageInfo::GetVersion() const
+string PackageInfo::GetVersion() const
 {
     return Version;
 }

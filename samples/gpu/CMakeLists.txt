@@ -1,7 +1,7 @@
 SET(OPENCV_GPU_SAMPLES_REQUIRED_DEPS opencv_core opencv_flann opencv_imgproc opencv_highgui
                                      opencv_ml opencv_video opencv_objdetect opencv_features2d
                                      opencv_calib3d opencv_legacy opencv_contrib opencv_gpu
-                                     opencv_nonfree opencv_softcascade)
+                                     opencv_nonfree)
 
 ocv_check_dependencies(${OPENCV_GPU_SAMPLES_REQUIRED_DEPS})
 
@@ -35,7 +35,7 @@ if(BUILD_EXAMPLES AND OCV_DEPENDENCIES_FOUND)
     target_link_libraries(${the_target} ${OPENCV_LINKER_LIBS} ${OPENCV_GPU_SAMPLES_REQUIRED_DEPS})
 
     set_target_properties(${the_target} PROPERTIES
-      OUTPUT_NAME "${project}-example-${name}"
+      OUTPUT_NAME "${name}_${project}"
       PROJECT_LABEL "(EXAMPLE_${project_upper}) ${name}")
 
     if(ENABLE_SOLUTION_FOLDERS)

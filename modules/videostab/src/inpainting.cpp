@@ -48,6 +48,8 @@
 #include "opencv2/videostab/ring_buffer.hpp"
 #include "opencv2/opencv_modules.hpp"
 
+using namespace std;
+
 namespace cv
 {
 namespace videostab
@@ -61,7 +63,7 @@ void InpaintingPipeline::setRadius(int val)
 }
 
 
-void InpaintingPipeline::setFrames(const std::vector<Mat> &val)
+void InpaintingPipeline::setFrames(const vector<Mat> &val)
 {
     for (size_t i = 0; i < inpainters_.size(); ++i)
         inpainters_[i]->setFrames(val);
@@ -77,7 +79,7 @@ void InpaintingPipeline::setMotionModel(MotionModel val)
 }
 
 
-void InpaintingPipeline::setMotions(const std::vector<Mat> &val)
+void InpaintingPipeline::setMotions(const vector<Mat> &val)
 {
     for (size_t i = 0; i < inpainters_.size(); ++i)
         inpainters_[i]->setMotions(val);
@@ -85,7 +87,7 @@ void InpaintingPipeline::setMotions(const std::vector<Mat> &val)
 }
 
 
-void InpaintingPipeline::setStabilizedFrames(const std::vector<Mat> &val)
+void InpaintingPipeline::setStabilizedFrames(const vector<Mat> &val)
 {
     for (size_t i = 0; i < inpainters_.size(); ++i)
         inpainters_[i]->setStabilizedFrames(val);
@@ -93,7 +95,7 @@ void InpaintingPipeline::setStabilizedFrames(const std::vector<Mat> &val)
 }
 
 
-void InpaintingPipeline::setStabilizationMotions(const std::vector<Mat> &val)
+void InpaintingPipeline::setStabilizationMotions(const vector<Mat> &val)
 {
     for (size_t i = 0; i < inpainters_.size(); ++i)
         inpainters_[i]->setStabilizationMotions(val);
@@ -128,13 +130,13 @@ void ConsistentMosaicInpainter::inpaint(int idx, Mat &frame, Mat &mask)
     CV_Assert(mask.size() == frame.size() && mask.type() == CV_8U);
 
     Mat invS = at(idx, *stabilizationMotions_).inv();
-    std::vector<Mat_<float> > vmotions(2*radius_ + 1);
+    vector<Mat_<float> > vmotions(2*radius_ + 1);
     for (int i = -radius_; i <= radius_; ++i)
         vmotions[radius_ + i] = getMotion(idx, idx + i, *motions_) * invS;
 
     int n;
     float mean, var;
-    std::vector<Pixel3> pixels(2*radius_ + 1);
+    vector<Pixel3> pixels(2*radius_ + 1);
 
     Mat_<Point3_<uchar> > frame_(frame);
     Mat_<uchar> mask_(mask);
@@ -172,7 +174,7 @@ void ConsistentMosaicInpainter::inpaint(int idx, Mat &frame, Mat &mask)
 
                     if (var < stdevThresh_ * stdevThresh_)
                     {
-                        std::sort(pixels.begin(), pixels.begin() + n);
+                        sort(pixels.begin(), pixels.begin() + n);
                         int nh = (n-1)/2;
                         int c1 = pixels[nh].color.x;
                         int c2 = pixels[nh].color.y;
@@ -295,7 +297,7 @@ public:
                         float distColor = sqr(static_cast<float>(cp.x-cq.x))
                                         + sqr(static_cast<float>(cp.y-cq.y))
                                         + sqr(static_cast<float>(cp.z-cq.z));
-                        float w = 1.f / (std::sqrt(distColor * (dx*dx + dy*dy)) + eps);
+                        float w = 1.f / (sqrt(distColor * (dx*dx + dy*dy)) + eps);
 
                         uEst += w * (flowX(qy0,qx0) - dudx*dx - dudy*dy);
                         vEst += w * (flowY(qy0,qx0) - dvdx*dx - dvdy*dy);
@@ -336,8 +338,8 @@ MotionInpainter::MotionInpainter()
 
 void MotionInpainter::inpaint(int idx, Mat &frame, Mat &mask)
 {
-    std::priority_queue<std::pair<float,int> > neighbors;
-    std::vector<Mat> vmotions(2*radius_ + 1);
+    priority_queue<pair<float,int> > neighbors;
+    vector<Mat> vmotions(2*radius_ + 1);
 
     for (int i = -radius_; i <= radius_; ++i)
     {
@@ -347,7 +349,7 @@ void MotionInpainter::inpaint(int idx, Mat &frame, Mat &mask)
         if (i != 0)
         {
             float err = alignementError(motion0to1, frame, mask, at(idx + i, *frames_));
-            neighbors.push(std::make_pair(-err, idx + i));
+            neighbors.push(make_pair(-err, idx + i));
         }
     }
 

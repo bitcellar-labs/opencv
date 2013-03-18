@@ -58,7 +58,7 @@ size_t KeyPoint::hash() const
     return _Val;
 }
 
-void write(FileStorage& fs, const std::string& objname, const std::vector<KeyPoint>& keypoints)
+void write(FileStorage& fs, const string& objname, const vector<KeyPoint>& keypoints)
 {
     WriteStructContext ws(fs, objname, CV_NODE_SEQ + CV_NODE_FLOW);
 
@@ -77,7 +77,7 @@ void write(FileStorage& fs, const std::string& objname, const std::vector<KeyPoi
 }
 
 
-void read(const FileNode& node, std::vector<KeyPoint>& keypoints)
+void read(const FileNode& node, vector<KeyPoint>& keypoints)
 {
     keypoints.resize(0);
     FileNodeIterator it = node.begin(), it_end = node.end();
@@ -91,7 +91,7 @@ void read(const FileNode& node, std::vector<KeyPoint>& keypoints)
 
 
 void KeyPoint::convert(const std::vector<KeyPoint>& keypoints, std::vector<Point2f>& points2f,
-                       const std::vector<int>& keypointIndexes)
+                       const vector<int>& keypointIndexes)
 {
     if( keypointIndexes.empty() )
     {
@@ -138,8 +138,8 @@ float KeyPoint::overlap( const KeyPoint& kp1, const KeyPoint& kp2 )
     float ovrl = 0.f;
 
     // one circle is completely encovered by the other => no intersection points!
-    if( std::min( a, b ) + c <= std::max( a, b ) )
-        return std::min( a_2, b_2 ) / std::max( a_2, b_2 );
+    if( min( a, b ) + c <= max( a, b ) )
+        return min( a_2, b_2 ) / max( a_2, b_2 );
 
     if( c < a + b ) // circles intersect
     {
@@ -189,7 +189,7 @@ struct KeypointResponseGreater
 };
 
 // takes keypoints and culls them by the response
-void KeyPointsFilter::retainBest(std::vector<KeyPoint>& keypoints, int n_points)
+void KeyPointsFilter::retainBest(vector<KeyPoint>& keypoints, int n_points)
 {
     //this is only necessary if the keypoints size is greater than the number of desired points.
     if( n_points > 0 && keypoints.size() > (size_t)n_points )
@@ -204,7 +204,7 @@ void KeyPointsFilter::retainBest(std::vector<KeyPoint>& keypoints, int n_points)
         //this is the boundary response, and in the case of FAST may be ambigous
         float ambiguous_response = keypoints[n_points - 1].response;
         //use std::partition to grab all of the keypoints with the boundary response.
-        std::vector<KeyPoint>::const_iterator new_end =
+        vector<KeyPoint>::const_iterator new_end =
         std::partition(keypoints.begin() + n_points, keypoints.end(),
                        KeypointResponseGreaterThanThreshold(ambiguous_response));
         //resize the keypoints, given this new end point. nth_element and partition reordered the points inplace
@@ -225,14 +225,14 @@ struct RoiPredicate
     Rect r;
 };
 
-void KeyPointsFilter::runByImageBorder( std::vector<KeyPoint>& keypoints, Size imageSize, int borderSize )
+void KeyPointsFilter::runByImageBorder( vector<KeyPoint>& keypoints, Size imageSize, int borderSize )
 {
     if( borderSize > 0)
     {
         if (imageSize.height <= borderSize * 2 || imageSize.width <= borderSize * 2)
             keypoints.clear();
         else
-            keypoints.erase( std::remove_if(keypoints.begin(), keypoints.end(),
+            keypoints.erase( remove_if(keypoints.begin(), keypoints.end(),
                                        RoiPredicate(Rect(Point(borderSize, borderSize),
                                                          Point(imageSize.width - borderSize, imageSize.height - borderSize)))),
                              keypoints.end() );
@@ -253,13 +253,13 @@ struct SizePredicate
     float minSize, maxSize;
 };
 
-void KeyPointsFilter::runByKeypointSize( std::vector<KeyPoint>& keypoints, float minSize, float maxSize )
+void KeyPointsFilter::runByKeypointSize( vector<KeyPoint>& keypoints, float minSize, float maxSize )
 {
     CV_Assert( minSize >= 0 );
     CV_Assert( maxSize >= 0);
     CV_Assert( minSize <= maxSize );
 
-    keypoints.erase( std::remove_if(keypoints.begin(), keypoints.end(), SizePredicate(minSize, maxSize)),
+    keypoints.erase( remove_if(keypoints.begin(), keypoints.end(), SizePredicate(minSize, maxSize)),
                      keypoints.end() );
 }
 
@@ -277,17 +277,17 @@ private:
     MaskPredicate& operator=(const MaskPredicate&);
 };
 
-void KeyPointsFilter::runByPixelsMask( std::vector<KeyPoint>& keypoints, const Mat& mask )
+void KeyPointsFilter::runByPixelsMask( vector<KeyPoint>& keypoints, const Mat& mask )
 {
     if( mask.empty() )
         return;
 
-    keypoints.erase(std::remove_if(keypoints.begin(), keypoints.end(), MaskPredicate(mask)), keypoints.end());
+    keypoints.erase(remove_if(keypoints.begin(), keypoints.end(), MaskPredicate(mask)), keypoints.end());
 }
 
 struct KeyPoint_LessThan
 {
-    KeyPoint_LessThan(const std::vector<KeyPoint>& _kp) : kp(&_kp) {}
+    KeyPoint_LessThan(const vector<KeyPoint>& _kp) : kp(&_kp) {}
     bool operator()(int i, int j) const
     {
         const KeyPoint& kp1 = (*kp)[i];
@@ -309,14 +309,14 @@ struct KeyPoint_LessThan
 
         return i < j;
     }
-    const std::vector<KeyPoint>* kp;
+    const vector<KeyPoint>* kp;
 };
 
-void KeyPointsFilter::removeDuplicated( std::vector<KeyPoint>& keypoints )
+void KeyPointsFilter::removeDuplicated( vector<KeyPoint>& keypoints )
 {
     int i, j, n = (int)keypoints.size();
-    std::vector<int> kpidx(n);
-    std::vector<uchar> mask(n, (uchar)1);
+    vector<int> kpidx(n);
+    vector<uchar> mask(n, (uchar)1);
 
     for( i = 0; i < n; i++ )
         kpidx[i] = i;

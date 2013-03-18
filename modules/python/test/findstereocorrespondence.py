@@ -1,5 +1,3 @@
-#/usr/bin/env python
-
 import sys
 import cv2.cv as cv
 

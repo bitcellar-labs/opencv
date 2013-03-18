@@ -7,7 +7,7 @@
 using namespace cv;
 using namespace std;
 
-static void help(char* progName)
+void help(char* progName)
 {
     cout << endl
         <<  "This program demonstrated the use of the discrete Fourier transform (DFT). " << endl

@@ -1,5 +1,3 @@
-#/usr/bin/env python
-
 import cv2.cv as cv
 import numpy as np
 import time

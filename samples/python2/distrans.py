@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 '''
 Distance transform sample.
 
@@ -15,22 +13,15 @@ Keys:
 import numpy as np
 import cv2
 import cv2.cv as cv
-
 from common import make_cmap
 
 if __name__ == '__main__':
     import sys
-    try:
-        fn = sys.argv[1]
-    except:
-        fn = '../cpp/fruits.jpg'
+    try: fn = sys.argv[1]
+    except: fn = '../cpp/fruits.jpg'
     print __doc__
 
     img = cv2.imread(fn, 0)
-    if img is None:
-        print 'Failed to load fn:', fn
-        sys.exit(1)
-        
     cm = make_cmap('jet')
     need_update = True
     voronoi = False

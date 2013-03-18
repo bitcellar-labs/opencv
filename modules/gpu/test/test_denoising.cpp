@@ -69,7 +69,7 @@ PARAM_TEST_CASE(BilateralFilter, cv::gpu::DeviceInfo, cv::Size, MatType)
     }
 };
 
-GPU_TEST_P(BilateralFilter, Accuracy)
+TEST_P(BilateralFilter, Accuracy)
 {
     cv::Mat src = randomMat(size, type);
 
@@ -105,7 +105,7 @@ struct BruteForceNonLocalMeans: testing::TestWithParam<cv::gpu::DeviceInfo>
     }
 };
 
-GPU_TEST_P(BruteForceNonLocalMeans, Regression)
+TEST_P(BruteForceNonLocalMeans, Regression)
 {
     using cv::gpu::GpuMat;
 
@@ -134,6 +134,8 @@ GPU_TEST_P(BruteForceNonLocalMeans, Regression)
 
 INSTANTIATE_TEST_CASE_P(GPU_Denoising, BruteForceNonLocalMeans, ALL_DEVICES);
 
+
+
 ////////////////////////////////////////////////////////
 // Fast Force Non local means
 
@@ -148,7 +150,7 @@ struct FastNonLocalMeans: testing::TestWithParam<cv::gpu::DeviceInfo>
     }
 };
 
-GPU_TEST_P(FastNonLocalMeans, Regression)
+TEST_P(FastNonLocalMeans, Regression)
 {
     using cv::gpu::GpuMat;
 
@@ -165,8 +167,8 @@ GPU_TEST_P(FastNonLocalMeans, Regression)
     fnlmd.labMethod(GpuMat(bgr),  dbgr, 20, 10);
 
 #if 0
-    dumpImage("denoising/fnlm_denoised_lena_bgr.png", cv::Mat(dbgr));
-    dumpImage("denoising/fnlm_denoised_lena_gray.png", cv::Mat(dgray));
+    //dumpImage("denoising/fnlm_denoised_lena_bgr.png", cv::Mat(dbgr));
+    //dumpImage("denoising/fnlm_denoised_lena_gray.png", cv::Mat(dgray));
 #endif
 
     cv::Mat bgr_gold  = readImage("denoising/fnlm_denoised_lena_bgr.png", cv::IMREAD_COLOR);
@@ -178,5 +180,6 @@ GPU_TEST_P(FastNonLocalMeans, Regression)
 }
 
 INSTANTIATE_TEST_CASE_P(GPU_Denoising, FastNonLocalMeans, ALL_DEVICES);
+
 
 #endif // HAVE_CUDA

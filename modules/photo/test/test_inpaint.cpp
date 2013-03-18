@@ -43,7 +43,6 @@
 #include "test_precomp.hpp"
 #include <string>
 
-using namespace std;
 using namespace cv;
 
 class CV_InpaintTest : public cvtest::BaseTest
@@ -116,4 +115,4 @@ void CV_InpaintTest::run( int )
     ts->set_failed_test_info(cvtest::TS::OK);
 }
 
-TEST(Photo_Inpaint, regression) { CV_InpaintTest test; test.safe_run(); }
+TEST(Imgproc_Inpaint, regression) { CV_InpaintTest test; test.safe_run(); }

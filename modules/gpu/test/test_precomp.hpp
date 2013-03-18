@@ -41,7 +41,7 @@
 
 #ifdef __GNUC__
 #  pragma GCC diagnostic ignored "-Wmissing-declarations"
-#  if defined __clang__ || defined __APPLE__
+#  ifdef __clang__
 #    pragma GCC diagnostic ignored "-Wmissing-prototypes"
 #    pragma GCC diagnostic ignored "-Wextra"
 #  endif
@@ -51,7 +51,6 @@
 #define __OPENCV_TEST_PRECOMP_HPP__
 
 #include <cmath>
-#include <ctime>
 #include <cstdio>
 #include <iostream>
 #include <fstream>
@@ -69,16 +68,16 @@
     #include <cuda.h>
     #include <cuda_runtime.h>
 
-    #include "opencv2/core.hpp"
-    #include "opencv2/core/opengl.hpp"
-    #include "opencv2/highgui.hpp"
-    #include "opencv2/calib3d.hpp"
-    #include "opencv2/imgproc.hpp"
-    #include "opencv2/video.hpp"
-    #include "opencv2/ts.hpp"
-    #include "opencv2/gpu.hpp"
-    #include "opencv2/nonfree.hpp"
-    #include "opencv2/legacy.hpp"
+    #include "opencv2/core/core.hpp"
+    #include "opencv2/highgui/highgui.hpp"
+    #include "opencv2/calib3d/calib3d.hpp"
+    #include "opencv2/imgproc/imgproc.hpp"
+    #include "opencv2/video/video.hpp"
+    #include "opencv2/ts/ts.hpp"
+    #include "opencv2/ts/ts_perf.hpp"
+    #include "opencv2/gpu/gpu.hpp"
+    #include "opencv2/nonfree/nonfree.hpp"
+    #include "opencv2/legacy/legacy.hpp"
 
     #include "utility.hpp"
     #include "interpolation.hpp"

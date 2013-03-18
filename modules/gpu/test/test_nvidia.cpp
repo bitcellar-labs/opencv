@@ -41,9 +41,11 @@
 
 #include "test_precomp.hpp"
 
-#ifdef HAVE_CUDA
+#if defined HAVE_CUDA
+  OutputLevel nvidiaTestOutputLevel = OutputLevelNone;
+#endif
 
-OutputLevel nvidiaTestOutputLevel = OutputLevelNone;
+#if defined HAVE_CUDA && !defined(CUDA_DISABLER)
 
 using namespace cvtest;
 using namespace testing;
@@ -67,77 +69,77 @@ struct NVidiaTest : TestWithParam<cv::gpu::DeviceInfo>
 struct NPPST : NVidiaTest {};
 struct NCV : NVidiaTest {};
 
-GPU_TEST_P(NPPST, Integral)
-{
-    bool res = nvidia_NPPST_Integral_Image(_path, nvidiaTestOutputLevel);
+//TEST_P(NPPST, Integral)
+//{
+//    bool res = nvidia_NPPST_Integral_Image(path, nvidiaTestOutputLevel);
 
-    ASSERT_TRUE(res);
-}
+//    ASSERT_TRUE(res);
+//}
 
-GPU_TEST_P(NPPST, SquaredIntegral)
+TEST_P(NPPST, SquaredIntegral)
 {
     bool res = nvidia_NPPST_Squared_Integral_Image(_path, nvidiaTestOutputLevel);
 
     ASSERT_TRUE(res);
 }
 
-GPU_TEST_P(NPPST, RectStdDev)
+TEST_P(NPPST, RectStdDev)
 {
     bool res = nvidia_NPPST_RectStdDev(_path, nvidiaTestOutputLevel);
 
     ASSERT_TRUE(res);
 }
 
-GPU_TEST_P(NPPST, Resize)
+TEST_P(NPPST, Resize)
 {
     bool res = nvidia_NPPST_Resize(_path, nvidiaTestOutputLevel);
 
     ASSERT_TRUE(res);
 }
 
-GPU_TEST_P(NPPST, VectorOperations)
+TEST_P(NPPST, VectorOperations)
 {
     bool res = nvidia_NPPST_Vector_Operations(_path, nvidiaTestOutputLevel);
 
     ASSERT_TRUE(res);
 }
 
-GPU_TEST_P(NPPST, Transpose)
+TEST_P(NPPST, Transpose)
 {
     bool res = nvidia_NPPST_Transpose(_path, nvidiaTestOutputLevel);
 
     ASSERT_TRUE(res);
 }
 
-GPU_TEST_P(NCV, VectorOperations)
+TEST_P(NCV, VectorOperations)
 {
     bool res = nvidia_NCV_Vector_Operations(_path, nvidiaTestOutputLevel);
 
     ASSERT_TRUE(res);
 }
 
-GPU_TEST_P(NCV, HaarCascadeLoader)
+TEST_P(NCV, HaarCascadeLoader)
 {
     bool res = nvidia_NCV_Haar_Cascade_Loader(_path, nvidiaTestOutputLevel);
 
     ASSERT_TRUE(res);
 }
 
-GPU_TEST_P(NCV, HaarCascadeApplication)
+TEST_P(NCV, HaarCascadeApplication)
 {
     bool res = nvidia_NCV_Haar_Cascade_Application(_path, nvidiaTestOutputLevel);
 
     ASSERT_TRUE(res);
 }
 
-GPU_TEST_P(NCV, HypothesesFiltration)
+TEST_P(NCV, HypothesesFiltration)
 {
     bool res = nvidia_NCV_Hypotheses_Filtration(_path, nvidiaTestOutputLevel);
 
     ASSERT_TRUE(res);
 }
 
-GPU_TEST_P(NCV, Visualization)
+TEST_P(NCV, Visualization)
 {
     // this functionality doesn't used in gpu module
     bool res = nvidia_NCV_Visualization(_path, nvidiaTestOutputLevel);

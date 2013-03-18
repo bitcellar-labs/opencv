@@ -1,14 +1,12 @@
 '''
-This module contains some common routines used by other samples.
+This module contais some common routines used by other samples.
 '''
 
 import numpy as np
 import cv2
-
-# built-in modules
 import os
-import itertools as it
 from contextlib import contextmanager
+import itertools as it
 
 image_extensions = ['.bmp', '.jpg', '.jpeg', '.png', '.tif', '.tiff', '.pbm', '.pgm', '.ppm']
 

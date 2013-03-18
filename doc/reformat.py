@@ -1,5 +1,3 @@
-#/usr/bin/env python
-
 import os, sys, re
 
 finput=open(sys.argv[1], "rt")

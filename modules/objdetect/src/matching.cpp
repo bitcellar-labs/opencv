@@ -1212,7 +1212,6 @@ int maxFunctionalScore(const CvLSVMFilterObject **all_F, int n,
         free(tmpPartsDisplacement[i]);
     }
     free(tmpPoints);
-    free(tmpPartsDisplacement);
     free(tmpScore);
     free(tmpKPoints);
 
@@ -1396,7 +1395,7 @@ static int createSchedule(const CvLSVMFeaturePyramid *H, const CvLSVMFilterObjec
                    const int n, const int bx, const int by,
                    const int threadsNum, int *kLevels, int **processingLevels)
 {
-    int rootFilterDim, sumPartFiltersDim, i, numLevels, dbx, dby;
+    int rootFilterDim, sumPartFiltersDim, i, numLevels, dbx, dby, numDotProducts;
     int j, minValue, argMin, lambda, maxValue, k;
     int *dotProd, *weights, *disp;
     if (H == NULL || all_F == NULL)
@@ -1420,6 +1419,8 @@ static int createSchedule(const CvLSVMFeaturePyramid *H, const CvLSVMFilterObjec
     // of feature map with part filter
     dbx = 2 * bx;
     dby = 2 * by;
+    // Total number of dot products for all levels
+    numDotProducts = 0;
     lambda = LAMBDA;
     for (i = 0; i < numLevels; i++)
     {
@@ -1427,6 +1428,7 @@ static int createSchedule(const CvLSVMFeaturePyramid *H, const CvLSVMFilterObjec
                      H->pyramid[i + lambda]->sizeY * rootFilterDim +
                      (H->pyramid[i]->sizeX + dbx) *
                      (H->pyramid[i]->sizeY + dby) * sumPartFiltersDim;
+        numDotProducts += dotProd[i];
     }
     // Allocation memory for saving dot product number performed by each thread
     weights = (int *)malloc(sizeof(int) * threadsNum);

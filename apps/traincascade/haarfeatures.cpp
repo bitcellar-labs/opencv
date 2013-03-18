@@ -1,4 +1,4 @@
-#include "opencv2/core.hpp"
+#include "opencv2/core/core.hpp"
 #include "opencv2/core/internal.hpp"
 
 #include "haarfeatures.h"
@@ -25,9 +25,9 @@ void CvHaarFeatureParams::init( const CvFeatureParams& fp )
 void CvHaarFeatureParams::write( FileStorage &fs ) const
 {
     CvFeatureParams::write( fs );
-    string modeStr = mode == BASIC ? CC_MODE_BASIC :
+    String modeStr = mode == BASIC ? CC_MODE_BASIC :
                      mode == CORE ? CC_MODE_CORE :
-                     mode == ALL ? CC_MODE_ALL : string();
+                     mode == ALL ? CC_MODE_ALL : String();
     CV_Assert( !modeStr.empty() );
     fs << CC_MODE << modeStr;
 }
@@ -40,7 +40,7 @@ bool CvHaarFeatureParams::read( const FileNode &node )
     FileNode rnode = node[CC_MODE];
     if( !rnode.isString() )
         return false;
-    string modeStr;
+    String modeStr;
     rnode >> modeStr;
     mode = !modeStr.compare( CC_MODE_BASIC ) ? BASIC :
            !modeStr.compare( CC_MODE_CORE ) ? CORE :
@@ -58,13 +58,13 @@ void CvHaarFeatureParams::printDefaults() const
 void CvHaarFeatureParams::printAttrs() const
 {
     CvFeatureParams::printAttrs();
-    string mode_str = mode == BASIC ? CC_MODE_BASIC :
+    String mode_str = mode == BASIC ? CC_MODE_BASIC :
                        mode == CORE ? CC_MODE_CORE :
                        mode == ALL ? CC_MODE_ALL : 0;
     cout << "mode: " <<  mode_str << endl;
 }
 
-bool CvHaarFeatureParams::scanAttr( const string prmName, const string val)
+bool CvHaarFeatureParams::scanAttr( const String prmName, const String val)
 {
     if ( !CvFeatureParams::scanAttr( prmName, val ) )
     {

@@ -44,6 +44,25 @@
 
 #include "precomp.hpp"
 
+#if !defined(HAVE_OPENCL)
+
+namespace cv
+{
+    namespace ocl
+    {
+
+        void meanShiftSegmentation(const oclMat &, Mat &, int, int, int, TermCriteria)
+        {
+            throw_nogpu();
+        }
+
+    }
+}
+
+#else
+
+using namespace std;
+
 // Auxiliray stuff
 namespace
 {
@@ -59,9 +78,9 @@ namespace
         int find(int elem);
         int merge(int set1, int set2);
 
-        std::vector<int> parent;
-        std::vector<int> rank;
-        std::vector<int> size;
+        vector<int> parent;
+        vector<int> rank;
+        vector<int> size;
     private:
         DjSets(const DjSets &) {}
         DjSets operator =(const DjSets &);
@@ -88,8 +107,8 @@ namespace
 
         void addEdge(int from, int to, const T &val = T());
 
-        std::vector<int> start;
-        std::vector<Edge> edges;
+        vector<int> start;
+        vector<Edge> edges;
 
         int numv;
         int nume_max;
@@ -328,7 +347,7 @@ namespace cv
                 }
             }
 
-            std::vector<SegmLink> edges;
+            vector<SegmLink> edges;
             edges.reserve(g.numv);
 
             // Prepare edges connecting differnet components
@@ -357,7 +376,7 @@ namespace cv
 
             // Compute sum of the pixel's colors which are in the same segment
             Mat h_src = src;
-            std::vector<Vec4i> sumcols(nrows * ncols, Vec4i(0, 0, 0, 0));
+            vector<Vec4i> sumcols(nrows * ncols, Vec4i(0, 0, 0, 0));
             for (int y = 0; y < nrows; ++y)
             {
                 Vec4b *h_srcy = h_src.ptr<Vec4b>(y);
@@ -392,3 +411,4 @@ namespace cv
 
     }
 }
+#endif // #if !defined (HAVE_OPENCL)

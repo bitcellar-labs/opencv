@@ -305,9 +305,7 @@ int cv::getNumThreads(void)
 
 #elif defined HAVE_CSTRIPES
 
-    return numThreads > 0
-            ? numThreads
-            : cv::getNumberOfCPUs();
+    return cv::getNumberOfCPUs();
 
 #elif defined HAVE_OPENMP
 

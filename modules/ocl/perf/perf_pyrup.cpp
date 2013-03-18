@@ -43,6 +43,7 @@
 //
 //M*/
 
+#include "opencv2/core/core.hpp"
 #include "precomp.hpp"
 #include <iomanip>
 #ifdef HAVE_OPENCL

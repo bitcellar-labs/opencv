@@ -57,7 +57,7 @@ static void readTrainFilenames( const string& filename, string& dirName, vector<
 
     size_t pos = filename.rfind('\\');
     char dlmtr = '\\';
-    if (pos == string::npos)
+    if (pos == String::npos)
     {
         pos = filename.rfind('/');
         dlmtr = '/';

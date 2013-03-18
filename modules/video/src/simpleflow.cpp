@@ -116,7 +116,7 @@ static void crossBilateralFilter(const Mat& image,
   Mat weights(2*d+1, 2*d+1, CV_32F);
   Mat weighted_sum(2*d+1, 2*d+1, CV_32F);
 
-  std::vector<Mat> image_extended_channels;
+  vector<Mat> image_extended_channels;
   split(image_extended, image_extended_channels);
 
   for (int row = 0; row < rows; ++row) {
@@ -161,10 +161,10 @@ static void calcConfidence(const Mat& prev,
       if (c0 + v0 < 0) { v0 = -c0; }
       if (c0 + v0 >= cols) { v0 = cols - 1 - c0; }
 
-      const int top_row_shift = -std::min(r0 + u0, max_flow);
-      const int bottom_row_shift = std::min(rows - 1 - (r0 + u0), max_flow);
-      const int left_col_shift = -std::min(c0 + v0, max_flow);
-      const int right_col_shift = std::min(cols - 1 - (c0 + v0), max_flow);
+      const int top_row_shift = -min(r0 + u0, max_flow);
+      const int bottom_row_shift = min(rows - 1 - (r0 + u0), max_flow);
+      const int left_col_shift = -min(c0 + v0, max_flow);
+      const int right_col_shift = min(cols - 1 - (c0 + v0), max_flow);
 
       bool first_flow_iteration = true;
       float sum_e = 0, min_e = 0;
@@ -223,10 +223,10 @@ static void calcOpticalFlowSingleScaleSF(const Mat& prev_extended,
       if (c0 + v0 < 0) { v0 = -c0; }
       if (c0 + v0 >= cols) { v0 = cols - 1 - c0; }
 
-      const int top_row_shift = -std::min(r0 + u0, max_flow);
-      const int bottom_row_shift = std::min(rows - 1 - (r0 + u0), max_flow);
-      const int left_col_shift = -std::min(c0 + v0, max_flow);
-      const int right_col_shift = std::min(cols - 1 - (c0 + v0), max_flow);
+      const int top_row_shift = -min(r0 + u0, max_flow);
+      const int bottom_row_shift = min(rows - 1 - (r0 + u0), max_flow);
+      const int left_col_shift = -min(c0 + v0, max_flow);
+      const int right_col_shift = min(cols - 1 - (c0 + v0), max_flow);
 
       float min_cost = FLT_MAX, best_u = (float)u0, best_v = (float)v0;
 
@@ -289,11 +289,11 @@ static Mat calcIrregularityMat(const Mat& flow, int radius) {
   const int cols = flow.cols;
   Mat irregularity(rows, cols, CV_32F);
   for (int r = 0; r < rows; ++r) {
-    const int start_row = std::max(0, r - radius);
-    const int end_row = std::min(rows - 1, r + radius);
+    const int start_row = max(0, r - radius);
+    const int end_row = min(rows - 1, r + radius);
     for (int c = 0; c < cols; ++c) {
-      const int start_col = std::max(0, c - radius);
-      const int end_col = std::min(cols - 1, c + radius);
+      const int start_col = max(0, c - radius);
+      const int end_col = min(cols - 1, c + radius);
       for (int dr = start_row; dr <= end_row; ++dr) {
         for (int dc = start_col; dc <= end_col; ++dc) {
           const float diff = dist(flow.at<Vec2f>(r, c), flow.at<Vec2f>(dr, dc));
@@ -447,8 +447,8 @@ static void extrapolateFlow(Mat& flow,
   }
 }
 
-static void buildPyramidWithResizeMethod(const Mat& src,
-                                  std::vector<Mat>& pyramid,
+static void buildPyramidWithResizeMethod(Mat& src,
+                                  vector<Mat>& pyramid,
                                   int layers,
                                   int interpolation_type) {
   pyramid.push_back(src);
@@ -464,9 +464,9 @@ static void buildPyramidWithResizeMethod(const Mat& src,
   }
 }
 
-CV_EXPORTS_W void calcOpticalFlowSF(InputArray _from,
-                                    InputArray _to,
-                                    OutputArray _resulted_flow,
+CV_EXPORTS_W void calcOpticalFlowSF(Mat& from,
+                                    Mat& to,
+                                    Mat& resulted_flow,
                                     int layers,
                                     int averaging_radius,
                                     int max_flow,
@@ -479,13 +479,9 @@ CV_EXPORTS_W void calcOpticalFlowSF(InputArray _from,
                                     int upscale_averaging_radius,
                                     double upscale_sigma_dist,
                                     double upscale_sigma_color,
-                                    double speed_up_thr)
-{
-  Mat from = _from.getMat();
-  Mat to = _to.getMat();
-
-  std::vector<Mat> pyr_from_images;
-  std::vector<Mat> pyr_to_images;
+                                    double speed_up_thr) {
+  vector<Mat> pyr_from_images;
+  vector<Mat> pyr_to_images;
 
   buildPyramidWithResizeMethod(from, pyr_from_images, layers - 1, INTER_CUBIC);
   buildPyramidWithResizeMethod(to, pyr_to_images, layers - 1, INTER_CUBIC);
@@ -636,15 +632,14 @@ CV_EXPORTS_W void calcOpticalFlowSF(InputArray _from,
 
   GaussianBlur(flow, flow, Size(3, 3), 5);
 
-  _resulted_flow.create(flow.size(), CV_32FC2);
-  Mat resulted_flow = _resulted_flow.getMat();
+  resulted_flow = Mat(flow.size(), CV_32FC2);
   int from_to[] = {0,1 , 1,0};
   mixChannels(&flow, 1, &resulted_flow, 1, from_to, 2);
 }
 
-CV_EXPORTS_W void calcOpticalFlowSF(InputArray from,
-                                    InputArray to,
-                                    OutputArray flow,
+CV_EXPORTS_W void calcOpticalFlowSF(Mat& from,
+                                    Mat& to,
+                                    Mat& flow,
                                     int layers,
                                     int averaging_block_size,
                                     int max_flow) {

@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 '''
 MOSSE tracking sample
 
@@ -182,9 +180,7 @@ if __name__ == '__main__':
     import sys, getopt
     opts, args = getopt.getopt(sys.argv[1:], '', ['pause'])
     opts = dict(opts)
-    try:
-        video_src = args[0]
-    except:
-        video_src = '0'
+    try: video_src = args[0]
+    except: video_src = '0'
 
     App(video_src, paused = '--pause' in opts).run()

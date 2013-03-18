@@ -35,7 +35,7 @@ LOCAL_MODULE := libOpenCVEngine
 
 LOCAL_LDLIBS += -lz -lbinder -llog -lutils
 
-LOCAL_LDFLAGS += -Wl,-allow-shlib-undefined
+LOCAL_LDFLAGS += -Wl,-allow-shlib-undefine
 
 include $(BUILD_SHARED_LIBRARY)
 
@@ -52,8 +52,7 @@ LOCAL_SRC_FILES := \
     NativeService/CommonPackageManager.cpp \
     JNIWrapper/JavaBasedPackageManager.cpp \
     NativeService/PackageInfo.cpp \
-    JNIWrapper/HardwareDetector_jni.cpp \
-    JNIWrapper/OpenCVLibraryInfo.cpp
+    JNIWrapper/HardwareDetector_jni.cpp
 
 LOCAL_C_INCLUDES := \
     $(LOCAL_PATH)/include \
@@ -75,6 +74,7 @@ LOCAL_CFLAGS += -D__SUPPORT_MIPS
 LOCAL_MODULE := libOpenCVEngine_jni
 
 LOCAL_LDLIBS += -lz -lbinder -llog -lutils -landroid_runtime
+
 LOCAL_SHARED_LIBRARIES = libOpenCVEngine
 
 include $(BUILD_SHARED_LIBRARY)
@@ -83,4 +83,4 @@ include $(BUILD_SHARED_LIBRARY)
 #        Native test application
 #---------------------------------------------------------------------
 
-#include $(LOCAL_PATH)/Tests/Tests.mk
+include $(LOCAL_PATH)/Tests/Tests.mk

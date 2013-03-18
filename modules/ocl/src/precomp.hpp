@@ -12,12 +12,10 @@
 //
 // Copyright (C) 2010-2012, Institute Of Software Chinese Academy Of Science, all rights reserved.
 // Copyright (C) 2010-2012, Advanced Micro Devices, Inc., all rights reserved.
-// Copyright (C) 2010-2012, Multicoreware, Inc., all rights reserved.
 // Third party copyrights are property of their respective owners.
 //
 // @Authors
 //    Guoping Long, longguoping@gmail.com
-//    Yao Wang, bitwangyaoyao@gmail.com
 //
 // Redistribution and use in source and binary forms, with or without modification,
 // are permitted provided that the following conditions are met:
@@ -48,7 +46,7 @@
 #ifndef __OPENCV_PRECOMP_H__
 #define __OPENCV_PRECOMP_H__
 
-#if defined _MSC_VER && _MSC_VER >= 1200
+#if _MSC_VER >= 1200
 #pragma warning( disable: 4267 4324 4244 4251 4710 4711 4514 4996 )
 #endif
 
@@ -65,12 +63,14 @@
 #include <exception>
 #include <stdio.h>
 
-#include "opencv2/ocl.hpp"
+#include "opencv2/imgproc/imgproc.hpp"
 #include "opencv2/imgproc/imgproc_c.h"
 #include "opencv2/core/core_c.h"
+#include "opencv2/objdetect/objdetect.hpp"
+#include "opencv2/ocl/ocl.hpp"
 
 #include "opencv2/core/internal.hpp"
-//#include "opencv2/highgui.hpp"
+//#include "opencv2/highgui/highgui.hpp"
 
 #define __ATI__
 
@@ -84,6 +84,8 @@
 
 #include "safe_call.hpp"
 
+using namespace std;
+
 namespace cv
 {
     namespace ocl
@@ -91,8 +93,6 @@ namespace cv
         ///////////////////////////OpenCL call wrappers////////////////////////////
         void openCLMallocPitch(Context *clCxt, void **dev_ptr, size_t *pitch,
                                size_t widthInBytes, size_t height);
-        void openCLMallocPitchEx(Context *clCxt, void **dev_ptr, size_t *pitch,
-                               size_t widthInBytes, size_t height, DevMemRW rw_type, DevMemType mem_type);
         void openCLMemcpy2D(Context *clCxt, void *dst, size_t dpitch,
                             const void *src, size_t spitch,
                             size_t width, size_t height, enum openCLMemcpyKind kind, int channels = -1);
@@ -103,19 +103,19 @@ namespace cv
         cl_mem openCLCreateBuffer(Context *clCxt, size_t flag, size_t size);
         void openCLReadBuffer(Context *clCxt, cl_mem dst_buffer, void *host_buffer, size_t size);
         cl_kernel openCLGetKernelFromSource(const Context *clCxt,
-                                            const char **source, std::string kernelName);
+                                            const char **source, string kernelName);
         cl_kernel openCLGetKernelFromSource(const Context *clCxt,
-                                            const char **source, std::string kernelName, const char *build_options);
+                                            const char **source, string kernelName, const char *build_options);
         void openCLVerifyKernel(const Context *clCxt, cl_kernel kernel, size_t *localThreads);
-        void openCLExecuteKernel(Context *clCxt , const char **source, std::string kernelName, std::vector< std::pair<size_t, const void *> > &args,
+        void openCLExecuteKernel(Context *clCxt , const char **source, string kernelName, vector< std::pair<size_t, const void *> > &args,
                                  int globalcols , int globalrows, size_t blockSize = 16, int kernel_expand_depth = -1, int kernel_expand_channel = -1);
-        void openCLExecuteKernel_(Context *clCxt , const char **source, std::string kernelName,
+        void openCLExecuteKernel_(Context *clCxt , const char **source, string kernelName,
                                   size_t globalThreads[3], size_t localThreads[3],
-                                  std::vector< std::pair<size_t, const void *> > &args, int channels, int depth, const char *build_options);
-        void openCLExecuteKernel(Context *clCxt , const char **source, std::string kernelName, size_t globalThreads[3],
-                                 size_t localThreads[3],  std::vector< std::pair<size_t, const void *> > &args, int channels, int depth);
-        void openCLExecuteKernel(Context *clCxt , const char **source, std::string kernelName, size_t globalThreads[3],
-                                 size_t localThreads[3],  std::vector< std::pair<size_t, const void *> > &args, int channels,
+                                  vector< pair<size_t, const void *> > &args, int channels, int depth, const char *build_options);
+        void openCLExecuteKernel(Context *clCxt , const char **source, string kernelName, size_t globalThreads[3],
+                                 size_t localThreads[3],  vector< pair<size_t, const void *> > &args, int channels, int depth);
+        void openCLExecuteKernel(Context *clCxt , const char **source, string kernelName, size_t globalThreads[3],
+                                 size_t localThreads[3],  vector< pair<size_t, const void *> > &args, int channels,
                                  int depth, const char *build_options);
 
         cl_mem load_constant(cl_context context, cl_command_queue command_queue, const void *value,
@@ -131,17 +131,16 @@ namespace cv
             //Information of the OpenCL context
             cl_context clContext;
             cl_command_queue clCmdQueue;
-            cl_device_id devices;
-            std::string devName;
+            cl_device_id *devices;
+            string devName;
             cl_uint maxDimensions;
             size_t maxWorkGroupSize;
-            size_t maxWorkItemSizes[4];
+            size_t *maxWorkItemSizes;
             cl_uint maxComputeUnits;
             int double_support;
             //extra options to recognize vendor specific fp64 extensions
-            char extra_options[512];
-            std::string Binpath;
-            int unified_memory; //1 means integrated GPU, otherwise this value is 0
+            char *extra_options;
+            string Binpath;
         };
     }
 }

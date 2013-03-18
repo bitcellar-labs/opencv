@@ -69,7 +69,7 @@
 #ifdef DEBUG_CHESSBOARD
 #  include "opencv2/opencv_modules.hpp"
 #  ifdef HAVE_OPENCV_HIGHGUI
-#    include "opencv2/highgui.hpp"
+#    include "opencv2/highgui/highgui.hpp"
 #  else
 #    undef DEBUG_CHESSBOARD
 #  endif
@@ -1903,7 +1903,7 @@ bool cv::findChessboardCorners( InputArray _image, Size patternSize,
                             OutputArray corners, int flags )
 {
     int count = patternSize.area()*2;
-    std::vector<Point2f> tmpcorners(count+1);
+    vector<Point2f> tmpcorners(count+1);
     Mat image = _image.getMat(); CvMat c_image = image;
     bool ok = cvFindChessboardCorners(&c_image, patternSize,
         (CvPoint2D32f*)&tmpcorners[0], &count, flags ) > 0;
@@ -1949,11 +1949,11 @@ bool cv::findCirclesGrid( InputArray _image, Size patternSize,
     CV_Assert(isAsymmetricGrid ^ isSymmetricGrid);
 
     Mat image = _image.getMat();
-    std::vector<Point2f> centers;
+    vector<Point2f> centers;
 
-    std::vector<KeyPoint> keypoints;
+    vector<KeyPoint> keypoints;
     blobDetector->detect(image, keypoints);
-    std::vector<Point2f> points;
+    vector<Point2f> points;
     for (size_t i = 0; i < keypoints.size(); i++)
     {
       points.push_back (keypoints[i].pt);

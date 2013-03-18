@@ -30,7 +30,7 @@ const Size2i preferredVideoFrameSize(640, 480);
 const string wndTitle = "NVIDIA Computer Vision :: Haar Classifiers Cascade";
 
 
-static void matPrint(Mat &img, int lineOffsY, Scalar fontColor, const string &ss)
+void matPrint(Mat &img, int lineOffsY, Scalar fontColor, const string &ss)
 {
     int fontFace = FONT_HERSHEY_DUPLEX;
     double fontScale = 0.8;
@@ -45,7 +45,7 @@ static void matPrint(Mat &img, int lineOffsY, Scalar fontColor, const string &ss
 }
 
 
-static void displayState(Mat &canvas, bool bHelp, bool bGpu, bool bLargestFace, bool bFilter, double fps)
+void displayState(Mat &canvas, bool bHelp, bool bGpu, bool bLargestFace, bool bFilter, double fps)
 {
     Scalar fontColorRed = CV_RGB(255,0,0);
     Scalar fontColorNV  = CV_RGB(118,185,0);
@@ -74,7 +74,7 @@ static void displayState(Mat &canvas, bool bHelp, bool bGpu, bool bLargestFace, 
 }
 
 
-static NCVStatus process(Mat *srcdst,
+NCVStatus process(Mat *srcdst,
                   Ncv32u width, Ncv32u height,
                   NcvBool bFilterRects, NcvBool bLargestFace,
                   HaarClassifierCascadeDescriptor &haar,
@@ -281,7 +281,7 @@ int main(int argc, const char** argv)
     //==============================================================================
 
     namedWindow(wndTitle, 1);
-    Mat frameDisp;
+    Mat gray, frameDisp;
 
     do
     {

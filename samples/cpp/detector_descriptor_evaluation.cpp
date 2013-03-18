@@ -535,7 +535,7 @@ void DetectorQualityEvaluator::readAlgorithm ()
 {
     defaultDetector = FeatureDetector::create( algName );
     specificDetector = FeatureDetector::create( algName );
-    if( defaultDetector.empty() )
+    if( defaultDetector == 0 )
     {
         printf( "Algorithm can not be read\n" );
         exit(-1);
@@ -769,14 +769,14 @@ void DescriptorQualityEvaluator::readAlgorithm( )
     defaultDescMatcher = GenericDescriptorMatcher::create( algName );
     specificDescMatcher = GenericDescriptorMatcher::create( algName );
 
-    if( defaultDescMatcher.empty() )
+    if( defaultDescMatcher == 0 )
     {
         Ptr<DescriptorExtractor> extractor = DescriptorExtractor::create( algName );
         Ptr<DescriptorMatcher> matcher = DescriptorMatcher::create( matcherName );
         defaultDescMatcher = new VectorDescriptorMatch( extractor, matcher );
         specificDescMatcher = new VectorDescriptorMatch( extractor, matcher );
 
-        if( extractor.empty() || matcher.empty() )
+        if( extractor == 0 || matcher == 0 )
         {
             printf("Algorithm can not be read\n");
             exit(-1);

@@ -42,11 +42,9 @@
 
 #if !defined CUDA_DISABLER
 
-#include "opencv2/gpu/device/common.hpp"
+#include "internal_shared.hpp"
 #include "opencv2/gpu/device/saturate_cast.hpp"
 #include "opencv2/gpu/device/limits.hpp"
-#include "opencv2/gpu/device/reduce.hpp"
-#include "opencv2/gpu/device/functional.hpp"
 
 namespace cv { namespace gpu { namespace device
 {
@@ -299,13 +297,28 @@ namespace cv { namespace gpu { namespace device
                 }
 
                 extern __shared__ float smem[];
+                float* dline = smem + winsz * threadIdx.z;
 
-                reduce<winsz>(smem + winsz * threadIdx.z, val, tid, plus<float>());
+                dline[tid] = val;
+
+                __syncthreads();
+
+                if (winsz >= 256) { if (tid < 128) { dline[tid] += dline[tid + 128]; } __syncthreads(); }
+                if (winsz >= 128) { if (tid <  64) { dline[tid] += dline[tid + 64]; } __syncthreads(); }
+
+                volatile float* vdline = smem + winsz * threadIdx.z;
+
+                if (winsz >= 64) if (tid < 32) vdline[tid] += vdline[tid + 32];
+                if (winsz >= 32) if (tid < 16) vdline[tid] += vdline[tid + 16];
+                if (winsz >= 16) if (tid <  8) vdline[tid] += vdline[tid + 8];
+                if (winsz >=  8) if (tid <  4) vdline[tid] += vdline[tid + 4];
+                if (winsz >=  4) if (tid <  2) vdline[tid] += vdline[tid + 2];
+                if (winsz >=  2) if (tid <  1) vdline[tid] += vdline[tid + 1];
 
                 T* data_cost = (T*)ctemp + y_out * cmsg_step + x_out;
 
                 if (tid == 0)
-                    data_cost[cdisp_step1 * d] = saturate_cast<T>(val);
+                    data_cost[cdisp_step1 * d] = saturate_cast<T>(dline[0]);
             }
         }
 
@@ -483,11 +496,26 @@ namespace cv { namespace gpu { namespace device
                 }
 
                 extern __shared__ float smem[];
+                float* dline = smem + winsz * threadIdx.z;
 
-                reduce<winsz>(smem + winsz * threadIdx.z, val, tid, plus<float>());
+                dline[tid] = val;
+
+                __syncthreads();
+
+                if (winsz >= 256) { if (tid < 128) { dline[tid] += dline[tid + 128]; } __syncthreads(); }
+                if (winsz >= 128) { if (tid <  64) { dline[tid] += dline[tid +  64]; } __syncthreads(); }
+
+                volatile float* vdline = smem + winsz * threadIdx.z;
+
+                if (winsz >= 64) if (tid < 32) vdline[tid] += vdline[tid + 32];
+                if (winsz >= 32) if (tid < 16) vdline[tid] += vdline[tid + 16];
+                if (winsz >= 16) if (tid <  8) vdline[tid] += vdline[tid + 8];
+                if (winsz >=  8) if (tid <  4) vdline[tid] += vdline[tid + 4];
+                if (winsz >=  4) if (tid <  2) vdline[tid] += vdline[tid + 2];
+                if (winsz >=  2) if (tid <  1) vdline[tid] += vdline[tid + 1];
 
                 if (tid == 0)
-                    data_cost[cdisp_step1 * d] = saturate_cast<T>(val);
+                    data_cost[cdisp_step1 * d] = saturate_cast<T>(dline[0]);
             }
         }
 

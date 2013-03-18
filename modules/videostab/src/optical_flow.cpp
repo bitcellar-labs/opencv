@@ -41,9 +41,11 @@
 //M*/
 
 #include "precomp.hpp"
-#include "opencv2/video.hpp"
+#include "opencv2/video/video.hpp"
 #include "opencv2/videostab/optical_flow.hpp"
 #include "opencv2/videostab/ring_buffer.hpp"
+
+using namespace std;
 
 namespace cv
 {

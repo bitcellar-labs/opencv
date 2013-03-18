@@ -4,29 +4,14 @@
 
 #include <iostream>
 #include <vector>
+
 #include <opencv/highgui.h>
-
-#if defined WIN32 || defined _WIN32 || defined WINCE
-    #include <windows.h>
-    #undef small
-    #undef min
-    #undef max
-    #undef abs
-#endif
-
-#ifdef __APPLE__
-    #include <OpenGL/gl.h>
-#else
-    #include <GL/gl.h>
-#endif
-
+#include <GL/gl.h>
 #include <opencv/cxcore.h>
 #include <opencv/cv.h>
-
 using namespace std;
 using namespace cv;
-
-static void help()
+void help()
 {
     cout << "\nThis demo demonstrates the use of the Qt enhanced version of the highgui GUI interface\n"
             "  and dang if it doesn't throw in the use of of the POSIT 3D tracking algorithm too\n"
@@ -44,7 +29,7 @@ static void help()
 #define FOCAL_LENGTH 600
 #define CUBE_SIZE 10
 
-static void renderCube(float size)
+void renderCube(float size)
 {
     glBegin(GL_QUADS);
     // Front Face
@@ -87,7 +72,7 @@ static void renderCube(float size)
 }
 
 
-static void on_opengl(void* param)
+void on_opengl(void* param)
 {
     //Draw the object with the estimated pose
     glLoadIdentity();
@@ -102,7 +87,7 @@ static void on_opengl(void* param)
     glDisable( GL_LIGHTING );
 }
 
-static void initPOSIT(std::vector<CvPoint3D32f> *modelPoints)
+void initPOSIT(std::vector<CvPoint3D32f> *modelPoints)
 {
     //Create the model pointss
     modelPoints->push_back(cvPoint3D32f(0.0f, 0.0f, 0.0f)); //The first must be (0,0,0)
@@ -111,7 +96,7 @@ static void initPOSIT(std::vector<CvPoint3D32f> *modelPoints)
     modelPoints->push_back(cvPoint3D32f(0.0f, CUBE_SIZE, 0.0f));
 }
 
-static void foundCorners(vector<CvPoint2D32f> *srcImagePoints,IplImage* source, IplImage* grayImage)
+void foundCorners(vector<CvPoint2D32f> *srcImagePoints,IplImage* source, IplImage* grayImage)
 {
     cvCvtColor(source,grayImage,CV_RGB2GRAY);
     cvSmooth( grayImage, grayImage,CV_GAUSSIAN,11);
@@ -131,12 +116,12 @@ static void foundCorners(vector<CvPoint2D32f> *srcImagePoints,IplImage* source, 
     if (contours.size() == srcImagePoints_temp.size())
     {
 
-        for(size_t i = 0 ; i<contours.size(); i++ )
+        for(int i = 0 ; i<contours.size(); i++ )
         {
 
             p.x = p.y = 0;
 
-            for(size_t j = 0 ; j<contours[i].size(); j++ )
+            for(int j = 0 ; j<contours[i].size(); j++ )
                 p+=contours[i][j];
 
             srcImagePoints_temp.at(i)=cvPoint2D32f(float(p.x)/contours[i].size(),float(p.y)/contours[i].size());
@@ -149,8 +134,8 @@ static void foundCorners(vector<CvPoint2D32f> *srcImagePoints,IplImage* source, 
         //< y = 3
 
         //get point 0;
-        size_t index = 0;
-        for(size_t i = 1 ; i<srcImagePoints_temp.size(); i++ )
+        int index = 0;
+        for(int i = 1 ; i<srcImagePoints_temp.size(); i++ )
         {
             if (srcImagePoints_temp.at(i).y > srcImagePoints_temp.at(index).y)
                 index = i;
@@ -159,7 +144,7 @@ static void foundCorners(vector<CvPoint2D32f> *srcImagePoints,IplImage* source, 
 
         //get point 1;
         index = 0;
-        for(size_t i = 1 ; i<srcImagePoints_temp.size(); i++ )
+        for(int i = 1 ; i<srcImagePoints_temp.size(); i++ )
         {
             if (srcImagePoints_temp.at(i).x > srcImagePoints_temp.at(index).x)
                 index = i;
@@ -168,7 +153,7 @@ static void foundCorners(vector<CvPoint2D32f> *srcImagePoints,IplImage* source, 
 
         //get point 2;
         index = 0;
-        for(size_t i = 1 ; i<srcImagePoints_temp.size(); i++ )
+        for(int i = 1 ; i<srcImagePoints_temp.size(); i++ )
         {
             if (srcImagePoints_temp.at(i).x < srcImagePoints_temp.at(index).x)
                 index = i;
@@ -177,7 +162,7 @@ static void foundCorners(vector<CvPoint2D32f> *srcImagePoints,IplImage* source, 
 
         //get point 3;
         index = 0;
-        for(size_t i = 1 ; i<srcImagePoints_temp.size(); i++ )
+        for(int i = 1 ; i<srcImagePoints_temp.size(); i++ )
         {
             if (srcImagePoints_temp.at(i).y < srcImagePoints_temp.at(index).y)
                 index = i;
@@ -186,7 +171,7 @@ static void foundCorners(vector<CvPoint2D32f> *srcImagePoints,IplImage* source, 
 
         Mat Msource = source;
         stringstream ss;
-        for(size_t i = 0 ; i<srcImagePoints_temp.size(); i++ )
+        for(int i = 0 ; i<srcImagePoints_temp.size(); i++ )
         {
             ss<<i;
             circle(Msource,srcImagePoints->at(i),5,CV_RGB(255,0,0));
@@ -200,7 +185,7 @@ static void foundCorners(vector<CvPoint2D32f> *srcImagePoints,IplImage* source, 
 
 }
 
-static void createOpenGLMatrixFrom(float *posePOSIT,const CvMatr32f &rotationMatrix, const CvVect32f &translationVector)
+void createOpenGLMatrixFrom(float *posePOSIT,const CvMatr32f &rotationMatrix, const CvVect32f &translationVector)
 {
 
 
@@ -221,9 +206,8 @@ static void createOpenGLMatrixFrom(float *posePOSIT,const CvMatr32f &rotationMat
     posePOSIT[15] = 1.0;
 }
 
-int main(void)
+int main(int argc, char *argv[])
 {
-    help();
     CvCapture* video = cvCaptureFromFile("cube4.avi");
     CV_Assert(video);
 
@@ -236,7 +220,7 @@ int main(void)
     //For debug
     //cvNamedWindow("tempGray",CV_WINDOW_AUTOSIZE);
     float OpenGLMatrix[]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-    cvSetOpenGlDrawCallback("POSIT",on_opengl,OpenGLMatrix);
+    cvCreateOpenGLCallback("POSIT",on_opengl,OpenGLMatrix);
 
     vector<CvPoint3D32f> modelPoints;
     initPOSIT(&modelPoints);

@@ -46,7 +46,7 @@
 
 #include <string>
 
-#if defined (LOG_CASCADE_STATISTIC)
+
 struct Logger
 {
     enum { STADIES_NUM = 20 };
@@ -109,7 +109,7 @@ struct Logger
     }
 
 } logger;
-#endif
+
 
 namespace cv
 {
@@ -132,7 +132,7 @@ public:
 };
 
 
-void groupRectangles(std::vector<Rect>& rectList, int groupThreshold, double eps, std::vector<int>* weights, std::vector<double>* levelWeights)
+void groupRectangles(vector<Rect>& rectList, int groupThreshold, double eps, vector<int>* weights, vector<double>* levelWeights)
 {
     if( groupThreshold <= 0 || rectList.empty() )
     {
@@ -146,13 +146,13 @@ void groupRectangles(std::vector<Rect>& rectList, int groupThreshold, double eps
         return;
     }
 
-    std::vector<int> labels;
+    vector<int> labels;
     int nclasses = partition(rectList, labels, SimilarRects(eps));
 
-    std::vector<Rect> rrects(nclasses);
-    std::vector<int> rweights(nclasses, 0);
-    std::vector<int> rejectLevels(nclasses, 0);
-    std::vector<double> rejectWeights(nclasses, DBL_MIN);
+    vector<Rect> rrects(nclasses);
+    vector<int> rweights(nclasses, 0);
+    vector<int> rejectLevels(nclasses, 0);
+    vector<double> rejectWeights(nclasses, DBL_MIN);
     int i, j, nlabels = (int)labels.size();
     for( i = 0; i < nlabels; i++ )
     {
@@ -236,8 +236,8 @@ void groupRectangles(std::vector<Rect>& rectList, int groupThreshold, double eps
 class MeanshiftGrouping
 {
 public:
-    MeanshiftGrouping(const Point3d& densKer, const std::vector<Point3d>& posV,
-        const std::vector<double>& wV, double eps, int maxIter = 20)
+    MeanshiftGrouping(const Point3d& densKer, const vector<Point3d>& posV,
+        const vector<double>& wV, double, int maxIter = 20)
     {
         densityKernel = densKer;
         weightsV = wV;
@@ -246,7 +246,6 @@ public:
         meanshiftV.resize(positionsCount);
         distanceV.resize(positionsCount);
         iterMax = maxIter;
-        modeEps = eps;
 
         for (unsigned i = 0; i<positionsV.size(); i++)
         {
@@ -256,7 +255,7 @@ public:
         }
     }
 
-    void getModes(std::vector<Point3d>& modesV, std::vector<double>& resWeightsV, const double eps)
+    void getModes(vector<Point3d>& modesV, vector<double>& resWeightsV, const double eps)
     {
         for (size_t i=0; i <distanceV.size(); i++)
         {
@@ -284,14 +283,14 @@ public:
     }
 
 protected:
-    std::vector<Point3d> positionsV;
-    std::vector<double> weightsV;
+    vector<Point3d> positionsV;
+    vector<double> weightsV;
 
     Point3d densityKernel;
     int positionsCount;
 
-    std::vector<Point3d> meanshiftV;
-    std::vector<Point3d> distanceV;
+    vector<Point3d> meanshiftV;
+    vector<Point3d> distanceV;
     int iterMax;
     double modeEps;
 
@@ -305,8 +304,8 @@ protected:
             Point3d bPt = inPt;
             Point3d sPt = densityKernel;
 
-            sPt.x *= std::exp(aPt.z);
-            sPt.y *= std::exp(aPt.z);
+            sPt.x *= exp(aPt.z);
+            sPt.y *= exp(aPt.z);
 
             aPt.x /= sPt.x;
             aPt.y /= sPt.y;
@@ -338,8 +337,8 @@ protected:
             Point3d aPt = positionsV[i];
             Point3d sPt = densityKernel;
 
-            sPt.x *= std::exp(aPt.z);
-            sPt.y *= std::exp(aPt.z);
+            sPt.x *= exp(aPt.z);
+            sPt.y *= exp(aPt.z);
 
             aPt -= inPt;
 
@@ -370,8 +369,8 @@ protected:
     double getDistance(Point3d p1, Point3d p2) const
     {
         Point3d ns = densityKernel;
-        ns.x *= std::exp(p2.z);
-        ns.y *= std::exp(p2.z);
+        ns.x *= exp(p2.z);
+        ns.y *= exp(p2.z);
         p2 -= p1;
         p2.x /= ns.x;
         p2.y /= ns.y;
@@ -380,12 +379,12 @@ protected:
     }
 };
 //new grouping function with using meanshift
-static void groupRectangles_meanshift(std::vector<Rect>& rectList, double detectThreshold, std::vector<double>* foundWeights,
-                                      std::vector<double>& scales, Size winDetSize)
+static void groupRectangles_meanshift(vector<Rect>& rectList, double detectThreshold, vector<double>* foundWeights,
+                                      vector<double>& scales, Size winDetSize)
 {
     int detectionCount = (int)rectList.size();
-    std::vector<Point3d> hits(detectionCount), resultHits;
-    std::vector<double> hitWeights(detectionCount), resultWeights;
+    vector<Point3d> hits(detectionCount), resultHits;
+    vector<double> hitWeights(detectionCount), resultWeights;
     Point2d hitCenter;
 
     for (int i=0; i < detectionCount; i++)
@@ -409,7 +408,7 @@ static void groupRectangles_meanshift(std::vector<Rect>& rectList, double detect
     for (unsigned i=0; i < resultHits.size(); ++i)
     {
 
-        double scale = std::exp(resultHits[i].z);
+        double scale = exp(resultHits[i].z);
         hitCenter.x = resultHits[i].x;
         hitCenter.y = resultHits[i].y;
         Size s( int(winDetSize.width * scale), int(winDetSize.height * scale) );
@@ -424,23 +423,23 @@ static void groupRectangles_meanshift(std::vector<Rect>& rectList, double detect
     }
 }
 
-void groupRectangles(std::vector<Rect>& rectList, int groupThreshold, double eps)
+void groupRectangles(vector<Rect>& rectList, int groupThreshold, double eps)
 {
     groupRectangles(rectList, groupThreshold, eps, 0, 0);
 }
 
-void groupRectangles(std::vector<Rect>& rectList, std::vector<int>& weights, int groupThreshold, double eps)
+void groupRectangles(vector<Rect>& rectList, vector<int>& weights, int groupThreshold, double eps)
 {
     groupRectangles(rectList, groupThreshold, eps, &weights, 0);
 }
 //used for cascade detection algorithm for ROC-curve calculating
-void groupRectangles(std::vector<Rect>& rectList, std::vector<int>& rejectLevels, std::vector<double>& levelWeights, int groupThreshold, double eps)
+void groupRectangles(vector<Rect>& rectList, vector<int>& rejectLevels, vector<double>& levelWeights, int groupThreshold, double eps)
 {
     groupRectangles(rectList, groupThreshold, eps, &rejectLevels, &levelWeights);
 }
 //can be used for HOG detection algorithm only
-void groupRectangles_meanshift(std::vector<Rect>& rectList, std::vector<double>& foundWeights,
-                               std::vector<double>& foundScales, double detectThreshold, Size winDetSize)
+void groupRectangles_meanshift(vector<Rect>& rectList, vector<double>& foundWeights,
+                               vector<double>& foundScales, double detectThreshold, Size winDetSize)
 {
     groupRectangles_meanshift(rectList, detectThreshold, &foundWeights, foundScales, winDetSize);
 }
@@ -483,7 +482,7 @@ bool HaarEvaluator::Feature :: read( const FileNode& node )
 
 HaarEvaluator::HaarEvaluator()
 {
-    features = new std::vector<Feature>();
+    features = new vector<Feature>();
 }
 HaarEvaluator::~HaarEvaluator()
 {
@@ -578,7 +577,7 @@ bool  HaarEvaluator::setWindow( Point pt )
 
     double nf = (double)normrect.area() * valsqsum - (double)valsum * valsum;
     if( nf > 0. )
-        nf = std::sqrt(nf);
+        nf = sqrt(nf);
     else
         nf = 1.;
     varianceNormFactor = 1./nf;
@@ -598,7 +597,7 @@ bool LBPEvaluator::Feature :: read(const FileNode& node )
 
 LBPEvaluator::LBPEvaluator()
 {
-    features = new std::vector<Feature>();
+    features = new vector<Feature>();
 }
 LBPEvaluator::~LBPEvaluator()
 {
@@ -678,7 +677,7 @@ bool HOGEvaluator::Feature :: read( const FileNode& node )
 
 HOGEvaluator::HOGEvaluator()
 {
-    features = new std::vector<Feature>();
+    features = new vector<Feature>();
 }
 
 HOGEvaluator::~HOGEvaluator()
@@ -745,7 +744,7 @@ bool HOGEvaluator::setWindow(Point pt)
     return true;
 }
 
-void HOGEvaluator::integralHistogram(const Mat &img, std::vector<Mat> &histogram, Mat &norm, int nbins) const
+void HOGEvaluator::integralHistogram(const Mat &img, vector<Mat> &histogram, Mat &norm, int nbins) const
 {
     CV_Assert( img.type() == CV_8U || img.type() == CV_8UC3 );
     int x, y, binIdx;
@@ -854,7 +853,7 @@ CascadeClassifier::CascadeClassifier()
 {
 }
 
-CascadeClassifier::CascadeClassifier(const std::string& filename)
+CascadeClassifier::CascadeClassifier(const string& filename)
 {
     load(filename);
 }
@@ -868,7 +867,7 @@ bool CascadeClassifier::empty() const
     return oldCascade.empty() && data.stages.empty();
 }
 
-bool CascadeClassifier::load(const std::string& filename)
+bool CascadeClassifier::load(const string& filename)
 {
     oldCascade.release();
     data = Data();
@@ -948,7 +947,7 @@ class CascadeClassifierInvoker : public ParallelLoopBody
 {
 public:
     CascadeClassifierInvoker( CascadeClassifier& _cc, Size _sz1, int _stripSize, int _yStep, double _factor,
-        std::vector<Rect>& _vec, std::vector<int>& _levels, std::vector<double>& _weights, bool outputLevels, const Mat& _mask, Mutex* _mtx)
+        vector<Rect>& _vec, vector<int>& _levels, vector<double>& _weights, bool outputLevels, const Mat& _mask, Mutex* _mtx)
     {
         classifier = &_cc;
         processingRectSize = _sz1;
@@ -969,7 +968,7 @@ public:
         Size winSize(cvRound(classifier->data.origWinSize.width * scalingFactor), cvRound(classifier->data.origWinSize.height * scalingFactor));
 
         int y1 = range.start * stripSize;
-        int y2 = std::min(range.end * stripSize, processingRectSize.height);
+        int y2 = min(range.end * stripSize, processingRectSize.height);
         for( int y = y1; y < y2; y += yStep )
         {
             for( int x = 0; x < processingRectSize.width; x += yStep )
@@ -993,9 +992,9 @@ public:
                     {
                         mtx->lock();
                         rectangles->push_back(Rect(cvRound(x*scalingFactor), cvRound(y*scalingFactor), winSize.width, winSize.height));
+                        mtx->unlock();
                         rejectLevels->push_back(-result);
                         levelWeights->push_back(gypWeight);
-                        mtx->unlock();
                     }
                 }
                 else if( result > 0 )
@@ -1012,12 +1011,12 @@ public:
     }
 
     CascadeClassifier* classifier;
-    std::vector<Rect>* rectangles;
+    vector<Rect>* rectangles;
     Size processingRectSize;
     int stripSize, yStep;
     double scalingFactor;
-    std::vector<int> *rejectLevels;
-    std::vector<double> *levelWeights;
+    vector<int> *rejectLevels;
+    vector<double> *levelWeights;
     Mat mask;
     Mutex* mtx;
 };
@@ -1026,8 +1025,8 @@ struct getRect { Rect operator ()(const CvAvgComp& e) const { return e.rect; } }
 
 
 bool CascadeClassifier::detectSingleScale( const Mat& image, int stripCount, Size processingRectSize,
-                                           int stripSize, int yStep, double factor, std::vector<Rect>& candidates,
-                                           std::vector<int>& levels, std::vector<double>& weights, bool outputRejectLevels )
+                                           int stripSize, int yStep, double factor, vector<Rect>& candidates,
+                                           vector<int>& levels, vector<double>& weights, bool outputRejectLevels )
 {
     if( !featureEvaluator->setImage( image, data.origWinSize ) )
         return false;
@@ -1041,9 +1040,9 @@ bool CascadeClassifier::detectSingleScale( const Mat& image, int stripCount, Siz
         currentMask=maskGenerator->generateMask(image);
     }
 
-    std::vector<Rect> candidatesVector;
-    std::vector<int> rejectLevels;
-    std::vector<double> levelWeights;
+    vector<Rect> candidatesVector;
+    vector<int> rejectLevels;
+    vector<double> levelWeights;
     Mutex mtx;
     if( outputRejectLevels )
     {
@@ -1087,9 +1086,9 @@ bool CascadeClassifier::setImage(const Mat& image)
     return featureEvaluator->setImage(image, data.origWinSize);
 }
 
-void CascadeClassifier::detectMultiScale( const Mat& image, std::vector<Rect>& objects,
-                                          std::vector<int>& rejectLevels,
-                                          std::vector<double>& levelWeights,
+void CascadeClassifier::detectMultiScale( const Mat& image, vector<Rect>& objects,
+                                          vector<int>& rejectLevels,
+                                          vector<double>& levelWeights,
                                           double scaleFactor, int minNeighbors,
                                           int flags, Size minObjectSize, Size maxObjectSize,
                                           bool outputRejectLevels )
@@ -1107,7 +1106,7 @@ void CascadeClassifier::detectMultiScale( const Mat& image, std::vector<Rect>& o
         CvMat _image = image;
         CvSeq* _objects = cvHaarDetectObjectsForROC( &_image, oldCascade, storage, rejectLevels, levelWeights, scaleFactor,
                                               minNeighbors, flags, minObjectSize, maxObjectSize, outputRejectLevels );
-        std::vector<CvAvgComp> vecAvgComp;
+        vector<CvAvgComp> vecAvgComp;
         Seq<CvAvgComp>(_objects).copyTo(vecAvgComp);
         objects.resize(vecAvgComp.size());
         std::transform(vecAvgComp.begin(), vecAvgComp.end(), objects.begin(), getRect());
@@ -1133,7 +1132,7 @@ void CascadeClassifier::detectMultiScale( const Mat& image, std::vector<Rect>& o
     }
 
     Mat imageBuffer(image.rows + 1, image.cols + 1, CV_8U);
-    std::vector<Rect> candidates;
+    vector<Rect> candidates;
 
     for( double factor = 1; ; factor *= scaleFactor )
     {
@@ -1194,12 +1193,12 @@ void CascadeClassifier::detectMultiScale( const Mat& image, std::vector<Rect>& o
     }
 }
 
-void CascadeClassifier::detectMultiScale( const Mat& image, std::vector<Rect>& objects,
+void CascadeClassifier::detectMultiScale( const Mat& image, vector<Rect>& objects,
                                           double scaleFactor, int minNeighbors,
                                           int flags, Size minObjectSize, Size maxObjectSize)
 {
-    std::vector<int> fakeLevels;
-    std::vector<double> fakeWeights;
+    vector<int> fakeLevels;
+    vector<double> fakeWeights;
     detectMultiScale( image, objects, fakeLevels, fakeWeights, scaleFactor,
         minNeighbors, flags, minObjectSize, maxObjectSize, false );
 }
@@ -1209,13 +1208,13 @@ bool CascadeClassifier::Data::read(const FileNode &root)
     static const float THRESHOLD_EPS = 1e-5f;
 
     // load stage params
-    std::string stageTypeStr = (std::string)root[CC_STAGE_TYPE];
+    string stageTypeStr = (string)root[CC_STAGE_TYPE];
     if( stageTypeStr == CC_BOOST )
         stageType = BOOST;
     else
         return false;
 
-    std::string featureTypeStr = (std::string)root[CC_FEATURE_TYPE];
+    string featureTypeStr = (string)root[CC_FEATURE_TYPE];
     if( featureTypeStr == CC_HAAR )
         featureType = FeatureEvaluator::HAAR;
     else if( featureTypeStr == CC_LBP )

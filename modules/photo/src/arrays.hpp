@@ -52,7 +52,7 @@ template <class T> struct Array2d {
     {
         if (array2d.needToDeallocArray) {
             // copy constructor for self allocating arrays not supported
-            throw new std::exception();
+            throw new exception();
         }
     }
 

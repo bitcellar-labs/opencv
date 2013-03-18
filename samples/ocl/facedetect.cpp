@@ -10,7 +10,7 @@
 using namespace std;
 using namespace cv;
 
-static void help()
+void help()
 {
     cout << "\nThis program demonstrates the cascade recognizer.\n"
         "This classifier can recognize many ~rigid objects, it's most known use is for faces.\n"
@@ -28,17 +28,17 @@ void detectAndDraw( Mat& img,
     cv::ocl::OclCascadeClassifier& cascade, CascadeClassifier& nestedCascade,
     double scale);
 
-string cascadeName = "../../../data/haarcascades/haarcascade_frontalface_alt.xml";
+String cascadeName = "../../../data/haarcascades/haarcascade_frontalface_alt.xml";
 
 int main( int argc, const char** argv )
 {
     CvCapture* capture = 0;
     Mat frame, frameCopy, image;
-    const string scaleOpt = "--scale=";
+    const String scaleOpt = "--scale=";
     size_t scaleOptLen = scaleOpt.length();
-    const string cascadeOpt = "--cascade=";
+    const String cascadeOpt = "--cascade=";
     size_t cascadeOptLen = cascadeOpt.length();
-    string inputName;
+    String inputName;
 
     help();
     cv::ocl::OclCascadeClassifier cascade;
@@ -180,7 +180,7 @@ _cleanup_:
 }
 
 void detectAndDraw( Mat& img,
-    cv::ocl::OclCascadeClassifier& cascade, CascadeClassifier&,
+    cv::ocl::OclCascadeClassifier& cascade, CascadeClassifier& nestedCascade,
     double scale)
 {
     int i = 0;

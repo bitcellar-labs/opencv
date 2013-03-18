@@ -1,5 +1,7 @@
 #include "perf_precomp.hpp"
 
+namespace{
+
 static void printOsInfo()
 {
 #if defined _WIN32
@@ -65,6 +67,8 @@ static void printCudaInfo()
     }
 
 #endif
+}
+
 }
 
 CV_PERF_TEST_MAIN(gpu, printCudaInfo())

@@ -23,7 +23,7 @@ Calculates an optical flow for a sparse feature set using the iterative Lucas-Ka
 
     :param nextPts: output vector of 2D points (with single-precision floating-point coordinates) containing the calculated new positions of input features in the second image; when ``OPTFLOW_USE_INITIAL_FLOW`` flag is passed, the vector must have the same size as in the input.
 
-    :param status: output status vector (of unsigned chars); each element of the vector is set to 1 if the flow for the corresponding features has been found, otherwise, it is set to 0.
+    :param status: output status vector; each element of the vector is set to 1 if the flow for the corresponding features has been found, otherwise, it is set to 0.
 
     :param err: output vector of errors; each element of the vector is set to an error for the corresponding feature, type of the error measure can be set in ``flags`` parameter; if the flow wasn't found then the error is not defined (use the ``status`` parameter to find such cases).
 
@@ -153,49 +153,6 @@ In case of point sets, the problem is formulated as follows: you need to find a 
     :ocv:func:`getPerspectiveTransform`,
     :ocv:func:`findHomography`
 
-findTransformECC
-------------------------
-Finds the geometric transform (warp) between two images in terms of the ECC criterion [EP08]_.
-
-.. ocv:function:: double findTransformECC( InputArray templateImage, InputArray inputImage, InputOutputArray warpMatrix, int motionType=MOTION_AFFINE, TermCriteria criteria=TermCriteria(TermCriteria::COUNT+TermCriteria::EPS, 50, 0.001))
-.. ocv:cfunction:: double cvFindTransformECC( const CvArr* templateImage, const CvArr* inputImage, CvMat* warpMatrix, const int motionType, const CvTermCriteria criteria)
-
-    :param templateImage: single-channel template image; ``CV_8U`` or ``CV_32F`` array.
-
-    :param inputImage: single-channel input image which should be warped with the final ``warpMatrix`` in order to provide an image similar to ``templateImage``, same type as ``temlateImage``.
-
-    :param warpMatrix: floating-point :math:`2\times 3` or :math:`3\times 3` mapping matrix (warp).
-
-    :param motionType: parameter, specifying the type of motion:
-        * **MOTION_TRANSLATION** sets a translational motion model; ``warpMatrix`` is :math:`2\times 3` with the first :math:`2\times 2` part being the unity matrix and the rest two parameters being estimated.
-        * **MOTION_EUCLIDEAN** sets a Euclidean (rigid) transformation as motion model; three parameters are estimated; ``warpMatrix`` is :math:`2\times 3`.
-        * **MOTION_AFFINE** sets an affine motion model (DEFAULT); six parameters are estimated; ``warpMatrix`` is :math:`2\times 3`.
-        * **MOTION_HOMOGRAPHY** sets a homography as a motion model; eight parameters are estimated;``warpMatrix`` is :math:`3\times 3`.
-
-    :param criteria: parameter, specifying the termination criteria of the ECC algorithm; ``criteria.epsilon`` defines the threshold of the increment in the correlation coefficient between two iterations (a negative ``criteria.epsilon`` makes ``criteria.maxcount`` the only termination criterion). Default values are shown in the declaration above.
-
-
-The function estimates the optimum transformation (``warpMatrix``) with respect to ECC criterion ([EP08]_), that is
-
-..math::
-
-    \texttt{warpMatrix} = \texttt{warpMatrix} = \arg\max_{W} \texttt{ECC}(\texttt{templateImage}(x,y),\texttt{inputImage}(x',y'))
-
-where
-
-..math::
-
-    \begin{bmatrix} x' \\ y' \end{bmatrix} = W \cdot \begin{bmatrix} x \\ y \\ 1 \end{bmatrix}
-
-(the equation holds with homogeneous coordinates for homography). It returns the final enhanced correlation coefficient, that is the correlation coefficient between the template image and the final warped input image. When a :math:`3\times 3` matrix is given with ``motionType`` =0, 1 or 2, the third row is ignored.
-
-
-Unlike :ocv:func:`findHomography` and :ocv:func:`estimateRigidTransform`, the function :ocv:func:`findTransformECC` implements an area-based alignment that builds on intensity similarities. In essence, the function updates the initial transformation that roughly aligns the images. If this information is missing, the identity warp (unity matrix) should be given as input. Note that if images undergo strong displacements/rotations, an initial transformation that roughly aligns the images is necessary (e.g., a simple euclidean/similarity transform that allows for the images showing the same image content approximately). Use inverse warping in the second image to take an image close to the first one, i.e. use the flag ``WARP_INVERSE_MAP`` with :ocv:func:`warpAffine` or :ocv:func:`warpPerspective`. See also the OpenCV sample ``image_alignment.cpp`` that demonstrates the use of the function. Note that the function throws an exception if algorithm does not converges.
-
-.. seealso::
-
-    :ocv:func:`estimateRigidTransform`,
-    :ocv:func:`findHomography`
 
 
 updateMotionHistory
@@ -330,7 +287,7 @@ The function finds all of the motion segments and marks them in ``segmask`` with
 
 
 CamShift
---------
+------------
 Finds an object center, size, and orientation.
 
 .. ocv:function:: RotatedRect CamShift( InputArray probImage, Rect& window, TermCriteria criteria )
@@ -359,7 +316,7 @@ See the OpenCV sample ``camshiftdemo.c`` that tracks colored objects.
 
 
 meanShift
----------
+-------------
 Finds an object on a back projection image.
 
 .. ocv:function:: int meanShift( InputArray probImage, Rect& window, TermCriteria criteria )
@@ -644,15 +601,17 @@ calcOpticalFlowSF
 -----------------
 Calculate an optical flow using "SimpleFlow" algorithm.
 
-.. ocv:function:: void calcOpticalFlowSF( InputArray from, InputArray to, OutputArray flow, int layers, int averaging_block_size, int max_flow )
+.. ocv:function:: void calcOpticalFlowSF( Mat& from, Mat& to, Mat& flow, int layers, int averaging_block_size, int max_flow )
 
-.. ocv:function:: calcOpticalFlowSF( InputArray from, InputArray to, OutputArray flow, int layers, int averaging_block_size, int max_flow, double sigma_dist, double sigma_color, int postprocess_window, double sigma_dist_fix, double sigma_color_fix, double occ_thr, int upscale_averaging_radius, double upscale_sigma_dist, double upscale_sigma_color, double speed_up_thr )
+.. ocv:function:: calcOpticalFlowSF( Mat& from, Mat& to, Mat& flow, int layers, int averaging_block_size, int max_flow, double sigma_dist, double sigma_color, int postprocess_window, double sigma_dist_fix, double sigma_color_fix, double occ_thr, int upscale_averaging_radius, double upscale_sigma_dist, double upscale_sigma_color, double speed_up_thr )
 
     :param prev: First 8-bit 3-channel image.
 
-    :param next: Second 8-bit 3-channel image of the same size as ``prev``
+    :param next: Second 8-bit 3-channel image
 
-    :param flow: computed flow image that has the same size as ``prev`` and type ``CV_32FC2`` 
+    :param flowX: X-coordinate of estimated flow
+
+    :param flowY: Y-coordinate of estimated flow
 
     :param layers: Number of layers
 
@@ -672,7 +631,7 @@ Calculate an optical flow using "SimpleFlow" algorithm.
 
     :param occ_thr: threshold for detecting occlusions
 
-    :param upscale_averaging_radius: window size for bilateral upscale operation
+    :param upscale_averaging_radiud: window size for bilateral upscale operation
 
     :param upscale_sigma_dist: spatial sigma for bilateral upscale operation
 
@@ -684,16 +643,16 @@ See [Tao2012]_. And site of project - http://graphics.berkeley.edu/papers/Tao-SA
 
 
 
-createOptFlow_DualTVL1
-----------------------
+OpticalFlowDual_TVL1
+--------------------
 "Dual TV L1" Optical Flow Algorithm.
 
-.. ocv:function:: Ptr<DenseOpticalFlow> createOptFlow_DualTVL1()
+.. ocv:class:: OpticalFlowDual_TVL12
 
 
-  The class implements the "Dual TV L1" optical flow algorithm described in [Zach2007]_ and [Javier2012]_ .
+The class implements the "Dual TV L1" optical flow algorithm described in [Zach2007]_ and [Javier2012]_ .
 
-  Here are important members of the class that control the algorithm, which you can set after constructing the class instance:
+Here are important members of the class that control the algorithm, which you can set after constructing the class instance:
 
     .. ocv:member:: double tau
 
@@ -726,11 +685,11 @@ createOptFlow_DualTVL1
 
 
 
-DenseOpticalFlow::calc
---------------------------
+OpticalFlowDual_TVL1::operator()
+--------------------------------
 Calculates an optical flow.
 
-.. ocv:function:: void DenseOpticalFlow::calc(InputArray I0, InputArray I1, InputOutputArray flow)
+.. ocv:function:: void OpticalFlowDual_TVL1::operator ()(InputArray I0, InputArray I1, InputOutputArray flow)
 
     :param prev: first 8-bit single-channel input image.
 
@@ -740,11 +699,11 @@ Calculates an optical flow.
 
 
 
-DenseOpticalFlow::collectGarbage
---------------------------------
+OpticalFlowDual_TVL1::collectGarbage
+------------------------------------
 Releases all inner buffers.
 
-.. ocv:function:: void DenseOpticalFlow::collectGarbage()
+.. ocv:function:: void OpticalFlowDual_TVL1::collectGarbage()
 
 
 
@@ -769,5 +728,3 @@ Releases all inner buffers.
 .. [Zach2007] C. Zach, T. Pock and H. Bischof. "A Duality Based Approach for Realtime TV-L1 Optical Flow", In Proceedings of Pattern Recognition (DAGM), Heidelberg, Germany, pp. 214-223, 2007
 
 .. [Javier2012] Javier Sanchez, Enric Meinhardt-Llopis and Gabriele Facciolo. "TV-L1 Optical Flow Estimation".
-
-.. [EP08] Evangelidis, G.D. and Psarakis E.Z. "Parametric Image Alignment using Enhanced Correlation Coefficient Maximization", IEEE Transactions on PAMI, vol. 32, no. 10, 2008

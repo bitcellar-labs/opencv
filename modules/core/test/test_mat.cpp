@@ -863,7 +863,7 @@ template <class ElemType>
 int calcDiffElemCountImpl(const vector<Mat>& mv, const Mat& m)
 {
     int diffElemCount = 0;
-    const int mChannels = m.channels();
+    const size_t mChannels = m.channels();
     for(int y = 0; y < m.rows; y++)
     {
         for(int x = 0; x < m.cols; x++)
@@ -873,13 +873,13 @@ int calcDiffElemCountImpl(const vector<Mat>& mv, const Mat& m)
             for(size_t i = 0; i < mv.size(); i++)
             {
                 const size_t mvChannel = mv[i].channels();
-                const ElemType* mvElem = &mv[i].at<ElemType>(y,x*(int)mvChannel);
+                const ElemType* mvElem = &mv[i].at<ElemType>(y,x*mvChannel);
                 for(size_t li = 0; li < mvChannel; li++)
                     if(mElem[loc + li] != mvElem[li])
                         diffElemCount++;
                 loc += mvChannel;
             }
-            CV_Assert(loc == (size_t)mChannels);
+            CV_Assert(loc == mChannels);
         }
     }
     return diffElemCount;
@@ -925,7 +925,7 @@ protected:
 
         RNG& rng = theRNG();
         Size mSize(rng.uniform(minMSize, maxMSize), rng.uniform(minMSize, maxMSize));
-        size_t mvSize = rng.uniform(1, maxMvSize);
+        size_t mvSize = rng(maxMvSize);
 
         int res = cvtest::TS::OK, curRes = res;
         curRes = run_case(CV_8U, mvSize, mSize, rng);
@@ -1020,7 +1020,7 @@ public:
 protected:
     virtual int run_case(int depth, size_t channels, const Size& size, RNG& rng)
     {
-        Mat src(size, CV_MAKETYPE(depth, (int)channels));
+        Mat src(size, CV_MAKETYPE(depth, channels));
         rng.fill(src, RNG::UNIFORM, 0, 100, true);
 
         vector<Mat> dst;

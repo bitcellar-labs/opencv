@@ -4,7 +4,8 @@
  * @author OpenCV team
  */
 
-#include "opencv2/highgui/highgui.hpp"
+#include <cv.h>
+#include <highgui.h>
 #include <iostream>
 
 using namespace cv;
@@ -13,7 +14,7 @@ using namespace cv;
  * @function main
  * @brief Main function
  */
-int main( void )
+int main( int argc, char** argv )
 {
 
    double alpha = 0.5; double beta; double input;
@@ -34,8 +35,8 @@ int main( void )
    src1 = imread("../images/LinuxLogo.jpg");
    src2 = imread("../images/WindowsLogo.jpg");
 
-   if( !src1.data ) { std::cout<< "Error loading src1"<<std::endl; return -1; }
-   if( !src2.data ) { std::cout<< "Error loading src2"<<std::endl; return -1; }
+   if( !src1.data ) { printf("Error loading src1 \n"); return -1; }
+   if( !src2.data ) { printf("Error loading src2 \n"); return -1; }
 
    /// Create Windows
    namedWindow("Linear Blend", 1);

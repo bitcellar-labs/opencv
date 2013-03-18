@@ -9,15 +9,12 @@ Demonstrate using a mouse to interact with an image:
  ESC to exit
 '''
 import numpy as np
-import cv2 as cv
-
-# built-in modules
-import os
+from math import *
 import sys
+import os
 import glob
 import argparse
-from math import *
-
+import cv2 as cv
 
 drag_start = None
 sel = (0,0,0,0)

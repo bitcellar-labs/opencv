@@ -221,13 +221,14 @@ Implementation of the camera parameters refinement algorithm which minimizes sum
 
 detail::WaveCorrectKind
 -----------------------
-Wave correction kind.
 
-.. ocv:enum:: detail::WaveCorrectKind
+Wave correction kind. ::
 
-  .. ocv:emember:: WAVE_CORRECT_HORIZ
-  .. ocv:emember:: WAVE_CORRECT_VERT
-
+    enum CV_EXPORTS WaveCorrectKind
+    {
+        WAVE_CORRECT_HORIZ,
+        WAVE_CORRECT_VERT
+    };
 
 detail::waveCorrect
 -------------------
@@ -237,4 +238,4 @@ Tries to make panorama more horizontal (or vertical).
 
     :param rmats: Camera rotation matrices.
 
-    :param kind: Correction kind, see :ocv:enum:`detail::WaveCorrectKind`.
+    :param kind: Correction kind, see :ocv:class:`detail::WaveCorrectKind`.

@@ -75,7 +75,7 @@ void cv::goodFeaturesToTrack( InputArray _image, OutputArray _corners,
 
     Size imgsize = image.size();
 
-    std::vector<const float*> tmpCorners;
+    vector<const float*> tmpCorners;
 
     // collect list of pointers to features - put them into temporary image
     for( int y = 1; y < imgsize.height - 1; y++ )
@@ -93,7 +93,7 @@ void cv::goodFeaturesToTrack( InputArray _image, OutputArray _corners,
     }
 
     sort( tmpCorners, greaterThanPtr<float>() );
-    std::vector<Point2f> corners;
+    vector<Point2f> corners;
     size_t i, j, total = tmpCorners.size(), ncorners = 0;
 
     if(minDistance >= 1)
@@ -136,7 +136,7 @@ void cv::goodFeaturesToTrack( InputArray _image, OutputArray _corners,
             {
                 for( int xx = x1; xx <= x2; xx++ )
                 {
-                    std::vector <Point2f> &m = grid[yy*grid_width + xx];
+                    vector <Point2f> &m = grid[yy*grid_width + xx];
 
                     if( m.size() )
                     {
@@ -224,7 +224,7 @@ cvGoodFeaturesToTrack( const void* _image, void*, void*,
                        int use_harris, double harris_k )
 {
     cv::Mat image = cv::cvarrToMat(_image), mask;
-    std::vector<cv::Point2f> corners;
+    cv::vector<cv::Point2f> corners;
 
     if( _maskImage )
         mask = cv::cvarrToMat(_maskImage);

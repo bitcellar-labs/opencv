@@ -46,7 +46,7 @@
 #include "precomp.hpp"
 #include "thread_wrappers.h"
 
-#if defined(HAVE_CUDA) && defined(HAVE_NVCUVID)
+#if defined(HAVE_CUDA) && !defined(__APPLE__)
 
 namespace cv { namespace gpu
 {

@@ -42,9 +42,6 @@
 #ifndef __OPENCV_TEST_INTERPOLATION_HPP__
 #define __OPENCV_TEST_INTERPOLATION_HPP__
 
-#include "opencv2/core.hpp"
-#include "opencv2/imgproc.hpp"
-
 template <typename T> T readVal(const cv::Mat& src, int y, int x, int c, int border_type, cv::Scalar borderVal = cv::Scalar())
 {
     if (border_type == cv::BORDER_CONSTANT)
@@ -116,7 +113,7 @@ template <typename T> struct CubicInterpolator
             for (float cx = xmin; cx <= xmax; cx += 1.0f)
             {
                 const float w = bicubicCoeff(x - cx) * bicubicCoeff(y - cy);
-                sum += w * readVal<T>(src, (int) floorf(cy), (int) floorf(cx), c, border_type, borderVal);
+                sum += w * readVal<T>(src, cvFloor(cy), cvFloor(cx), c, border_type, borderVal);
                 wsum += w;
             }
         }

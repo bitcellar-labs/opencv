@@ -21,9 +21,11 @@
 namespace cv
 {
 
+using std::set;
+
 // Reads a sequence from a FileNode::SEQ with type _Tp into a result vector.
 template<typename _Tp>
-inline void readFileNodeList(const FileNode& fn, std::vector<_Tp>& result) {
+inline void readFileNodeList(const FileNode& fn, vector<_Tp>& result) {
     if (fn.type() == FileNode::SEQ) {
         for (FileNodeIterator it = fn.begin(); it != fn.end();) {
             _Tp item;
@@ -35,10 +37,10 @@ inline void readFileNodeList(const FileNode& fn, std::vector<_Tp>& result) {
 
 // Writes the a list of given items to a cv::FileStorage.
 template<typename _Tp>
-inline void writeFileNodeList(FileStorage& fs, const std::string& name,
-                              const std::vector<_Tp>& items) {
+inline void writeFileNodeList(FileStorage& fs, const string& name,
+                              const vector<_Tp>& items) {
     // typedefs
-    typedef typename std::vector<_Tp>::const_iterator constVecIterator;
+    typedef typename vector<_Tp>::const_iterator constVecIterator;
     // write the elements in item to fs
     fs << name << "[";
     for (constVecIterator it = items.begin(); it != items.end(); ++it) {
@@ -50,7 +52,7 @@ inline void writeFileNodeList(FileStorage& fs, const std::string& name,
 static Mat asRowMatrix(InputArrayOfArrays src, int rtype, double alpha=1, double beta=0) {
     // make sure the input data is a vector of matrices or vector of vector
     if(src.kind() != _InputArray::STD_VECTOR_MAT && src.kind() != _InputArray::STD_VECTOR_VECTOR) {
-        std::string error_message = "The data is expected as InputArray::STD_VECTOR_MAT (a std::vector<Mat>) or _InputArray::STD_VECTOR_VECTOR (a std::vector< std::vector<...> >).";
+        string error_message = "The data is expected as InputArray::STD_VECTOR_MAT (a std::vector<Mat>) or _InputArray::STD_VECTOR_VECTOR (a std::vector< vector<...> >).";
         CV_Error(CV_StsBadArg, error_message);
     }
     // number of samples
@@ -66,7 +68,7 @@ static Mat asRowMatrix(InputArrayOfArrays src, int rtype, double alpha=1, double
     for(unsigned int i = 0; i < n; i++) {
         // make sure data can be reshaped, throw exception if not!
         if(src.getMat(i).total() != d) {
-            std::string error_message = format("Wrong number of elements in matrix #%d! Expected %d was %d.", i, d, src.getMat(i).total());
+            string error_message = format("Wrong number of elements in matrix #%d! Expected %d was %d.", i, d, src.getMat(i).total());
             CV_Error(CV_StsBadArg, error_message);
         }
         // get a hold of the current row
@@ -84,13 +86,13 @@ static Mat asRowMatrix(InputArrayOfArrays src, int rtype, double alpha=1, double
 
 // Removes duplicate elements in a given vector.
 template<typename _Tp>
-inline std::vector<_Tp> remove_dups(const std::vector<_Tp>& src) {
-    typedef typename std::set<_Tp>::const_iterator constSetIterator;
-    typedef typename std::vector<_Tp>::const_iterator constVecIterator;
-    std::set<_Tp> set_elems;
+inline vector<_Tp> remove_dups(const vector<_Tp>& src) {
+    typedef typename set<_Tp>::const_iterator constSetIterator;
+    typedef typename vector<_Tp>::const_iterator constVecIterator;
+    set<_Tp> set_elems;
     for (constVecIterator it = src.begin(); it != src.end(); ++it)
         set_elems.insert(*it);
-    std::vector<_Tp> elems;
+    vector<_Tp> elems;
     for (constSetIterator it = set_elems.begin(); it != set_elems.end(); ++it)
         elems.push_back(*it);
     return elems;
@@ -104,7 +106,7 @@ class Eigenfaces : public FaceRecognizer
 private:
     int _num_components;
     double _threshold;
-    std::vector<Mat> _projections;
+    vector<Mat> _projections;
     Mat _labels;
     Mat _eigenvectors;
     Mat _eigenvalues;
@@ -160,7 +162,7 @@ private:
     Mat _eigenvectors;
     Mat _eigenvalues;
     Mat _mean;
-    std::vector<Mat> _projections;
+    vector<Mat> _projections;
     Mat _labels;
 
 public:
@@ -218,7 +220,7 @@ private:
     int _neighbors;
     double _threshold;
 
-    std::vector<Mat> _histograms;
+    vector<Mat> _histograms;
     Mat _labels;
 
     // Computes a LBPH model with images in src and
@@ -298,18 +300,12 @@ public:
 //------------------------------------------------------------------------------
 // FaceRecognizer
 //------------------------------------------------------------------------------
-void FaceRecognizer::update(InputArrayOfArrays src, InputArray labels ) {
-    if( dynamic_cast<LBPH*>(this) != 0 )
-    {
-        dynamic_cast<LBPH*>(this)->update( src, labels );
-        return;
-    }
-
-    std::string error_msg = format("This FaceRecognizer (%s) does not support updating, you have to use FaceRecognizer::train to update it.", this->name().c_str());
+void FaceRecognizer::update(InputArrayOfArrays, InputArray) {
+    string error_msg = format("This FaceRecognizer (%s) does not support updating, you have to use FaceRecognizer::train to update it.", this->name().c_str());
     CV_Error(CV_StsNotImplemented, error_msg);
 }
 
-void FaceRecognizer::save(const std::string& filename) const {
+void FaceRecognizer::save(const string& filename) const {
     FileStorage fs(filename, FileStorage::WRITE);
     if (!fs.isOpened())
         CV_Error(CV_StsError, "File can't be opened for writing!");
@@ -317,7 +313,7 @@ void FaceRecognizer::save(const std::string& filename) const {
     fs.release();
 }
 
-void FaceRecognizer::load(const std::string& filename) {
+void FaceRecognizer::load(const string& filename) {
     FileStorage fs(filename, FileStorage::READ);
     if (!fs.isOpened())
         CV_Error(CV_StsError, "File can't be opened for writing!");
@@ -330,17 +326,17 @@ void FaceRecognizer::load(const std::string& filename) {
 //------------------------------------------------------------------------------
 void Eigenfaces::train(InputArrayOfArrays _src, InputArray _local_labels) {
     if(_src.total() == 0) {
-        std::string error_message = format("Empty training data was given. You'll need more than one sample to learn a model.");
+        string error_message = format("Empty training data was given. You'll need more than one sample to learn a model.");
         CV_Error(CV_StsBadArg, error_message);
     } else if(_local_labels.getMat().type() != CV_32SC1) {
-        std::string error_message = format("Labels must be given as integer (CV_32SC1). Expected %d, but was %d.", CV_32SC1, _local_labels.type());
+        string error_message = format("Labels must be given as integer (CV_32SC1). Expected %d, but was %d.", CV_32SC1, _local_labels.type());
         CV_Error(CV_StsBadArg, error_message);
     }
     // make sure data has correct size
     if(_src.total() > 1) {
         for(int i = 1; i < static_cast<int>(_src.total()); i++) {
             if(_src.getMat(i-1).total() != _src.getMat(i).total()) {
-                std::string error_message = format("In the Eigenfaces method all input samples (training images) must be of equal size! Expected %d pixels, but was %d pixels.", _src.getMat(i-1).total(), _src.getMat(i).total());
+                string error_message = format("In the Eigenfaces method all input samples (training images) must be of equal size! Expected %d pixels, but was %d pixels.", _src.getMat(i-1).total(), _src.getMat(i).total());
                 CV_Error(CV_StsUnsupportedFormat, error_message);
             }
         }
@@ -354,7 +350,7 @@ void Eigenfaces::train(InputArrayOfArrays _src, InputArray _local_labels) {
    int n = data.rows;
     // assert there are as much samples as labels
     if(static_cast<int>(labels.total()) != n) {
-        std::string error_message = format("The number of samples (src) must equal the number of labels (labels)! len(src)=%d, len(labels)=%d.", n, labels.total());
+        string error_message = format("The number of samples (src) must equal the number of labels (labels)! len(src)=%d, len(labels)=%d.", n, labels.total());
         CV_Error(CV_StsBadArg, error_message);
     }
     // clear existing model data
@@ -385,11 +381,11 @@ void Eigenfaces::predict(InputArray _src, int &minClass, double &minDist) const 
     // make sure the user is passing correct data
     if(_projections.empty()) {
         // throw error if no data (or simply return -1?)
-        std::string error_message = "This Eigenfaces model is not computed yet. Did you call Eigenfaces::train?";
+        string error_message = "This Eigenfaces model is not computed yet. Did you call Eigenfaces::train?";
         CV_Error(CV_StsError, error_message);
     } else if(_eigenvectors.rows != static_cast<int>(src.total())) {
         // check data alignment just for clearer exception messages
-        std::string error_message = format("Wrong input image size. Reason: Training and Test images must be of equal size! Expected an image with %d elements, but got %d.", _eigenvectors.rows, src.total());
+        string error_message = format("Wrong input image size. Reason: Training and Test images must be of equal size! Expected an image with %d elements, but got %d.", _eigenvectors.rows, src.total());
         CV_Error(CV_StsBadArg, error_message);
     }
     // project into PCA subspace
@@ -439,17 +435,17 @@ void Eigenfaces::save(FileStorage& fs) const {
 //------------------------------------------------------------------------------
 void Fisherfaces::train(InputArrayOfArrays src, InputArray _lbls) {
     if(src.total() == 0) {
-        std::string error_message = format("Empty training data was given. You'll need more than one sample to learn a model.");
+        string error_message = format("Empty training data was given. You'll need more than one sample to learn a model.");
         CV_Error(CV_StsBadArg, error_message);
     } else if(_lbls.getMat().type() != CV_32SC1) {
-        std::string error_message = format("Labels must be given as integer (CV_32SC1). Expected %d, but was %d.", CV_32SC1, _lbls.type());
+        string error_message = format("Labels must be given as integer (CV_32SC1). Expected %d, but was %d.", CV_32SC1, _lbls.type());
         CV_Error(CV_StsBadArg, error_message);
     }
     // make sure data has correct size
     if(src.total() > 1) {
         for(int i = 1; i < static_cast<int>(src.total()); i++) {
             if(src.getMat(i-1).total() != src.getMat(i).total()) {
-                std::string error_message = format("In the Fisherfaces method all input samples (training images) must be of equal size! Expected %d pixels, but was %d pixels.", src.getMat(i-1).total(), src.getMat(i).total());
+                string error_message = format("In the Fisherfaces method all input samples (training images) must be of equal size! Expected %d pixels, but was %d pixels.", src.getMat(i-1).total(), src.getMat(i).total());
                 CV_Error(CV_StsUnsupportedFormat, error_message);
             }
         }
@@ -461,17 +457,17 @@ void Fisherfaces::train(InputArrayOfArrays src, InputArray _lbls) {
     int N = data.rows;
     // make sure labels are passed in correct shape
     if(labels.total() != (size_t) N) {
-        std::string error_message = format("The number of samples (src) must equal the number of labels (labels)! len(src)=%d, len(labels)=%d.", N, labels.total());
+        string error_message = format("The number of samples (src) must equal the number of labels (labels)! len(src)=%d, len(labels)=%d.", N, labels.total());
         CV_Error(CV_StsBadArg, error_message);
     } else if(labels.rows != 1 && labels.cols != 1) {
-        std::string error_message = format("Expected the labels in a matrix with one row or column! Given dimensions are rows=%s, cols=%d.", labels.rows, labels.cols);
+        string error_message = format("Expected the labels in a matrix with one row or column! Given dimensions are rows=%s, cols=%d.", labels.rows, labels.cols);
        CV_Error(CV_StsBadArg, error_message);
     }
     // clear existing model data
     _labels.release();
     _projections.clear();
     // safely copy from cv::Mat to std::vector
-    std::vector<int> ll;
+    vector<int> ll;
     for(unsigned int i = 0; i < labels.total(); i++) {
         ll.push_back(labels.at<int>(i));
     }
@@ -505,10 +501,10 @@ void Fisherfaces::predict(InputArray _src, int &minClass, double &minDist) const
     // check data alignment just for clearer exception messages
     if(_projections.empty()) {
         // throw error if no data (or simply return -1?)
-        std::string error_message = "This Fisherfaces model is not computed yet. Did you call Fisherfaces::train?";
+        string error_message = "This Fisherfaces model is not computed yet. Did you call Fisherfaces::train?";
         CV_Error(CV_StsBadArg, error_message);
     } else if(src.total() != (size_t) _eigenvectors.rows) {
-        std::string error_message = format("Wrong input image size. Reason: Training and Test images must be of equal size! Expected an image with %d elements, but got %d.", _eigenvectors.rows, src.total());
+        string error_message = format("Wrong input image size. Reason: Training and Test images must be of equal size! Expected an image with %d elements, but got %d.", _eigenvectors.rows, src.total());
         CV_Error(CV_StsBadArg, error_message);
     }
     // project into LDA subspace
@@ -640,7 +636,7 @@ static void elbp(InputArray src, OutputArray dst, int radius, int neighbors)
     case CV_32FC1:  elbp_<float>(src,dst, radius, neighbors); break;
     case CV_64FC1:  elbp_<double>(src,dst, radius, neighbors); break;
     default:
-        std::string error_msg = format("Using Original Local Binary Patterns for feature extraction only works on single-channel images (given %d). Please pass the image data as a grayscale image!", type);
+        string error_msg = format("Using Original Local Binary Patterns for feature extraction only works on single-channel images (given %d). Please pass the image data as a grayscale image!", type);
         CV_Error(CV_StsNotImplemented, error_msg);
         break;
     }
@@ -768,24 +764,24 @@ void LBPH::update(InputArrayOfArrays _in_src, InputArray _in_labels) {
 
 void LBPH::train(InputArrayOfArrays _in_src, InputArray _in_labels, bool preserveData) {
     if(_in_src.kind() != _InputArray::STD_VECTOR_MAT && _in_src.kind() != _InputArray::STD_VECTOR_VECTOR) {
-        std::string error_message = "The images are expected as InputArray::STD_VECTOR_MAT (a std::vector<Mat>) or _InputArray::STD_VECTOR_VECTOR (a std::vector< std::vector<...> >).";
+        string error_message = "The images are expected as InputArray::STD_VECTOR_MAT (a std::vector<Mat>) or _InputArray::STD_VECTOR_VECTOR (a std::vector< vector<...> >).";
         CV_Error(CV_StsBadArg, error_message);
     }
     if(_in_src.total() == 0) {
-        std::string error_message = format("Empty training data was given. You'll need more than one sample to learn a model.");
+        string error_message = format("Empty training data was given. You'll need more than one sample to learn a model.");
         CV_Error(CV_StsUnsupportedFormat, error_message);
     } else if(_in_labels.getMat().type() != CV_32SC1) {
-        std::string error_message = format("Labels must be given as integer (CV_32SC1). Expected %d, but was %d.", CV_32SC1, _in_labels.type());
+        string error_message = format("Labels must be given as integer (CV_32SC1). Expected %d, but was %d.", CV_32SC1, _in_labels.type());
         CV_Error(CV_StsUnsupportedFormat, error_message);
     }
     // get the vector of matrices
-    std::vector<Mat> src;
+    vector<Mat> src;
     _in_src.getMatVector(src);
     // get the label matrix
     Mat labels = _in_labels.getMat();
     // check if data is well- aligned
     if(labels.total() != src.size()) {
-        std::string error_message = format("The number of samples (src) must equal the number of labels (labels). Was len(samples)=%d, len(labels)=%d.", src.size(), _labels.total());
+        string error_message = format("The number of samples (src) must equal the number of labels (labels). Was len(samples)=%d, len(labels)=%d.", src.size(), _labels.total());
         CV_Error(CV_StsBadArg, error_message);
     }
     // if this model should be trained without preserving old data, delete old model data
@@ -816,7 +812,7 @@ void LBPH::train(InputArrayOfArrays _in_src, InputArray _in_labels, bool preserv
 void LBPH::predict(InputArray _src, int &minClass, double &minDist) const {
     if(_histograms.empty()) {
         // throw error if no data (or simply return -1?)
-        std::string error_message = "This LBPH model is not computed yet. Did you call the train method?";
+        string error_message = "This LBPH model is not computed yet. Did you call the train method?";
         CV_Error(CV_StsBadArg, error_message);
     }
     Mat src = _src.getMat();

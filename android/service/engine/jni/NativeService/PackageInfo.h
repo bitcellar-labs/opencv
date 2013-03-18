@@ -30,10 +30,10 @@
 class PackageInfo
 {
 public:
-    PackageInfo(int version, int platform, int cpu_id, std::string install_path = "/data/data/");
+    PackageInfo(const std::string& version, int platform, int cpu_id, std::string install_path = "/data/data/");
     PackageInfo(const std::string& fullname, const std::string& install_path, std::string package_version = "0.0");
     std::string GetFullName() const;
-    int GetVersion() const;
+    std::string GetVersion() const;
     int GetPlatform() const;
     int GetCpuID() const;
     std::string GetInstalationPath() const;
@@ -43,7 +43,7 @@ public:
 
 protected:
     static std::map<int, std::string> InitPlatformNameMap();
-    int Version;
+    std::string Version;
     int Platform;
     int CpuID;
     std::string FullName;

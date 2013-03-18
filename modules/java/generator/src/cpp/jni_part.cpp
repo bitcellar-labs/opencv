@@ -1,25 +1,25 @@
-#include "common.h"
+#include <jni.h>
 
 #include "opencv2/opencv_modules.hpp"
 
 #ifdef HAVE_OPENCV_NONFREE
-#  include "opencv2/nonfree.hpp"
+#  include "opencv2/nonfree/nonfree.hpp"
 #endif
 
 #ifdef HAVE_OPENCV_FEATURES2D
-#  include "opencv2/features2d.hpp"
+#  include "opencv2/features2d/features2d.hpp"
 #endif
 
 #ifdef HAVE_OPENCV_VIDEO
-#  include "opencv2/video.hpp"
+#  include "opencv2/video/video.hpp"
 #endif
 
 #ifdef HAVE_OPENCV_ML
-#  include "opencv2/ml.hpp"
+#  include "opencv2/ml/ml.hpp"
 #endif
 
 #ifdef HAVE_OPENCV_CONTRIB
-#  include "opencv2/contrib.hpp"
+#  include "opencv2/contrib/contrib.hpp"
 #endif
 
 extern "C" {

@@ -46,7 +46,6 @@
 #include <vector>
 #include <iostream>
 
-using namespace std;
 using namespace cv;
 using namespace cv::flann;
 

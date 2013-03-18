@@ -51,17 +51,13 @@ void cv::gpu::meanStdDev(const GpuMat&, Scalar&, Scalar&) { throw_nogpu(); }
 void cv::gpu::meanStdDev(const GpuMat&, Scalar&, Scalar&, GpuMat&) { throw_nogpu(); }
 double cv::gpu::norm(const GpuMat&, int) { throw_nogpu(); return 0.0; }
 double cv::gpu::norm(const GpuMat&, int, GpuMat&) { throw_nogpu(); return 0.0; }
-double cv::gpu::norm(const GpuMat&, int, const GpuMat&, GpuMat&) { throw_nogpu(); return 0.0; }
 double cv::gpu::norm(const GpuMat&, const GpuMat&, int) { throw_nogpu(); return 0.0; }
 Scalar cv::gpu::sum(const GpuMat&) { throw_nogpu(); return Scalar(); }
 Scalar cv::gpu::sum(const GpuMat&, GpuMat&) { throw_nogpu(); return Scalar(); }
-Scalar cv::gpu::sum(const GpuMat&, const GpuMat&, GpuMat&) { throw_nogpu(); return Scalar(); }
 Scalar cv::gpu::absSum(const GpuMat&) { throw_nogpu(); return Scalar(); }
 Scalar cv::gpu::absSum(const GpuMat&, GpuMat&) { throw_nogpu(); return Scalar(); }
-Scalar cv::gpu::absSum(const GpuMat&, const GpuMat&, GpuMat&) { throw_nogpu(); return Scalar(); }
 Scalar cv::gpu::sqrSum(const GpuMat&) { throw_nogpu(); return Scalar(); }
 Scalar cv::gpu::sqrSum(const GpuMat&, GpuMat&) { throw_nogpu(); return Scalar(); }
-Scalar cv::gpu::sqrSum(const GpuMat&, const GpuMat&, GpuMat&) { throw_nogpu(); return Scalar(); }
 void cv::gpu::minMax(const GpuMat&, double*, double*, const GpuMat&) { throw_nogpu(); }
 void cv::gpu::minMax(const GpuMat&, double*, double*, const GpuMat&, GpuMat&) { throw_nogpu(); }
 void cv::gpu::minMaxLoc(const GpuMat&, double*, double*, Point*, Point*, const GpuMat&) { throw_nogpu(); }
@@ -122,7 +118,7 @@ void cv::gpu::meanStdDev(const GpuMat& src, Scalar& mean, Scalar& stddev, GpuMat
 {
     CV_Assert(src.type() == CV_8UC1);
 
-    if (!deviceSupports(FEATURE_SET_COMPUTE_13))
+    if (!TargetArchs::builtWith(FEATURE_SET_COMPUTE_13) || !DeviceInfo().supports(FEATURE_SET_COMPUTE_13))
         CV_Error(CV_StsNotImplemented, "Not sufficient compute capebility");
 
     NppiSize sz;
@@ -154,30 +150,24 @@ void cv::gpu::meanStdDev(const GpuMat& src, Scalar& mean, Scalar& stddev, GpuMat
 double cv::gpu::norm(const GpuMat& src, int normType)
 {
     GpuMat buf;
-    return norm(src, normType, GpuMat(), buf);
+    return norm(src, normType, buf);
 }
 
 double cv::gpu::norm(const GpuMat& src, int normType, GpuMat& buf)
 {
-    return norm(src, normType, GpuMat(), buf);
-}
-
-double cv::gpu::norm(const GpuMat& src, int normType, const GpuMat& mask, GpuMat& buf)
-{
     CV_Assert(normType == NORM_INF || normType == NORM_L1 || normType == NORM_L2);
-    CV_Assert(mask.empty() || (mask.type() == CV_8UC1 && mask.size() == src.size() && src.channels() == 1));
 
     GpuMat src_single_channel = src.reshape(1);
 
     if (normType == NORM_L1)
-        return absSum(src_single_channel, mask, buf)[0];
+        return absSum(src_single_channel, buf)[0];
 
     if (normType == NORM_L2)
-        return std::sqrt(sqrSum(src_single_channel, mask, buf)[0]);
+        return std::sqrt(sqrSum(src_single_channel, buf)[0]);
 
     // NORM_INF
     double min_val, max_val;
-    minMax(src_single_channel, &min_val, &max_val, mask, buf);
+    minMax(src_single_channel, &min_val, &max_val, GpuMat(), buf);
     return std::max(std::abs(min_val), std::abs(max_val));
 }
 
@@ -214,168 +204,194 @@ double cv::gpu::norm(const GpuMat& src1, const GpuMat& src2, int normType)
 ////////////////////////////////////////////////////////////////////////
 // Sum
 
-namespace sum
+namespace cv { namespace gpu { namespace device
 {
-    void getBufSize(int cols, int rows, int cn, int& bufcols, int& bufrows);
+    namespace matrix_reductions
+    {
+        namespace sum
+        {
+            template <typename T>
+            void sumCaller(const PtrStepSzb src, PtrStepb buf, double* sum, int cn);
 
-    template <typename T, int cn>
-    void run(PtrStepSzb src, void* buf, double* sum, PtrStepSzb mask);
+            template <typename T>
+            void sumMultipassCaller(const PtrStepSzb src, PtrStepb buf, double* sum, int cn);
 
-    template <typename T, int cn>
-    void runAbs(PtrStepSzb src, void* buf, double* sum, PtrStepSzb mask);
+            template <typename T>
+            void absSumCaller(const PtrStepSzb src, PtrStepb buf, double* sum, int cn);
 
-    template <typename T, int cn>
-    void runSqr(PtrStepSzb src, void* buf, double* sum, PtrStepSzb mask);
-}
+            template <typename T>
+            void absSumMultipassCaller(const PtrStepSzb src, PtrStepb buf, double* sum, int cn);
+
+            template <typename T>
+            void sqrSumCaller(const PtrStepSzb src, PtrStepb buf, double* sum, int cn);
+
+            template <typename T>
+            void sqrSumMultipassCaller(const PtrStepSzb src, PtrStepb buf, double* sum, int cn);
+
+            void getBufSizeRequired(int cols, int rows, int cn, int& bufcols, int& bufrows);
+        }
+    }
+}}}
 
 Scalar cv::gpu::sum(const GpuMat& src)
 {
     GpuMat buf;
-    return sum(src, GpuMat(), buf);
+    return sum(src, buf);
 }
+
 
 Scalar cv::gpu::sum(const GpuMat& src, GpuMat& buf)
 {
-    return sum(src, GpuMat(), buf);
-}
+    using namespace cv::gpu::device::matrix_reductions::sum;
 
-Scalar cv::gpu::sum(const GpuMat& src, const GpuMat& mask, GpuMat& buf)
-{
-    typedef void (*func_t)(PtrStepSzb src, void* buf, double* sum, PtrStepSzb mask);
-    static const func_t funcs[7][5] =
+    typedef void (*Caller)(const PtrStepSzb, PtrStepb, double*, int);
+
+    static Caller multipass_callers[] =
     {
-        {0, ::sum::run<uchar , 1>, ::sum::run<uchar , 2>, ::sum::run<uchar , 3>, ::sum::run<uchar , 4>},
-        {0, ::sum::run<schar , 1>, ::sum::run<schar , 2>, ::sum::run<schar , 3>, ::sum::run<schar , 4>},
-        {0, ::sum::run<ushort, 1>, ::sum::run<ushort, 2>, ::sum::run<ushort, 3>, ::sum::run<ushort, 4>},
-        {0, ::sum::run<short , 1>, ::sum::run<short , 2>, ::sum::run<short , 3>, ::sum::run<short , 4>},
-        {0, ::sum::run<int   , 1>, ::sum::run<int   , 2>, ::sum::run<int   , 3>, ::sum::run<int   , 4>},
-        {0, ::sum::run<float , 1>, ::sum::run<float , 2>, ::sum::run<float , 3>, ::sum::run<float , 4>},
-        {0, ::sum::run<double, 1>, ::sum::run<double, 2>, ::sum::run<double, 3>, ::sum::run<double, 4>}
+        sumMultipassCaller<unsigned char>, sumMultipassCaller<char>,
+        sumMultipassCaller<unsigned short>, sumMultipassCaller<short>,
+        sumMultipassCaller<int>, sumMultipassCaller<float>
     };
 
-    CV_Assert( mask.empty() || (mask.type() == CV_8UC1 && mask.size() == src.size()) );
+    static Caller singlepass_callers[] = {
+        sumCaller<unsigned char>, sumCaller<char>,
+        sumCaller<unsigned short>, sumCaller<short>,
+        sumCaller<int>, sumCaller<float>
+    };
 
-    if (src.depth() == CV_64F)
-    {
-        if (!deviceSupports(NATIVE_DOUBLE))
-            CV_Error(CV_StsUnsupportedFormat, "The device doesn't support double");
-    }
+    CV_Assert(src.depth() <= CV_32F);
 
     Size buf_size;
-    ::sum::getBufSize(src.cols, src.rows, src.channels(), buf_size.width, buf_size.height);
+    getBufSizeRequired(src.cols, src.rows, src.channels(), buf_size.width, buf_size.height);
     ensureSizeIsEnough(buf_size, CV_8U, buf);
-    buf.setTo(Scalar::all(0));
 
-    const func_t func = funcs[src.depth()][src.channels()];
+    Caller* callers = multipass_callers;
+    if (TargetArchs::builtWith(GLOBAL_ATOMICS) && DeviceInfo().supports(GLOBAL_ATOMICS))
+        callers = singlepass_callers;
+
+    Caller caller = callers[src.depth()];
 
     double result[4];
-    func(src, buf.data, result, mask);
-
+    caller(src, buf, result, src.channels());
     return Scalar(result[0], result[1], result[2], result[3]);
 }
+
 
 Scalar cv::gpu::absSum(const GpuMat& src)
 {
     GpuMat buf;
-    return absSum(src, GpuMat(), buf);
+    return absSum(src, buf);
 }
+
 
 Scalar cv::gpu::absSum(const GpuMat& src, GpuMat& buf)
 {
-    return absSum(src, GpuMat(), buf);
-}
+    using namespace cv::gpu::device::matrix_reductions::sum;
 
-Scalar cv::gpu::absSum(const GpuMat& src, const GpuMat& mask, GpuMat& buf)
-{
-    typedef void (*func_t)(PtrStepSzb src, void* buf, double* sum, PtrStepSzb mask);
-    static const func_t funcs[7][5] =
+    typedef void (*Caller)(const PtrStepSzb, PtrStepb, double*, int);
+
+    static Caller multipass_callers[] =
     {
-        {0, ::sum::runAbs<uchar , 1>, ::sum::runAbs<uchar , 2>, ::sum::runAbs<uchar , 3>, ::sum::runAbs<uchar , 4>},
-        {0, ::sum::runAbs<schar , 1>, ::sum::runAbs<schar , 2>, ::sum::runAbs<schar , 3>, ::sum::runAbs<schar , 4>},
-        {0, ::sum::runAbs<ushort, 1>, ::sum::runAbs<ushort, 2>, ::sum::runAbs<ushort, 3>, ::sum::runAbs<ushort, 4>},
-        {0, ::sum::runAbs<short , 1>, ::sum::runAbs<short , 2>, ::sum::runAbs<short , 3>, ::sum::runAbs<short , 4>},
-        {0, ::sum::runAbs<int   , 1>, ::sum::runAbs<int   , 2>, ::sum::runAbs<int   , 3>, ::sum::runAbs<int   , 4>},
-        {0, ::sum::runAbs<float , 1>, ::sum::runAbs<float , 2>, ::sum::runAbs<float , 3>, ::sum::runAbs<float , 4>},
-        {0, ::sum::runAbs<double, 1>, ::sum::runAbs<double, 2>, ::sum::runAbs<double, 3>, ::sum::runAbs<double, 4>}
+        absSumMultipassCaller<unsigned char>, absSumMultipassCaller<char>,
+        absSumMultipassCaller<unsigned short>, absSumMultipassCaller<short>,
+        absSumMultipassCaller<int>, absSumMultipassCaller<float>
     };
 
-    CV_Assert( mask.empty() || (mask.type() == CV_8UC1 && mask.size() == src.size()) );
-
-    if (src.depth() == CV_64F)
+    static Caller singlepass_callers[] =
     {
-        if (!deviceSupports(NATIVE_DOUBLE))
-            CV_Error(CV_StsUnsupportedFormat, "The device doesn't support double");
-    }
+        absSumCaller<unsigned char>, absSumCaller<char>,
+        absSumCaller<unsigned short>, absSumCaller<short>,
+        absSumCaller<int>, absSumCaller<float>
+    };
+
+    CV_Assert(src.depth() <= CV_32F);
 
     Size buf_size;
-    ::sum::getBufSize(src.cols, src.rows, src.channels(), buf_size.width, buf_size.height);
+    getBufSizeRequired(src.cols, src.rows, src.channels(), buf_size.width, buf_size.height);
     ensureSizeIsEnough(buf_size, CV_8U, buf);
-    buf.setTo(Scalar::all(0));
 
-    const func_t func = funcs[src.depth()][src.channels()];
+    Caller* callers = multipass_callers;
+    if (TargetArchs::builtWith(GLOBAL_ATOMICS) && DeviceInfo().supports(GLOBAL_ATOMICS))
+        callers = singlepass_callers;
+
+    Caller caller = callers[src.depth()];
 
     double result[4];
-    func(src, buf.data, result, mask);
-
+    caller(src, buf, result, src.channels());
     return Scalar(result[0], result[1], result[2], result[3]);
 }
+
 
 Scalar cv::gpu::sqrSum(const GpuMat& src)
 {
     GpuMat buf;
-    return sqrSum(src, GpuMat(), buf);
+    return sqrSum(src, buf);
 }
+
 
 Scalar cv::gpu::sqrSum(const GpuMat& src, GpuMat& buf)
 {
-    return sqrSum(src, GpuMat(), buf);
-}
+    using namespace cv::gpu::device::matrix_reductions::sum;
 
-Scalar cv::gpu::sqrSum(const GpuMat& src, const GpuMat& mask, GpuMat& buf)
-{
-    typedef void (*func_t)(PtrStepSzb src, void* buf, double* sum, PtrStepSzb mask);
-    static const func_t funcs[7][5] =
+    typedef void (*Caller)(const PtrStepSzb, PtrStepb, double*, int);
+
+    static Caller multipass_callers[] =
     {
-        {0, ::sum::runSqr<uchar , 1>, ::sum::runSqr<uchar , 2>, ::sum::runSqr<uchar , 3>, ::sum::runSqr<uchar , 4>},
-        {0, ::sum::runSqr<schar , 1>, ::sum::runSqr<schar , 2>, ::sum::runSqr<schar , 3>, ::sum::runSqr<schar , 4>},
-        {0, ::sum::runSqr<ushort, 1>, ::sum::runSqr<ushort, 2>, ::sum::runSqr<ushort, 3>, ::sum::runSqr<ushort, 4>},
-        {0, ::sum::runSqr<short , 1>, ::sum::runSqr<short , 2>, ::sum::runSqr<short , 3>, ::sum::runSqr<short , 4>},
-        {0, ::sum::runSqr<int   , 1>, ::sum::runSqr<int   , 2>, ::sum::runSqr<int   , 3>, ::sum::runSqr<int   , 4>},
-        {0, ::sum::runSqr<float , 1>, ::sum::runSqr<float , 2>, ::sum::runSqr<float , 3>, ::sum::runSqr<float , 4>},
-        {0, ::sum::runSqr<double, 1>, ::sum::runSqr<double, 2>, ::sum::runSqr<double, 3>, ::sum::runSqr<double, 4>}
+        sqrSumMultipassCaller<unsigned char>, sqrSumMultipassCaller<char>,
+        sqrSumMultipassCaller<unsigned short>, sqrSumMultipassCaller<short>,
+        sqrSumMultipassCaller<int>, sqrSumMultipassCaller<float>
     };
 
-    CV_Assert( mask.empty() || (mask.type() == CV_8UC1 && mask.size() == src.size()) );
-
-    if (src.depth() == CV_64F)
+    static Caller singlepass_callers[7] =
     {
-        if (!deviceSupports(NATIVE_DOUBLE))
-            CV_Error(CV_StsUnsupportedFormat, "The device doesn't support double");
-    }
+        sqrSumCaller<unsigned char>, sqrSumCaller<char>,
+        sqrSumCaller<unsigned short>, sqrSumCaller<short>,
+        sqrSumCaller<int>, sqrSumCaller<float>
+    };
+
+    CV_Assert(src.depth() <= CV_32F);
+
+    Caller* callers = multipass_callers;
+    if (TargetArchs::builtWith(GLOBAL_ATOMICS) && DeviceInfo().supports(GLOBAL_ATOMICS))
+        callers = singlepass_callers;
 
     Size buf_size;
-    ::sum::getBufSize(src.cols, src.rows, src.channels(), buf_size.width, buf_size.height);
+    getBufSizeRequired(src.cols, src.rows, src.channels(), buf_size.width, buf_size.height);
     ensureSizeIsEnough(buf_size, CV_8U, buf);
-    buf.setTo(Scalar::all(0));
 
-    const func_t func = funcs[src.depth()][src.channels()];
+    Caller caller = callers[src.depth()];
 
     double result[4];
-    func(src, buf.data, result, mask);
-
+    caller(src, buf, result, src.channels());
     return Scalar(result[0], result[1], result[2], result[3]);
 }
 
 ////////////////////////////////////////////////////////////////////////
-// minMax
+// Find min or max
 
-namespace minMax
+namespace cv { namespace gpu { namespace device
 {
-    void getBufSize(int cols, int rows, int& bufcols, int& bufrows);
+    namespace matrix_reductions
+    {
+        namespace minmax
+        {
+            void getBufSizeRequired(int cols, int rows, int elem_size, int& bufcols, int& bufrows);
 
-    template <typename T>
-    void run(const PtrStepSzb src, const PtrStepb mask, double* minval, double* maxval, PtrStepb buf);
-}
+            template <typename T>
+            void minMaxCaller(const PtrStepSzb src, double* minval, double* maxval, PtrStepb buf);
+
+            template <typename T>
+            void minMaxMaskCaller(const PtrStepSzb src, const PtrStepb mask, double* minval, double* maxval, PtrStepb buf);
+
+            template <typename T>
+            void minMaxMultipassCaller(const PtrStepSzb src, double* minval, double* maxval, PtrStepb buf);
+
+            template <typename T>
+            void minMaxMaskMultipassCaller(const PtrStepSzb src, const PtrStepb mask, double* minval, double* maxval, PtrStepb buf);
+        }
+    }
+}}}
+
 
 void cv::gpu::minMax(const GpuMat& src, double* minVal, double* maxVal, const GpuMat& mask)
 {
@@ -383,49 +399,112 @@ void cv::gpu::minMax(const GpuMat& src, double* minVal, double* maxVal, const Gp
     minMax(src, minVal, maxVal, mask, buf);
 }
 
+
 void cv::gpu::minMax(const GpuMat& src, double* minVal, double* maxVal, const GpuMat& mask, GpuMat& buf)
 {
-    typedef void (*func_t)(const PtrStepSzb src, const PtrStepb mask, double* minval, double* maxval, PtrStepb buf);
-    static const func_t funcs[] =
+    using namespace ::cv::gpu::device::matrix_reductions::minmax;
+
+    typedef void (*Caller)(const PtrStepSzb, double*, double*, PtrStepb);
+    typedef void (*MaskedCaller)(const PtrStepSzb, const PtrStepb, double*, double*, PtrStepb);
+
+    static Caller multipass_callers[] =
     {
-        ::minMax::run<uchar>,
-        ::minMax::run<schar>,
-        ::minMax::run<ushort>,
-        ::minMax::run<short>,
-        ::minMax::run<int>,
-        ::minMax::run<float>,
-        ::minMax::run<double>
+        minMaxMultipassCaller<unsigned char>, minMaxMultipassCaller<char>,
+        minMaxMultipassCaller<unsigned short>, minMaxMultipassCaller<short>,
+        minMaxMultipassCaller<int>, minMaxMultipassCaller<float>, 0
     };
 
-    CV_Assert( src.channels() == 1 );
-    CV_Assert( mask.empty() || (mask.size() == src.size() && mask.type() == CV_8U) );
+    static Caller singlepass_callers[] =
+    {
+        minMaxCaller<unsigned char>, minMaxCaller<char>,
+        minMaxCaller<unsigned short>, minMaxCaller<short>,
+        minMaxCaller<int>, minMaxCaller<float>, minMaxCaller<double>
+    };
+
+    static MaskedCaller masked_multipass_callers[] =
+    {
+        minMaxMaskMultipassCaller<unsigned char>, minMaxMaskMultipassCaller<char>,
+        minMaxMaskMultipassCaller<unsigned short>, minMaxMaskMultipassCaller<short>,
+        minMaxMaskMultipassCaller<int>, minMaxMaskMultipassCaller<float>, 0
+    };
+
+    static MaskedCaller masked_singlepass_callers[] =
+    {
+        minMaxMaskCaller<unsigned char>, minMaxMaskCaller<char>,
+        minMaxMaskCaller<unsigned short>, minMaxMaskCaller<short>,
+        minMaxMaskCaller<int>, minMaxMaskCaller<float>, minMaxMaskCaller<double>
+    };
+
+    CV_Assert(src.depth() <= CV_64F);
+    CV_Assert(src.channels() == 1);
+    CV_Assert(mask.empty() || (mask.type() == CV_8U && src.size() == mask.size()));
 
     if (src.depth() == CV_64F)
     {
-        if (!deviceSupports(NATIVE_DOUBLE))
+        if (!TargetArchs::builtWith(NATIVE_DOUBLE) || !DeviceInfo().supports(NATIVE_DOUBLE))
             CV_Error(CV_StsUnsupportedFormat, "The device doesn't support double");
     }
 
+    double minVal_; if (!minVal) minVal = &minVal_;
+    double maxVal_; if (!maxVal) maxVal = &maxVal_;
+
     Size buf_size;
-    ::minMax::getBufSize(src.cols, src.rows, buf_size.width, buf_size.height);
+    getBufSizeRequired(src.cols, src.rows, static_cast<int>(src.elemSize()), buf_size.width, buf_size.height);
     ensureSizeIsEnough(buf_size, CV_8U, buf);
 
-    const func_t func = funcs[src.depth()];
+    if (mask.empty())
+    {
+        Caller* callers = multipass_callers;
+        if (TargetArchs::builtWith(GLOBAL_ATOMICS) && DeviceInfo().supports(GLOBAL_ATOMICS))
+            callers = singlepass_callers;
 
-    double temp1, temp2;
-    func(src, mask, minVal ? minVal : &temp1, maxVal ? maxVal : &temp2, buf);
+        Caller caller = callers[src.type()];
+        CV_Assert(caller != 0);
+        caller(src, minVal, maxVal, buf);
+    }
+    else
+    {
+        MaskedCaller* callers = masked_multipass_callers;
+        if (TargetArchs::builtWith(GLOBAL_ATOMICS) && DeviceInfo().supports(GLOBAL_ATOMICS))
+            callers = masked_singlepass_callers;
+
+        MaskedCaller caller = callers[src.type()];
+        CV_Assert(caller != 0);
+        caller(src, mask, minVal, maxVal, buf);
+    }
 }
+
 
 ////////////////////////////////////////////////////////////////////////
-// minMaxLoc
+// Locate min and max
 
-namespace minMaxLoc
+namespace cv { namespace gpu { namespace device
 {
-    void getBufSize(int cols, int rows, size_t elem_size, int& b1cols, int& b1rows, int& b2cols, int& b2rows);
+    namespace matrix_reductions
+    {
+        namespace minmaxloc
+        {
+            void getBufSizeRequired(int cols, int rows, int elem_size, int& b1cols,
+                                    int& b1rows, int& b2cols, int& b2rows);
 
-    template <typename T>
-    void run(const PtrStepSzb src, const PtrStepb mask, double* minval, double* maxval, int* minloc, int* maxloc, PtrStepb valbuf, PtrStep<unsigned int> locbuf);
-}
+            template <typename T>
+            void minMaxLocCaller(const PtrStepSzb src, double* minval, double* maxval,
+                                 int minloc[2], int maxloc[2], PtrStepb valBuf, PtrStepb locBuf);
+
+            template <typename T>
+            void minMaxLocMaskCaller(const PtrStepSzb src, const PtrStepb mask, double* minval, double* maxval,
+                                     int minloc[2], int maxloc[2], PtrStepb valBuf, PtrStepb locBuf);
+
+            template <typename T>
+            void minMaxLocMultipassCaller(const PtrStepSzb src, double* minval, double* maxval,
+                                          int minloc[2], int maxloc[2], PtrStepb valBuf, PtrStepb locBuf);
+
+            template <typename T>
+            void minMaxLocMaskMultipassCaller(const PtrStepSzb src, const PtrStepb mask, double* minval, double* maxval,
+                                              int minloc[2], int maxloc[2], PtrStepb valBuf, PtrStepb locBuf);
+        }
+    }
+}}}
 
 void cv::gpu::minMaxLoc(const GpuMat& src, double* minVal, double* maxVal, Point* minLoc, Point* maxLoc, const GpuMat& mask)
 {
@@ -436,49 +515,104 @@ void cv::gpu::minMaxLoc(const GpuMat& src, double* minVal, double* maxVal, Point
 void cv::gpu::minMaxLoc(const GpuMat& src, double* minVal, double* maxVal, Point* minLoc, Point* maxLoc,
                         const GpuMat& mask, GpuMat& valBuf, GpuMat& locBuf)
 {
-    typedef void (*func_t)(const PtrStepSzb src, const PtrStepb mask, double* minval, double* maxval, int* minloc, int* maxloc, PtrStepb valbuf, PtrStep<unsigned int> locbuf);
-    static const func_t funcs[] =
+    using namespace ::cv::gpu::device::matrix_reductions::minmaxloc;
+
+    typedef void (*Caller)(const PtrStepSzb, double*, double*, int[2], int[2], PtrStepb, PtrStepb);
+    typedef void (*MaskedCaller)(const PtrStepSzb, const PtrStepb, double*, double*, int[2], int[2], PtrStepb, PtrStepb);
+
+    static Caller multipass_callers[] =
     {
-        ::minMaxLoc::run<uchar>,
-        ::minMaxLoc::run<schar>,
-        ::minMaxLoc::run<ushort>,
-        ::minMaxLoc::run<short>,
-        ::minMaxLoc::run<int>,
-        ::minMaxLoc::run<float>,
-        ::minMaxLoc::run<double>
+        minMaxLocMultipassCaller<unsigned char>, minMaxLocMultipassCaller<char>,
+        minMaxLocMultipassCaller<unsigned short>, minMaxLocMultipassCaller<short>,
+        minMaxLocMultipassCaller<int>, minMaxLocMultipassCaller<float>, 0
     };
 
-    CV_Assert( src.channels() == 1 );
-    CV_Assert( mask.empty() || (mask.size() == src.size() && mask.type() == CV_8U) );
+    static Caller singlepass_callers[] =
+    {
+        minMaxLocCaller<unsigned char>, minMaxLocCaller<char>,
+        minMaxLocCaller<unsigned short>, minMaxLocCaller<short>,
+        minMaxLocCaller<int>, minMaxLocCaller<float>, minMaxLocCaller<double>
+    };
+
+    static MaskedCaller masked_multipass_callers[] =
+    {
+        minMaxLocMaskMultipassCaller<unsigned char>, minMaxLocMaskMultipassCaller<char>,
+        minMaxLocMaskMultipassCaller<unsigned short>, minMaxLocMaskMultipassCaller<short>,
+        minMaxLocMaskMultipassCaller<int>, minMaxLocMaskMultipassCaller<float>, 0
+    };
+
+    static MaskedCaller masked_singlepass_callers[] =
+    {
+        minMaxLocMaskCaller<unsigned char>, minMaxLocMaskCaller<char>,
+        minMaxLocMaskCaller<unsigned short>, minMaxLocMaskCaller<short>,
+        minMaxLocMaskCaller<int>, minMaxLocMaskCaller<float>, minMaxLocMaskCaller<double>
+    };
+
+    CV_Assert(src.depth() <= CV_64F);
+    CV_Assert(src.channels() == 1);
+    CV_Assert(mask.empty() || (mask.type() == CV_8U && src.size() == mask.size()));
 
     if (src.depth() == CV_64F)
     {
-        if (!deviceSupports(NATIVE_DOUBLE))
+        if (!TargetArchs::builtWith(NATIVE_DOUBLE) || !DeviceInfo().supports(NATIVE_DOUBLE))
             CV_Error(CV_StsUnsupportedFormat, "The device doesn't support double");
     }
 
+    double minVal_; if (!minVal) minVal = &minVal_;
+    double maxVal_; if (!maxVal) maxVal = &maxVal_;
+    int minLoc_[2];
+    int maxLoc_[2];
+
     Size valbuf_size, locbuf_size;
-    ::minMaxLoc::getBufSize(src.cols, src.rows, src.elemSize(), valbuf_size.width, valbuf_size.height, locbuf_size.width, locbuf_size.height);
+    getBufSizeRequired(src.cols, src.rows, static_cast<int>(src.elemSize()), valbuf_size.width,
+                       valbuf_size.height, locbuf_size.width, locbuf_size.height);
     ensureSizeIsEnough(valbuf_size, CV_8U, valBuf);
     ensureSizeIsEnough(locbuf_size, CV_8U, locBuf);
 
-    const func_t func = funcs[src.depth()];
+    if (mask.empty())
+    {
+        Caller* callers = multipass_callers;
+        if (TargetArchs::builtWith(GLOBAL_ATOMICS) && DeviceInfo().supports(GLOBAL_ATOMICS))
+            callers = singlepass_callers;
 
-    double temp1, temp2;
-    Point temp3, temp4;
-    func(src, mask, minVal ? minVal : &temp1, maxVal ? maxVal : &temp2, minLoc ? &minLoc->x : &temp3.x, maxLoc ? &maxLoc->x : &temp4.x, valBuf, locBuf);
+        Caller caller = callers[src.type()];
+        CV_Assert(caller != 0);
+        caller(src, minVal, maxVal, minLoc_, maxLoc_, valBuf, locBuf);
+    }
+    else
+    {
+        MaskedCaller* callers = masked_multipass_callers;
+        if (TargetArchs::builtWith(GLOBAL_ATOMICS) && DeviceInfo().supports(GLOBAL_ATOMICS))
+            callers = masked_singlepass_callers;
+
+        MaskedCaller caller = callers[src.type()];
+        CV_Assert(caller != 0);
+        caller(src, mask, minVal, maxVal, minLoc_, maxLoc_, valBuf, locBuf);
+    }
+
+    if (minLoc) { minLoc->x = minLoc_[0]; minLoc->y = minLoc_[1]; }
+    if (maxLoc) { maxLoc->x = maxLoc_[0]; maxLoc->y = maxLoc_[1]; }
 }
 
 //////////////////////////////////////////////////////////////////////////////
-// countNonZero
+// Count non-zero elements
 
-namespace countNonZero
+namespace cv { namespace gpu { namespace device
 {
-    void getBufSize(int cols, int rows, int& bufcols, int& bufrows);
+    namespace matrix_reductions
+    {
+        namespace countnonzero
+        {
+            void getBufSizeRequired(int cols, int rows, int& bufcols, int& bufrows);
 
-    template <typename T>
-    int run(const PtrStepSzb src, PtrStep<unsigned int> buf);
-}
+            template <typename T>
+            int countNonZeroCaller(const PtrStepSzb src, PtrStepb buf);
+
+            template <typename T>
+            int countNonZeroMultipassCaller(const PtrStepSzb src, PtrStepb buf);
+        }
+    }
+}}}
 
 int cv::gpu::countNonZero(const GpuMat& src)
 {
@@ -486,213 +620,198 @@ int cv::gpu::countNonZero(const GpuMat& src)
     return countNonZero(src, buf);
 }
 
+
 int cv::gpu::countNonZero(const GpuMat& src, GpuMat& buf)
 {
-    typedef int (*func_t)(const PtrStepSzb src, PtrStep<unsigned int> buf);
-    static const func_t funcs[] =
+    using namespace ::cv::gpu::device::matrix_reductions::countnonzero;
+
+    typedef int (*Caller)(const PtrStepSzb src, PtrStepb buf);
+
+    static Caller multipass_callers[7] =
     {
-        ::countNonZero::run<uchar>,
-        ::countNonZero::run<schar>,
-        ::countNonZero::run<ushort>,
-        ::countNonZero::run<short>,
-        ::countNonZero::run<int>,
-        ::countNonZero::run<float>,
-        ::countNonZero::run<double>
+        countNonZeroMultipassCaller<unsigned char>, countNonZeroMultipassCaller<char>,
+        countNonZeroMultipassCaller<unsigned short>, countNonZeroMultipassCaller<short>,
+        countNonZeroMultipassCaller<int>, countNonZeroMultipassCaller<float>, 0
     };
 
+    static Caller singlepass_callers[7] =
+    {
+        countNonZeroCaller<unsigned char>, countNonZeroCaller<char>,
+        countNonZeroCaller<unsigned short>, countNonZeroCaller<short>,
+        countNonZeroCaller<int>, countNonZeroCaller<float>, countNonZeroCaller<double> };
+
+    CV_Assert(src.depth() <= CV_64F);
     CV_Assert(src.channels() == 1);
 
     if (src.depth() == CV_64F)
     {
-        if (!deviceSupports(NATIVE_DOUBLE))
+        if (!TargetArchs::builtWith(NATIVE_DOUBLE) || !DeviceInfo().supports(NATIVE_DOUBLE))
             CV_Error(CV_StsUnsupportedFormat, "The device doesn't support double");
     }
 
     Size buf_size;
-    ::countNonZero::getBufSize(src.cols, src.rows, buf_size.width, buf_size.height);
+    getBufSizeRequired(src.cols, src.rows, buf_size.width, buf_size.height);
     ensureSizeIsEnough(buf_size, CV_8U, buf);
 
-    const func_t func = funcs[src.depth()];
+    Caller* callers = multipass_callers;
+    if (TargetArchs::builtWith(GLOBAL_ATOMICS) && DeviceInfo().supports(GLOBAL_ATOMICS))
+        callers = singlepass_callers;
 
-    return func(src, buf);
+    Caller caller = callers[src.type()];
+    CV_Assert(caller != 0);
+    return caller(src, buf);
 }
 
 //////////////////////////////////////////////////////////////////////////////
 // reduce
 
-namespace reduce
+namespace cv { namespace gpu { namespace device
 {
-    template <typename T, typename S, typename D>
-    void rows(PtrStepSzb src, void* dst, int op, cudaStream_t stream);
-
-    template <typename T, typename S, typename D>
-    void cols(PtrStepSzb src, void* dst, int cn, int op, cudaStream_t stream);
-}
+    namespace matrix_reductions
+    {
+        template <typename T, typename S, typename D> void reduceRows_gpu(const PtrStepSzb& src, const PtrStepSzb& dst, int reduceOp, cudaStream_t stream);
+        template <typename T, typename S, typename D> void reduceCols_gpu(const PtrStepSzb& src, int cn, const PtrStepSzb& dst, int reduceOp, cudaStream_t stream);
+    }
+}}}
 
 void cv::gpu::reduce(const GpuMat& src, GpuMat& dst, int dim, int reduceOp, int dtype, Stream& stream)
 {
-    CV_Assert( src.channels() <= 4 );
-    CV_Assert( dim == 0 || dim == 1 );
-    CV_Assert( reduceOp == CV_REDUCE_SUM || reduceOp == CV_REDUCE_AVG || reduceOp == CV_REDUCE_MAX || reduceOp == CV_REDUCE_MIN );
+    using namespace ::cv::gpu::device::matrix_reductions;
+
+    CV_Assert(src.depth() <= CV_32F && src.channels() <= 4 && dtype <= CV_32F);
+    CV_Assert(dim == 0 || dim == 1);
+    CV_Assert(reduceOp == CV_REDUCE_SUM || reduceOp == CV_REDUCE_AVG || reduceOp == CV_REDUCE_MAX || reduceOp == CV_REDUCE_MIN);
 
     if (dtype < 0)
         dtype = src.depth();
 
-    dst.create(1, dim == 0 ? src.cols : src.rows, CV_MAKE_TYPE(CV_MAT_DEPTH(dtype), src.channels()));
+    dst.create(1, dim == 0 ? src.cols : src.rows, CV_MAKETYPE(dtype, src.channels()));
 
     if (dim == 0)
     {
-        typedef void (*func_t)(PtrStepSzb src, void* dst, int op, cudaStream_t stream);
-        static const func_t funcs[7][7] =
+        typedef void (*caller_t)(const PtrStepSzb& src, const PtrStepSzb& dst, int reduceOp, cudaStream_t stream);
+
+        static const caller_t callers[6][6] =
         {
             {
-                ::reduce::rows<unsigned char, int, unsigned char>,
-                0/*::reduce::rows<unsigned char, int, signed char>*/,
-                0/*::reduce::rows<unsigned char, int, unsigned short>*/,
-                0/*::reduce::rows<unsigned char, int, short>*/,
-                ::reduce::rows<unsigned char, int, int>,
-                ::reduce::rows<unsigned char, float, float>,
-                ::reduce::rows<unsigned char, double, double>
+                reduceRows_gpu<unsigned char, int, unsigned char>,
+                0/*reduceRows_gpu<unsigned char, int, signed char>*/,
+                0/*reduceRows_gpu<unsigned char, int, unsigned short>*/,
+                0/*reduceRows_gpu<unsigned char, int, short>*/,
+                reduceRows_gpu<unsigned char, int, int>,
+                reduceRows_gpu<unsigned char, int, float>
             },
             {
-                0/*::reduce::rows<signed char, int, unsigned char>*/,
-                0/*::reduce::rows<signed char, int, signed char>*/,
-                0/*::reduce::rows<signed char, int, unsigned short>*/,
-                0/*::reduce::rows<signed char, int, short>*/,
-                0/*::reduce::rows<signed char, int, int>*/,
-                0/*::reduce::rows<signed char, float, float>*/,
-                0/*::reduce::rows<signed char, double, double>*/
+                0/*reduceRows_gpu<signed char, int, unsigned char>*/,
+                0/*reduceRows_gpu<signed char, int, signed char>*/,
+                0/*reduceRows_gpu<signed char, int, unsigned short>*/,
+                0/*reduceRows_gpu<signed char, int, short>*/,
+                0/*reduceRows_gpu<signed char, int, int>*/,
+                0/*reduceRows_gpu<signed char, int, float>*/
             },
             {
-                0/*::reduce::rows<unsigned short, int, unsigned char>*/,
-                0/*::reduce::rows<unsigned short, int, signed char>*/,
-                ::reduce::rows<unsigned short, int, unsigned short>,
-                0/*::reduce::rows<unsigned short, int, short>*/,
-                ::reduce::rows<unsigned short, int, int>,
-                ::reduce::rows<unsigned short, float, float>,
-                ::reduce::rows<unsigned short, double, double>
+                0/*reduceRows_gpu<unsigned short, int, unsigned char>*/,
+                0/*reduceRows_gpu<unsigned short, int, signed char>*/,
+                reduceRows_gpu<unsigned short, int, unsigned short>,
+                0/*reduceRows_gpu<unsigned short, int, short>*/,
+                reduceRows_gpu<unsigned short, int, int>,
+                reduceRows_gpu<unsigned short, int, float>
             },
             {
-                0/*::reduce::rows<short, int, unsigned char>*/,
-                0/*::reduce::rows<short, int, signed char>*/,
-                0/*::reduce::rows<short, int, unsigned short>*/,
-                ::reduce::rows<short, int, short>,
-                ::reduce::rows<short, int, int>,
-                ::reduce::rows<short, float, float>,
-                ::reduce::rows<short, double, double>
+                0/*reduceRows_gpu<short, int, unsigned char>*/,
+                0/*reduceRows_gpu<short, int, signed char>*/,
+                0/*reduceRows_gpu<short, int, unsigned short>*/,
+                reduceRows_gpu<short, int, short>,
+                reduceRows_gpu<short, int, int>,
+                reduceRows_gpu<short, int, float>
             },
             {
-                0/*::reduce::rows<int, int, unsigned char>*/,
-                0/*::reduce::rows<int, int, signed char>*/,
-                0/*::reduce::rows<int, int, unsigned short>*/,
-                0/*::reduce::rows<int, int, short>*/,
-                ::reduce::rows<int, int, int>,
-                ::reduce::rows<int, float, float>,
-                ::reduce::rows<int, double, double>
+                0/*reduceRows_gpu<int, int, unsigned char>*/,
+                0/*reduceRows_gpu<int, int, signed char>*/,
+                0/*reduceRows_gpu<int, int, unsigned short>*/,
+                0/*reduceRows_gpu<int, int, short>*/,
+                reduceRows_gpu<int, int, int>,
+                reduceRows_gpu<int, int, float>
             },
             {
-                0/*::reduce::rows<float, float, unsigned char>*/,
-                0/*::reduce::rows<float, float, signed char>*/,
-                0/*::reduce::rows<float, float, unsigned short>*/,
-                0/*::reduce::rows<float, float, short>*/,
-                0/*::reduce::rows<float, float, int>*/,
-                ::reduce::rows<float, float, float>,
-                ::reduce::rows<float, double, double>
-            },
-            {
-                0/*::reduce::rows<double, double, unsigned char>*/,
-                0/*::reduce::rows<double, double, signed char>*/,
-                0/*::reduce::rows<double, double, unsigned short>*/,
-                0/*::reduce::rows<double, double, short>*/,
-                0/*::reduce::rows<double, double, int>*/,
-                0/*::reduce::rows<double, double, float>*/,
-                ::reduce::rows<double, double, double>
+                0/*reduceRows_gpu<float, float, unsigned char>*/,
+                0/*reduceRows_gpu<float, float, signed char>*/,
+                0/*reduceRows_gpu<float, float, unsigned short>*/,
+                0/*reduceRows_gpu<float, float, short>*/,
+                0/*reduceRows_gpu<float, float, int>*/,
+                reduceRows_gpu<float, float, float>
             }
         };
 
-        const func_t func = funcs[src.depth()][dst.depth()];
+        const caller_t func = callers[src.depth()][dst.depth()];
 
         if (!func)
             CV_Error(CV_StsUnsupportedFormat, "Unsupported combination of input and output array formats");
 
-        func(src.reshape(1), dst.data, reduceOp, StreamAccessor::getStream(stream));
+        func(src.reshape(1), dst.reshape(1), reduceOp, StreamAccessor::getStream(stream));
     }
     else
     {
-        typedef void (*func_t)(PtrStepSzb src, void* dst, int cn, int op, cudaStream_t stream);
-        static const func_t funcs[7][7] =
+        typedef void (*caller_t)(const PtrStepSzb& src, int cn, const PtrStepSzb& dst, int reduceOp, cudaStream_t stream);
+
+        static const caller_t callers[6][6] =
         {
             {
-                ::reduce::cols<unsigned char, int, unsigned char>,
-                0/*::reduce::cols<unsigned char, int, signed char>*/,
-                0/*::reduce::cols<unsigned char, int, unsigned short>*/,
-                0/*::reduce::cols<unsigned char, int, short>*/,
-                ::reduce::cols<unsigned char, int, int>,
-                ::reduce::cols<unsigned char, float, float>,
-                ::reduce::cols<unsigned char, double, double>
+                reduceCols_gpu<unsigned char, int, unsigned char>,
+                0/*reduceCols_gpu<unsigned char, int, signed char>*/,
+                0/*reduceCols_gpu<unsigned char, int, unsigned short>*/,
+                0/*reduceCols_gpu<unsigned char, int, short>*/,
+                reduceCols_gpu<unsigned char, int, int>,
+                reduceCols_gpu<unsigned char, int, float>
             },
             {
-                0/*::reduce::cols<signed char, int, unsigned char>*/,
-                0/*::reduce::cols<signed char, int, signed char>*/,
-                0/*::reduce::cols<signed char, int, unsigned short>*/,
-                0/*::reduce::cols<signed char, int, short>*/,
-                0/*::reduce::cols<signed char, int, int>*/,
-                0/*::reduce::cols<signed char, float, float>*/,
-                0/*::reduce::cols<signed char, double, double>*/
+                0/*reduceCols_gpu<signed char, int, unsigned char>*/,
+                0/*reduceCols_gpu<signed char, int, signed char>*/,
+                0/*reduceCols_gpu<signed char, int, unsigned short>*/,
+                0/*reduceCols_gpu<signed char, int, short>*/,
+                0/*reduceCols_gpu<signed char, int, int>*/,
+                0/*reduceCols_gpu<signed char, int, float>*/
             },
             {
-                0/*::reduce::cols<unsigned short, int, unsigned char>*/,
-                0/*::reduce::cols<unsigned short, int, signed char>*/,
-                ::reduce::cols<unsigned short, int, unsigned short>,
-                0/*::reduce::cols<unsigned short, int, short>*/,
-                ::reduce::cols<unsigned short, int, int>,
-                ::reduce::cols<unsigned short, float, float>,
-                ::reduce::cols<unsigned short, double, double>
+                0/*reduceCols_gpu<unsigned short, int, unsigned char>*/,
+                0/*reduceCols_gpu<unsigned short, int, signed char>*/,
+                reduceCols_gpu<unsigned short, int, unsigned short>,
+                0/*reduceCols_gpu<unsigned short, int, short>*/,
+                reduceCols_gpu<unsigned short, int, int>,
+                reduceCols_gpu<unsigned short, int, float>
             },
             {
-                0/*::reduce::cols<short, int, unsigned char>*/,
-                0/*::reduce::cols<short, int, signed char>*/,
-                0/*::reduce::cols<short, int, unsigned short>*/,
-                ::reduce::cols<short, int, short>,
-                ::reduce::cols<short, int, int>,
-                ::reduce::cols<short, float, float>,
-                ::reduce::cols<short, double, double>
+                0/*reduceCols_gpu<short, int, unsigned char>*/,
+                0/*reduceCols_gpu<short, int, signed char>*/,
+                0/*reduceCols_gpu<short, int, unsigned short>*/,
+                reduceCols_gpu<short, int, short>,
+                reduceCols_gpu<short, int, int>,
+                reduceCols_gpu<short, int, float>
             },
             {
-                0/*::reduce::cols<int, int, unsigned char>*/,
-                0/*::reduce::cols<int, int, signed char>*/,
-                0/*::reduce::cols<int, int, unsigned short>*/,
-                0/*::reduce::cols<int, int, short>*/,
-                ::reduce::cols<int, int, int>,
-                ::reduce::cols<int, float, float>,
-                ::reduce::cols<int, double, double>
+                0/*reduceCols_gpu<int, int, unsigned char>*/,
+                0/*reduceCols_gpu<int, int, signed char>*/,
+                0/*reduceCols_gpu<int, int, unsigned short>*/,
+                0/*reduceCols_gpu<int, int, short>*/,
+                reduceCols_gpu<int, int, int>,
+                reduceCols_gpu<int, int, float>
             },
             {
-                0/*::reduce::cols<float, float, unsigned char>*/,
-                0/*::reduce::cols<float, float, signed char>*/,
-                0/*::reduce::cols<float, float, unsigned short>*/,
-                0/*::reduce::cols<float, float, short>*/,
-                0/*::reduce::cols<float, float, int>*/,
-                ::reduce::cols<float, float, float>,
-                ::reduce::cols<float, double, double>
-            },
-            {
-                0/*::reduce::cols<double, double, unsigned char>*/,
-                0/*::reduce::cols<double, double, signed char>*/,
-                0/*::reduce::cols<double, double, unsigned short>*/,
-                0/*::reduce::cols<double, double, short>*/,
-                0/*::reduce::cols<double, double, int>*/,
-                0/*::reduce::cols<double, double, float>*/,
-                ::reduce::cols<double, double, double>
+                0/*reduceCols_gpu<float, unsigned char>*/,
+                0/*reduceCols_gpu<float, signed char>*/,
+                0/*reduceCols_gpu<float, unsigned short>*/,
+                0/*reduceCols_gpu<float, short>*/,
+                0/*reduceCols_gpu<float, int>*/,
+                reduceCols_gpu<float, float, float>
             }
         };
 
-        const func_t func = funcs[src.depth()][dst.depth()];
+        const caller_t func = callers[src.depth()][dst.depth()];
 
         if (!func)
             CV_Error(CV_StsUnsupportedFormat, "Unsupported combination of input and output array formats");
 
-        func(src, dst.data, src.channels(), reduceOp, StreamAccessor::getStream(stream));
+        func(src, src.channels(), dst, reduceOp, StreamAccessor::getStream(stream));
     }
 }
 

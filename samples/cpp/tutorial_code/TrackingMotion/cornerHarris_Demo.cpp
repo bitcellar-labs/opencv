@@ -18,8 +18,8 @@ Mat src, src_gray;
 int thresh = 200;
 int max_thresh = 255;
 
-const char* source_window = "Source image";
-const char* corners_window = "Corners detected";
+char* source_window = "Source image";
+char* corners_window = "Corners detected";
 
 /// Function header
 void cornerHarris_demo( int, void* );
@@ -27,7 +27,7 @@ void cornerHarris_demo( int, void* );
 /**
  * @function main
  */
-int main( int, char** argv )
+int main( int argc, char** argv )
 {
   /// Load source image and convert it to gray
   src = imread( argv[1], 1 );

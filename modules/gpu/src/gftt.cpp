@@ -42,6 +42,7 @@
 
 #include "precomp.hpp"
 
+using namespace std;
 using namespace cv;
 using namespace cv::gpu;
 
@@ -67,6 +68,9 @@ void cv::gpu::GoodFeaturesToTrackDetector_GPU::operator ()(const GpuMat& image, 
     CV_Assert(qualityLevel > 0 && minDistance >= 0 && maxCorners >= 0);
     CV_Assert(mask.empty() || (mask.type() == CV_8UC1 && mask.size() == image.size()));
 
+    if (!TargetArchs::builtWith(GLOBAL_ATOMICS) || !DeviceInfo().supports(GLOBAL_ATOMICS))
+        CV_Error(CV_StsNotImplemented, "The device doesn't support global atomics");
+
     ensureSizeIsEnough(image.size(), CV_32F, eig_);
 
     if (useHarrisDetector)
@@ -81,23 +85,17 @@ void cv::gpu::GoodFeaturesToTrackDetector_GPU::operator ()(const GpuMat& image, 
 
     int total = findCorners_gpu(eig_, static_cast<float>(maxVal * qualityLevel), mask, tmpCorners_.ptr<float2>(), tmpCorners_.cols);
 
-    if (total == 0)
-    {
-        corners.release();
-        return;
-    }
-
     sortCorners_gpu(eig_, tmpCorners_.ptr<float2>(), total);
 
     if (minDistance < 1)
         tmpCorners_.colRange(0, maxCorners > 0 ? std::min(maxCorners, total) : total).copyTo(corners);
     else
     {
-        std::vector<Point2f> tmp(total);
+        vector<Point2f> tmp(total);
         Mat tmpMat(1, total, CV_32FC2, (void*)&tmp[0]);
         tmpCorners_.colRange(0, total).download(tmpMat);
 
-        std::vector<Point2f> tmp2;
+        vector<Point2f> tmp2;
         tmp2.reserve(total);
 
         const int cell_size = cvRound(minDistance);
@@ -130,7 +128,7 @@ void cv::gpu::GoodFeaturesToTrackDetector_GPU::operator ()(const GpuMat& image, 
             {
                 for (int xx = x1; xx <= x2; xx++)
                 {
-                    std::vector<Point2f>& m = grid[yy * grid_width + xx];
+                    vector<Point2f>& m = grid[yy * grid_width + xx];
 
                     if (!m.empty())
                     {

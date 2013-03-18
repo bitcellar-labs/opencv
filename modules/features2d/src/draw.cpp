@@ -41,6 +41,8 @@
 
 #include "precomp.hpp"
 
+using namespace std;
+
 const int draw_shift_bits = 4;
 const int draw_multiplier = 1 << draw_shift_bits;
 
@@ -88,7 +90,7 @@ static inline void _drawKeypoint( Mat& img, const KeyPoint& p, const Scalar& col
     }
 }
 
-void drawKeypoints( const Mat& image, const std::vector<KeyPoint>& keypoints, Mat& outImage,
+void drawKeypoints( const Mat& image, const vector<KeyPoint>& keypoints, Mat& outImage,
                     const Scalar& _color, int flags )
 {
     if( !(flags & DrawMatchesFlags::DRAW_OVER_OUTIMG) )
@@ -111,7 +113,7 @@ void drawKeypoints( const Mat& image, const std::vector<KeyPoint>& keypoints, Ma
     bool isRandColor = _color == Scalar::all(-1);
 
     CV_Assert( !outImage.empty() );
-    std::vector<KeyPoint>::const_iterator it = keypoints.begin(),
+    vector<KeyPoint>::const_iterator it = keypoints.begin(),
                                      end = keypoints.end();
     for( ; it != end; ++it )
     {
@@ -120,8 +122,8 @@ void drawKeypoints( const Mat& image, const std::vector<KeyPoint>& keypoints, Ma
     }
 }
 
-static void _prepareImgAndDrawKeypoints( const Mat& img1, const std::vector<KeyPoint>& keypoints1,
-                                         const Mat& img2, const std::vector<KeyPoint>& keypoints2,
+static void _prepareImgAndDrawKeypoints( const Mat& img1, const vector<KeyPoint>& keypoints1,
+                                         const Mat& img2, const vector<KeyPoint>& keypoints2,
                                          Mat& outImg, Mat& outImg1, Mat& outImg2,
                                          const Scalar& singlePointColor, int flags )
 {
@@ -182,11 +184,11 @@ static inline void _drawMatch( Mat& outImg, Mat& outImg1, Mat& outImg2 ,
           color, 1, CV_AA, draw_shift_bits );
 }
 
-void drawMatches( const Mat& img1, const std::vector<KeyPoint>& keypoints1,
-                  const Mat& img2, const std::vector<KeyPoint>& keypoints2,
-                  const std::vector<DMatch>& matches1to2, Mat& outImg,
+void drawMatches( const Mat& img1, const vector<KeyPoint>& keypoints1,
+                  const Mat& img2, const vector<KeyPoint>& keypoints2,
+                  const vector<DMatch>& matches1to2, Mat& outImg,
                   const Scalar& matchColor, const Scalar& singlePointColor,
-                  const std::vector<char>& matchesMask, int flags )
+                  const vector<char>& matchesMask, int flags )
 {
     if( !matchesMask.empty() && matchesMask.size() != matches1to2.size() )
         CV_Error( CV_StsBadSize, "matchesMask must have the same size as matches1to2" );
@@ -198,24 +200,21 @@ void drawMatches( const Mat& img1, const std::vector<KeyPoint>& keypoints1,
     // draw matches
     for( size_t m = 0; m < matches1to2.size(); m++ )
     {
+        int i1 = matches1to2[m].queryIdx;
+        int i2 = matches1to2[m].trainIdx;
         if( matchesMask.empty() || matchesMask[m] )
         {
-            int i1 = matches1to2[m].queryIdx;
-            int i2 = matches1to2[m].trainIdx;
-            CV_Assert(i1 >= 0 && i1 < static_cast<int>(keypoints1.size()));
-            CV_Assert(i2 >= 0 && i2 < static_cast<int>(keypoints2.size()));
-
             const KeyPoint &kp1 = keypoints1[i1], &kp2 = keypoints2[i2];
             _drawMatch( outImg, outImg1, outImg2, kp1, kp2, matchColor, flags );
         }
     }
 }
 
-void drawMatches( const Mat& img1, const std::vector<KeyPoint>& keypoints1,
-                  const Mat& img2, const std::vector<KeyPoint>& keypoints2,
-                  const std::vector<std::vector<DMatch> >& matches1to2, Mat& outImg,
+void drawMatches( const Mat& img1, const vector<KeyPoint>& keypoints1,
+                  const Mat& img2, const vector<KeyPoint>& keypoints2,
+                  const vector<vector<DMatch> >& matches1to2, Mat& outImg,
                   const Scalar& matchColor, const Scalar& singlePointColor,
-                  const std::vector<std::vector<char> >& matchesMask, int flags )
+                  const vector<vector<char> >& matchesMask, int flags )
 {
     if( !matchesMask.empty() && matchesMask.size() != matches1to2.size() )
         CV_Error( CV_StsBadSize, "matchesMask must have the same size as matches1to2" );

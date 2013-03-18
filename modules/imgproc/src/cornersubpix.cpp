@@ -7,11 +7,10 @@
 //  copy or use the software.
 //
 //
-//                           License Agreement
+//                        Intel License Agreement
 //                For Open Source Computer Vision Library
 //
 // Copyright (C) 2000, Intel Corporation, all rights reserved.
-// Copyright (C) 2013, OpenCV Foundation, all rights reserved.
 // Third party copyrights are property of their respective owners.
 //
 // Redistribution and use in source and binary forms, with or without modification,
@@ -24,7 +23,7 @@
 //     this list of conditions and the following disclaimer in the documentation
 //     and/or other materials provided with the distribution.
 //
-//   * The name of the copyright holders may not be used to endorse or promote products
+//   * The name of Intel Corporation may not be used to endorse or promote products
 //     derived from this software without specific prior written permission.
 //
 // This software is provided by the copyright holders and contributors "as is" and
@@ -41,43 +40,119 @@
 //M*/
 #include "precomp.hpp"
 
-void cv::cornerSubPix( InputArray _image, InputOutputArray _corners,
-                       Size win, Size zeroZone, TermCriteria criteria )
+CV_IMPL void
+cvFindCornerSubPix( const void* srcarr, CvPoint2D32f* corners,
+                    int count, CvSize win, CvSize zeroZone,
+                    CvTermCriteria criteria )
 {
-    const int MAX_ITERS = 100;
-    int win_w = win.width * 2 + 1, win_h = win.height * 2 + 1;
-    int i, j, k;
-    int max_iters = (criteria.type & CV_TERMCRIT_ITER) ? MIN(MAX(criteria.maxCount, 1), MAX_ITERS) : MAX_ITERS;
-    double eps = (criteria.type & CV_TERMCRIT_EPS) ? MAX(criteria.epsilon, 0.) : 0;
-    eps *= eps; // use square of error in comparsion operations
+    cv::AutoBuffer<float> buffer;
 
-    cv::Mat src = _image.getMat(), cornersmat = _corners.getMat();
-    int count = cornersmat.checkVector(2, CV_32F);
-    CV_Assert( count >= 0 );
-    Point2f* corners = (Point2f*)cornersmat.data;
+    const int MAX_ITERS = 100;
+    const float drv[] = { -1.f, 0.f, 1.f };
+    float *maskX;
+    float *maskY;
+    float *mask;
+    float *src_buffer;
+    float *gx_buffer;
+    float *gy_buffer;
+    int win_w = win.width * 2 + 1, win_h = win.height * 2 + 1;
+    int win_rect_size = (win_w + 4) * (win_h + 4);
+    double coeff;
+    CvSize size, src_buf_size;
+    int i, j, k, pt_i;
+    int max_iters = 10;
+    double eps = 0;
+
+    CvMat stub, *src = (CvMat*)srcarr;
+    src = cvGetMat( srcarr, &stub );
+
+    if( CV_MAT_TYPE( src->type ) != CV_8UC1 )
+        CV_Error( CV_StsUnsupportedFormat, "The source image must be 8-bit single-channel (CV_8UC1)" );
+
+    if( !corners )
+        CV_Error( CV_StsNullPtr, "" );
+
+    if( count < 0 )
+        CV_Error( CV_StsBadSize, "" );
 
     if( count == 0 )
         return;
 
-    CV_Assert( win.width > 0 && win.height > 0 );
-    CV_Assert( src.cols >= win.width*2 + 5 && src.rows >= win.height*2 + 5 );
-    CV_Assert( src.channels() == 1 );
+    if( win.width <= 0 || win.height <= 0 )
+        CV_Error( CV_StsBadSize, "" );
 
-    Mat maskm(win_h, win_w, CV_32F), subpix_buf(win_h+2, win_w+2, CV_32F);
-    float* mask = maskm.ptr<float>();
+    size = cvGetMatSize( src );
 
-    for( i = 0; i < win_h; i++ )
+    if( size.width < win_w + 4 || size.height < win_h + 4 )
+        CV_Error( CV_StsBadSize, "" );
+
+    /* initialize variables, controlling loop termination */
+    switch( criteria.type )
     {
-        float y = (float)(i - win.height)/win.height;
-        float vy = std::exp(-y*y);
-        for( j = 0; j < win_w; j++ )
+    case CV_TERMCRIT_ITER:
+        eps = 0.f;
+        max_iters = criteria.max_iter;
+        break;
+    case CV_TERMCRIT_EPS:
+        eps = criteria.epsilon;
+        max_iters = MAX_ITERS;
+        break;
+    case CV_TERMCRIT_ITER | CV_TERMCRIT_EPS:
+        eps = criteria.epsilon;
+        max_iters = criteria.max_iter;
+        break;
+    default:
+        assert( 0 );
+        CV_Error( CV_StsBadFlag, "" );
+    }
+
+    eps = MAX( eps, 0 );
+    eps *= eps;                 /* use square of error in comparsion operations. */
+
+    max_iters = MAX( max_iters, 1 );
+    max_iters = MIN( max_iters, MAX_ITERS );
+
+    buffer.allocate( win_rect_size * 5 + win_w + win_h + 32 );
+
+    /* assign pointers */
+    maskX = buffer;
+    maskY = maskX + win_w + 4;
+    mask = maskY + win_h + 4;
+    src_buffer = mask + win_w * win_h;
+    gx_buffer = src_buffer + win_rect_size;
+    gy_buffer = gx_buffer + win_rect_size;
+
+    coeff = 1. / (win.width * win.width);
+
+    /* calculate mask */
+    for( i = -win.width, k = 0; i <= win.width; i++, k++ )
+    {
+        maskX[k] = (float)exp( -i * i * coeff );
+    }
+
+    if( win.width == win.height )
+    {
+        maskY = maskX;
+    }
+    else
+    {
+        coeff = 1. / (win.height * win.height);
+        for( i = -win.height, k = 0; i <= win.height; i++, k++ )
         {
-            float x = (float)(j - win.width)/win.width;
-            mask[i * win_w + j] = (float)(vy*std::exp(-x*x));
+            maskY[k] = (float) exp( -i * i * coeff );
         }
     }
 
-    // make zero_zone
+    for( i = 0; i < win_h; i++ )
+    {
+        for( j = 0; j < win_w; j++ )
+        {
+            mask[i * win_w + j] = maskX[j] * maskY[i];
+        }
+    }
+
+
+    /* make zero_zone */
     if( zeroZone.width >= 0 && zeroZone.height >= 0 &&
         zeroZone.width * 2 + 1 < win_w && zeroZone.height * 2 + 1 < win_h )
     {
@@ -90,31 +165,46 @@ void cv::cornerSubPix( InputArray _image, InputOutputArray _corners,
         }
     }
 
-    // do optimization loop for all the points
-    for( int pt_i = 0; pt_i < count; pt_i++ )
+    /* set sizes of image rectangles, used in convolutions */
+    src_buf_size.width = win_w + 2;
+    src_buf_size.height = win_h + 2;
+
+    /* do optimization loop for all the points */
+    for( pt_i = 0; pt_i < count; pt_i++ )
     {
-        Point2f cT = corners[pt_i], cI = cT;
+        CvPoint2D32f cT = corners[pt_i], cI = cT;
         int iter = 0;
-        double err = 0;
+        double err;
 
         do
         {
-            Point2f cI2;
-            double a = 0, b = 0, c = 0, bb1 = 0, bb2 = 0;
+            CvPoint2D32f cI2;
+            double a, b, c, bb1, bb2;
 
-            getRectSubPix(src, Size(win_w+2, win_h+2), cI, subpix_buf, subpix_buf.type());
-            const float* subpix = &subpix_buf.at<float>(1,1);
+            IPPI_CALL( icvGetRectSubPix_8u32f_C1R( (uchar*)src->data.ptr, src->step, size,
+                                        src_buffer, (win_w + 2) * sizeof( src_buffer[0] ),
+                                        cvSize( win_w + 2, win_h + 2 ), cI ));
 
-            // process gradient
-            for( i = 0, k = 0; i < win_h; i++, subpix += win_w + 2 )
+            /* calc derivatives */
+            icvSepConvSmall3_32f( src_buffer+src_buf_size.width, src_buf_size.width * sizeof(src_buffer[0]),
+                                 gx_buffer, win_w * sizeof(gx_buffer[0]),
+                                 src_buf_size, drv, NULL, NULL );
+            icvSepConvSmall3_32f( src_buffer+1, src_buf_size.width * sizeof(src_buffer[0]),
+                                 gy_buffer, win_w * sizeof(gy_buffer[0]),
+                                 src_buf_size, NULL, drv, NULL );
+
+            a = b = c = bb1 = bb2 = 0;
+
+            /* process gradient */
+            for( i = 0, k = 0; i < win_h; i++ )
             {
                 double py = i - win.height;
 
                 for( j = 0; j < win_w; j++, k++ )
                 {
                     double m = mask[k];
-                    double tgx = subpix[j+1] - subpix[j-1];
-                    double tgy = subpix[j+win_w+2] - subpix[j-win_w-2];
+                    double tgx = gx_buffer[k];
+                    double tgy = gy_buffer[k];
                     double gxx = tgx * tgx * m;
                     double gxy = tgx * tgy * m;
                     double gyy = tgy * tgy * m;
@@ -130,40 +220,46 @@ void cv::cornerSubPix( InputArray _image, InputOutputArray _corners,
             }
 
             double det=a*c-b*b;
-            if( fabs( det ) <= DBL_EPSILON*DBL_EPSILON )
-                break;
+            if( fabs( det ) > DBL_EPSILON*DBL_EPSILON )
+            {
+                // 2x2 matrix inversion
+                double scale=1.0/det;
+                cI2.x = (float)(cI.x + c*scale*bb1 - b*scale*bb2);
+                cI2.y = (float)(cI.y - b*scale*bb1 + a*scale*bb2);
+            }
+            else
+            {
+                cI2 = cI;
+            }
 
-            // 2x2 matrix inversion
-            double scale=1.0/det;
-            cI2.x = (float)(cI.x + c*scale*bb1 - b*scale*bb2);
-            cI2.y = (float)(cI.y - b*scale*bb1 + a*scale*bb2);
             err = (cI2.x - cI.x) * (cI2.x - cI.x) + (cI2.y - cI.y) * (cI2.y - cI.y);
             cI = cI2;
-            if( cI.x < 0 || cI.x >= src.cols || cI.y < 0 || cI.y >= src.rows )
-                break;
         }
         while( ++iter < max_iters && err > eps );
 
-        // if new point is too far from initial, it means poor convergence.
-        // leave initial point as the result
+        /* if new point is too far from initial, it means poor convergence.
+           leave initial point as the result */
         if( fabs( cI.x - cT.x ) > win.width || fabs( cI.y - cT.y ) > win.height )
+        {
             cI = cT;
+        }
 
-        corners[pt_i] = cI;
+        corners[pt_i] = cI;     /* store result */
     }
 }
 
-
-CV_IMPL void
-cvFindCornerSubPix( const void* srcarr, CvPoint2D32f* _corners,
-                   int count, CvSize win, CvSize zeroZone,
-                   CvTermCriteria criteria )
+void cv::cornerSubPix( InputArray _image, InputOutputArray _corners,
+                       Size winSize, Size zeroZone,
+                       TermCriteria criteria )
 {
-    if(!_corners || count <= 0)
-        return;
+    Mat corners = _corners.getMat();
+    int ncorners = corners.checkVector(2);
+    CV_Assert( ncorners >= 0 && corners.depth() == CV_32F );
+    Mat image = _image.getMat();
+    CvMat c_image = image;
 
-    cv::Mat src = cv::cvarrToMat(srcarr), corners(count, 1, CV_32FC2, _corners);
-    cv::cornerSubPix(src, corners, win, zeroZone, criteria);
+    cvFindCornerSubPix( &c_image, (CvPoint2D32f*)corners.data, ncorners,
+                        winSize, zeroZone, criteria );
 }
 
 /* End of file. */

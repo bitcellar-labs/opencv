@@ -1934,10 +1934,6 @@ int check( const Mat& a, double fmin, double fmax, vector<int>* _idx )
     return idx == 0 ? 0 : -1;
 }
 
-#define CMP_EPS_OK 0
-#define CMP_EPS_BIG_DIFF -1
-#define CMP_EPS_INVALID_TEST_DATA -2 // there is NaN or Inf value in test data
-#define CMP_EPS_INVALID_REF_DATA -3 // there is NaN or Inf value in reference data
 
 // compares two arrays. max_diff is the maximum actual difference,
 // success_err_level is maximum allowed difference, idx is the index of the first
@@ -1950,7 +1946,7 @@ int cmpEps( const Mat& arr, const Mat& refarr, double* _realmaxdiff,
     CV_Assert( arr.type() == refarr.type() && arr.size == refarr.size );
 
     int ilevel = refarr.depth() <= CV_32S ? cvFloor(success_err_level) : 0;
-    int result = CMP_EPS_OK;
+    int result = 0;
 
     const Mat *arrays[]={&arr, &refarr, 0};
     Mat planes[2];
@@ -2002,13 +1998,13 @@ int cmpEps( const Mat& arr, const Mat& refarr, double* _realmaxdiff,
                     continue;
                 if( cvIsNaN(a_val) || cvIsInf(a_val) )
                 {
-                    result = CMP_EPS_INVALID_TEST_DATA;
+                    result = -2;
                     idx = startidx + j;
                     break;
                 }
                 if( cvIsNaN(b_val) || cvIsInf(b_val) )
                 {
-                    result = CMP_EPS_INVALID_REF_DATA;
+                    result = -3;
                     idx = startidx + j;
                     break;
                 }
@@ -2033,13 +2029,13 @@ int cmpEps( const Mat& arr, const Mat& refarr, double* _realmaxdiff,
                     continue;
                 if( cvIsNaN(a_val) || cvIsInf(a_val) )
                 {
-                    result = CMP_EPS_INVALID_TEST_DATA;
+                    result = -2;
                     idx = startidx + j;
                     break;
                 }
                 if( cvIsNaN(b_val) || cvIsInf(b_val) )
                 {
-                    result = CMP_EPS_INVALID_REF_DATA;
+                    result = -3;
                     idx = startidx + j;
                     break;
                 }
@@ -2055,7 +2051,7 @@ int cmpEps( const Mat& arr, const Mat& refarr, double* _realmaxdiff,
             break;
         default:
             assert(0);
-            return CMP_EPS_BIG_DIFF;
+            return -1;
         }
         if(_realmaxdiff)
             *_realmaxdiff = MAX(*_realmaxdiff, realmaxdiff);
@@ -2064,7 +2060,7 @@ int cmpEps( const Mat& arr, const Mat& refarr, double* _realmaxdiff,
     }
 
     if( result == 0 && idx != 0 )
-        result = CMP_EPS_BIG_DIFF;
+        result = -1;
 
     if( result < -1 && _realmaxdiff )
         *_realmaxdiff = exp(1000.);
@@ -2085,15 +2081,15 @@ int cmpEps2( TS* ts, const Mat& a, const Mat& b, double success_err_level,
 
     switch( code )
     {
-    case CMP_EPS_BIG_DIFF:
+    case -1:
         sprintf( msg, "%s: Too big difference (=%g)", desc, diff );
         code = TS::FAIL_BAD_ACCURACY;
         break;
-    case CMP_EPS_INVALID_TEST_DATA:
+    case -2:
         sprintf( msg, "%s: Invalid output", desc );
         code = TS::FAIL_INVALID_OUTPUT;
         break;
-    case CMP_EPS_INVALID_REF_DATA:
+    case -3:
         sprintf( msg, "%s: Invalid reference output", desc );
         code = TS::FAIL_INVALID_OUTPUT;
         break;

@@ -42,7 +42,6 @@
 
 #include "test_precomp.hpp"
 
-using namespace std;
 using namespace cv;
 
 class CV_FastTest : public cvtest::BaseTest

@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 '''
 MSER detector demo
 ==================
@@ -20,10 +18,8 @@ import video
 
 if __name__ == '__main__':
     import sys
-    try:
-        video_src = sys.argv[1]
-    except:
-        video_src = 0
+    try: video_src = sys.argv[1]
+    except: video_src = 0
 
     cam = video.create_capture(video_src)
     mser = cv2.MSER()

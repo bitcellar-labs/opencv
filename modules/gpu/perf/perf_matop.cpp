@@ -3,112 +3,137 @@
 using namespace std;
 using namespace testing;
 
+namespace {
+
 //////////////////////////////////////////////////////////////////////
 // SetTo
 
-PERF_TEST_P(Sz_Depth_Cn, MatOp_SetTo,
-            Combine(GPU_TYPICAL_MAT_SIZES,
-                    Values(CV_8U, CV_16U, CV_32F, CV_64F),
-                    GPU_CHANNELS_1_3_4))
+PERF_TEST_P(Sz_Depth_Cn, MatOp_SetTo, Combine(GPU_TYPICAL_MAT_SIZES, Values(CV_8U, CV_16U, CV_32F, CV_64F), GPU_CHANNELS_1_3_4))
 {
-    const cv::Size size = GET_PARAM(0);
-    const int depth = GET_PARAM(1);
-    const int channels = GET_PARAM(2);
+    cv::Size size = GET_PARAM(0);
+    int depth = GET_PARAM(1);
+    int channels = GET_PARAM(2);
 
-    const int type = CV_MAKE_TYPE(depth, channels);
+    int type = CV_MAKE_TYPE(depth, channels);
 
-    const cv::Scalar val(1, 2, 3, 4);
+    cv::Scalar val(1, 2, 3, 4);
 
     if (PERF_RUN_GPU())
     {
-        cv::gpu::GpuMat dst(size, type);
+        cv::gpu::GpuMat d_src(size, type);
 
-        TEST_CYCLE() dst.setTo(val);
+        d_src.setTo(val);
 
-        GPU_SANITY_CHECK(dst);
+        TEST_CYCLE()
+        {
+            d_src.setTo(val);
+        }
+
+        GPU_SANITY_CHECK(d_src);
     }
     else
     {
-        cv::Mat dst(size, type);
+        cv::Mat src(size, type);
 
-        TEST_CYCLE() dst.setTo(val);
+        src.setTo(val);
 
-        CPU_SANITY_CHECK(dst);
+        TEST_CYCLE()
+        {
+            src.setTo(val);
+        }
+
+        CPU_SANITY_CHECK(src);
     }
 }
 
 //////////////////////////////////////////////////////////////////////
 // SetToMasked
 
-PERF_TEST_P(Sz_Depth_Cn, MatOp_SetToMasked,
-            Combine(GPU_TYPICAL_MAT_SIZES,
-                    Values(CV_8U, CV_16U, CV_32F, CV_64F),
-                    GPU_CHANNELS_1_3_4))
+PERF_TEST_P(Sz_Depth_Cn, MatOp_SetToMasked, Combine(GPU_TYPICAL_MAT_SIZES, Values(CV_8U, CV_16U, CV_32F, CV_64F), GPU_CHANNELS_1_3_4))
 {
-    const cv::Size size = GET_PARAM(0);
-    const int depth = GET_PARAM(1);
-    const int channels = GET_PARAM(2);
+    cv::Size size = GET_PARAM(0);
+    int depth = GET_PARAM(1);
+    int channels = GET_PARAM(2);
 
-    const int type = CV_MAKE_TYPE(depth, channels);
+    int type = CV_MAKE_TYPE(depth, channels);
 
     cv::Mat src(size, type);
-    cv::Mat mask(size, CV_8UC1);
-    declare.in(src, mask, WARMUP_RNG);
+    fillRandom(src);
 
-    const cv::Scalar val(1, 2, 3, 4);
+    cv::Mat mask(size, CV_8UC1);
+    fillRandom(mask, 0, 2);
+
+    cv::Scalar val(1, 2, 3, 4);
 
     if (PERF_RUN_GPU())
     {
-        cv::gpu::GpuMat dst(src);
-        const cv::gpu::GpuMat d_mask(mask);
+        cv::gpu::GpuMat d_src(src);
+        cv::gpu::GpuMat d_mask(mask);
 
-        TEST_CYCLE() dst.setTo(val, d_mask);
+        d_src.setTo(val, d_mask);
 
-        GPU_SANITY_CHECK(dst, 1e-10);
+        TEST_CYCLE()
+        {
+            d_src.setTo(val, d_mask);
+        }
+
+        GPU_SANITY_CHECK(d_src);
     }
     else
     {
-        cv::Mat dst = src;
+        src.setTo(val, mask);
 
-        TEST_CYCLE() dst.setTo(val, mask);
+        TEST_CYCLE()
+        {
+            src.setTo(val, mask);
+        }
 
-        CPU_SANITY_CHECK(dst);
+        CPU_SANITY_CHECK(src);
     }
 }
 
 //////////////////////////////////////////////////////////////////////
 // CopyToMasked
 
-PERF_TEST_P(Sz_Depth_Cn, MatOp_CopyToMasked,
-            Combine(GPU_TYPICAL_MAT_SIZES,
-                    Values(CV_8U, CV_16U, CV_32F, CV_64F),
-                    GPU_CHANNELS_1_3_4))
+PERF_TEST_P(Sz_Depth_Cn, MatOp_CopyToMasked, Combine(GPU_TYPICAL_MAT_SIZES, Values(CV_8U, CV_16U, CV_32F, CV_64F), GPU_CHANNELS_1_3_4))
 {
-    const cv::Size size = GET_PARAM(0);
-    const int depth = GET_PARAM(1);
-    const int channels = GET_PARAM(2);
+    cv::Size size = GET_PARAM(0);
+    int depth = GET_PARAM(1);
+    int channels = GET_PARAM(2);
 
-    const int type = CV_MAKE_TYPE(depth, channels);
+    int type = CV_MAKE_TYPE(depth, channels);
 
     cv::Mat src(size, type);
+    fillRandom(src);
+
     cv::Mat mask(size, CV_8UC1);
-    declare.in(src, mask, WARMUP_RNG);
+    fillRandom(mask, 0, 2);
 
     if (PERF_RUN_GPU())
     {
-        const cv::gpu::GpuMat d_src(src);
-        const cv::gpu::GpuMat d_mask(mask);
-        cv::gpu::GpuMat dst(d_src.size(), d_src.type(), cv::Scalar::all(0));
+        cv::gpu::GpuMat d_src(src);
+        cv::gpu::GpuMat d_mask(mask);
+        cv::gpu::GpuMat d_dst;
 
-        TEST_CYCLE() d_src.copyTo(dst, d_mask);
+        d_src.copyTo(d_dst, d_mask);
 
-        GPU_SANITY_CHECK(dst, 1e-10);
+        TEST_CYCLE()
+        {
+            d_src.copyTo(d_dst, d_mask);
+        }
+
+        GPU_SANITY_CHECK(d_dst);
     }
     else
     {
-        cv::Mat dst(src.size(), src.type(), cv::Scalar::all(0));
+        cv::Mat dst;
 
-        TEST_CYCLE() src.copyTo(dst, mask);
+        src.copyTo(dst, mask);
+
+        TEST_CYCLE()
+        {
+            src.copyTo(dst, mask);
+        }
 
         CPU_SANITY_CHECK(dst);
     }
@@ -119,36 +144,42 @@ PERF_TEST_P(Sz_Depth_Cn, MatOp_CopyToMasked,
 
 DEF_PARAM_TEST(Sz_2Depth, cv::Size, MatDepth, MatDepth);
 
-PERF_TEST_P(Sz_2Depth, MatOp_ConvertTo,
-            Combine(GPU_TYPICAL_MAT_SIZES,
-                    Values(CV_8U, CV_16U, CV_32F, CV_64F),
-                    Values(CV_8U, CV_16U, CV_32F, CV_64F)))
+PERF_TEST_P(Sz_2Depth, MatOp_ConvertTo, Combine(GPU_TYPICAL_MAT_SIZES, Values(CV_8U, CV_16U, CV_32F, CV_64F), Values(CV_8U, CV_16U, CV_32F, CV_64F)))
 {
-    const cv::Size size = GET_PARAM(0);
-    const int depth1 = GET_PARAM(1);
-    const int depth2 = GET_PARAM(2);
+    cv::Size size = GET_PARAM(0);
+    int depth1 = GET_PARAM(1);
+    int depth2 = GET_PARAM(2);
 
     cv::Mat src(size, depth1);
-    declare.in(src, WARMUP_RNG);
-
-    const double a = 0.5;
-    const double b = 1.0;
+    fillRandom(src);
 
     if (PERF_RUN_GPU())
     {
-        const cv::gpu::GpuMat d_src(src);
-        cv::gpu::GpuMat dst;
+        cv::gpu::GpuMat d_src(src);
+        cv::gpu::GpuMat d_dst;
 
-        TEST_CYCLE() d_src.convertTo(dst, depth2, a, b);
+        d_src.convertTo(d_dst, depth2, 0.5, 1.0);
 
-        GPU_SANITY_CHECK(dst, 1e-10);
+        TEST_CYCLE()
+        {
+            d_src.convertTo(d_dst, depth2, 0.5, 1.0);
+        }
+
+        GPU_SANITY_CHECK(d_dst);
     }
     else
     {
         cv::Mat dst;
 
-        TEST_CYCLE() src.convertTo(dst, depth2, a, b);
+        src.convertTo(dst, depth2, 0.5, 1.0);
+
+        TEST_CYCLE()
+        {
+            src.convertTo(dst, depth2, 0.5, 1.0);
+        }
 
         CPU_SANITY_CHECK(dst);
     }
 }
+
+} // namespace

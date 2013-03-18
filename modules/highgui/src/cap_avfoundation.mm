@@ -30,11 +30,15 @@
  */
 
 #include "precomp.hpp"
-#include "opencv2/imgproc.hpp"
+#include "opencv2/imgproc/imgproc.hpp"
 #include <iostream>
 #import <AVFoundation/AVFoundation.h>
 #import <Foundation/NSException.h>
 
+
+//#import <QTKit/QTKit.h>
+
+using namespace std;
 
 /********************** Declaration of class headers ************************/
 
@@ -243,7 +247,7 @@ CvCaptureCAM::CvCaptureCAM(int cameraNum) {
     camNum = cameraNum;
 
     if (!startCaptureDevice(camNum)) {
-        std::cout << "Warning, camera failed to properly initialize!" << std::endl;
+        cout << "Warning, camera failed to properly initialize!" << endl;
         started = 0;
     } else {
         started = 1;
@@ -288,7 +292,7 @@ IplImage* CvCaptureCAM::retrieveFrame(int) {
 
 IplImage* CvCaptureCAM::queryFrame() {
     while (!grabFrame()) {
-        std::cout << "WARNING: Couldn't grab new frame from camera!!!" << std::endl;
+        cout << "WARNING: Couldn't grab new frame from camera!!!" << endl;
         /*
              cout << "Attempting to restart camera; set capture property DISABLE_AUTO_RESTART to disable." << endl;
              stopCaptureDevice();
@@ -320,7 +324,7 @@ int CvCaptureCAM::startCaptureDevice(int cameraNum) {
     AVCaptureDevice *device;
     NSArray* devices = [AVCaptureDevice devicesWithMediaType:AVMediaTypeVideo];
     if ([devices count] == 0) {
-        std::cout << "AV Foundation didn't find any attached Video Input Devices!" << std::endl;
+        cout << "AV Foundation didn't find any attached Video Input Devices!" << endl;
         [localpool drain];
         return 0;
     }
@@ -328,7 +332,7 @@ int CvCaptureCAM::startCaptureDevice(int cameraNum) {
     if (cameraNum >= 0) {
         camNum = cameraNum % [devices count];
         if (camNum != cameraNum) {
-            std::cout << "Warning: Max Camera Num is " << [devices count]-1 << "; Using camera " << camNum << std::endl;
+            cout << "Warning: Max Camera Num is " << [devices count]-1 << "; Using camera " << camNum << endl;
         }
         device = [devices objectAtIndex:camNum];
     } else {
@@ -1166,8 +1170,8 @@ CvVideoWriter_AVFoundation::CvVideoWriter_AVFoundation(const char* filename, int
     cc[4] = 0;
     int cc2 = CV_FOURCC(cc[0], cc[1], cc[2], cc[3]);
     if (cc2!=fourcc) {
-        std::cout << "WARNING: Didn't properly encode FourCC. Expected " << fourcc
-            << " but got " << cc2 << "." << std::endl;
+        cout << "WARNING: Didn't properly encode FourCC. Expected " << fourcc
+            << " but got " << cc2 << "." << endl;
         //exception;
     }
 
@@ -1269,7 +1273,7 @@ bool CvVideoWriter_AVFoundation::writeFrame(const IplImage* iplimage) {
     BOOL success = FALSE;
 
     if (iplimage->height!=movieSize.height || iplimage->width!=movieSize.width){
-        std::cout<<"Frame size does not match video size."<<std::endl;
+        cout<<"Frame size does not match video size."<<endl;
         [localpool drain];
         return false;
     }

@@ -42,8 +42,8 @@
 
 #include <iostream>
 #include <fstream>
-#include "opencv2/highgui.hpp"
-#include "opencv2/stitching.hpp"
+#include "opencv2/highgui/highgui.hpp"
+#include "opencv2/stitching/stitcher.hpp"
 
 using namespace std;
 using namespace cv;

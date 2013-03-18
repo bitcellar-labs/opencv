@@ -14,7 +14,7 @@
 #include <memory>
 
 #include "NCV.hpp"
-#include <opencv2/highgui.hpp>
+#include <opencv2/highgui/highgui.hpp>
 
 
 template <class T>

@@ -141,6 +141,7 @@ public slots:
     void enablePropertiesButtonEachWindow();
 
     void setOpenGlDrawCallback(QString name, void* callback, void* userdata);
+    void setOpenGlCleanCallback(QString name, void* callback, void* userdata);
     void setOpenGlContext(QString name);
     void updateWindow(QString name);
     double isOpenGl(QString name);
@@ -311,6 +312,7 @@ public:
     static void addSlider2(CvWindow* w, QString name, int* value, int count, CvTrackbarCallback2 on_change CV_DEFAULT(NULL), void* userdata CV_DEFAULT(0));
 
     void setOpenGlDrawCallback(CvOpenGlDrawCallback callback, void* userdata);
+    void setOpenGlCleanCallback(CvOpenGlCleanCallback callback, void* userdata);
     void makeCurrentOpenGlContext();
     void updateGl();
     bool isOpenGl();
@@ -395,6 +397,7 @@ public:
     virtual void startDisplayInfo(QString text, int delayms) = 0;
 
     virtual void setOpenGlDrawCallback(CvOpenGlDrawCallback callback, void* userdata) = 0;
+    virtual void setOpenGlCleanCallback(CvOpenGlCleanCallback callback, void* userdata) = 0;
     virtual void makeCurrentOpenGlContext() = 0;
     virtual void updateGl() = 0;
 
@@ -426,6 +429,7 @@ public:
     void startDisplayInfo(QString text, int delayms);
 
     void setOpenGlDrawCallback(CvOpenGlDrawCallback callback, void* userdata);
+    void setOpenGlCleanCallback(CvOpenGlCleanCallback callback, void* userdata);
     void makeCurrentOpenGlContext();
     void updateGl();
 
@@ -451,6 +455,11 @@ private:
 
     CvOpenGlDrawCallback glDrawCallback;
     void* glDrawData;
+
+    CvOpenGlCleanCallback glCleanCallback;
+    void* glCleanData;
+
+    CvOpenGlFuncTab* glFuncTab;
 
     void icvmouseHandler(QMouseEvent* event, type_mouse_event category, int& cv_event, int& flags);
     void icvmouseProcessing(QPointF pt, int cv_event, int flags);
@@ -482,6 +491,7 @@ public:
     void startDisplayInfo(QString text, int delayms);
 
     void setOpenGlDrawCallback(CvOpenGlDrawCallback callback, void* userdata);
+    void setOpenGlCleanCallback(CvOpenGlCleanCallback callback, void* userdata);
     void makeCurrentOpenGlContext();
     void updateGl();
 

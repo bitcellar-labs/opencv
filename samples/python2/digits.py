@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 '''
 SVM and KNearest digit recognition.
 
@@ -23,18 +21,11 @@ Usage:
    digits.py
 '''
 
-# built-in modules
-from multiprocessing.pool import ThreadPool
-
-import cv2
-
 import numpy as np
-from numpy.linalg import norm
-
-# local modules
+import cv2
+from multiprocessing.pool import ThreadPool
 from common import clock, mosaic
-
-
+from numpy.linalg import norm
 
 SZ = 20 # size of each digit is SZ x SZ
 CLASS_N = 10

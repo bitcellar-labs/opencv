@@ -14,7 +14,7 @@ using namespace cv;
 double getPSNR ( const Mat& I1, const Mat& I2);
 Scalar getMSSIM( const Mat& I1, const Mat& I2);
 
-static void help()
+void help()
 {
     cout
         << "\n--------------------------------------------------------------------------" << endl
@@ -26,7 +26,7 @@ static void help()
         << "--------------------------------------------------------------------------"   << endl
         << endl;
 }
-int main(int argc, char *argv[])
+int main(int argc, char *argv[], char *window_name)
 {
     help();
     if (argc != 5)
@@ -89,7 +89,7 @@ int main(int argc, char *argv[])
     double psnrV;
     Scalar mssimV;
 
-    for(;;) //Show the image captured in the window and repeat
+    while( true) //Show the image captured in the window and repeat
     {
         captRefrnc >> frameReference;
         captUndTst >> frameUnderTest;
@@ -124,7 +124,7 @@ int main(int argc, char *argv[])
         imshow( WIN_RF, frameReference);
         imshow( WIN_UT, frameUnderTest);
 
-        c = (char)cvWaitKey(delay);
+        c = cvWaitKey(delay);
         if (c == 27) break;
     }
 

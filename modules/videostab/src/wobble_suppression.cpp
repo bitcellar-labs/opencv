@@ -44,6 +44,8 @@
 #include "opencv2/videostab/wobble_suppression.hpp"
 #include "opencv2/videostab/ring_buffer.hpp"
 
+using namespace std;
+
 namespace cv
 {
 namespace videostab

@@ -17,7 +17,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-using namespace std;
 using namespace cv;
 
 const char* helphelp =

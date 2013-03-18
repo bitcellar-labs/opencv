@@ -1,9 +1,6 @@
+*******************************************
 Manager Workflow
-****************
-
-.. _manager_selection:
-
-.. include:: ../readme.txt
+*******************************************
 
 First application start
 -----------------------
@@ -12,15 +9,15 @@ There is no OpenCV Manager or OpenCV libraries:
 
 .. image:: img/NoService.png
 
-Additional library package installation
----------------------------------------
+Aditional library package installation
+--------------------------------------
 
-There is an OpenCV Manager service, but it does not contain appropriate OpenCV library.
+There is an OpenCV Manager service, but there is no apropriate OpenCV library.
 If OpenCV library installation has been approved\:
 
 .. image:: img/LibInstallAproved.png
 
-If OpenCV library installation has been cancelled\:
+If OpenCV library installation has been canceled\:
 
 .. image:: img/LibInstallCanceled.png
 

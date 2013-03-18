@@ -172,9 +172,7 @@ CV_IMPL CvCapture * cvCreateCameraCapture (int index)
     defined(HAVE_TYZX)         || \
     defined(HAVE_VFW)          || \
     defined(HAVE_LIBV4L)       || \
-    defined(HAVE_CAMV4L)       || \
-    defined(HAVE_CAMV4L2)      || \
-    defined(HAVE_VIDEOIO)      || \
+    (defined(HAVE_CAMV4L) && defined(HAVE_CAMV4L2)) || \
     defined(HAVE_GSTREAMER)    || \
     defined(HAVE_DC1394_2)     || \
     defined(HAVE_DC1394)       || \
@@ -218,7 +216,7 @@ CV_IMPL CvCapture * cvCreateCameraCapture (int index)
                 return capture;
 #endif
 
-#if defined HAVE_LIBV4L || defined HAVE_CAMV4L || defined HAVE_CAMV4L2 || defined HAVE_VIDEOIO
+#if defined HAVE_LIBV4L || (defined (HAVE_CAMV4L) && defined (HAVE_CAMV4L2))
             capture = cvCreateCameraCapture_V4L (index);
             if (capture)
                 return capture;
@@ -332,7 +330,6 @@ CV_IMPL CvCapture * cvCreateCameraCapture (int index)
                 return capture;
         break; // CV_CAP_GIGANETIX
 #endif
-
         }
     }
 
@@ -427,6 +424,7 @@ CV_IMPL CvVideoWriter* cvCreateVideoWriter( const char* filename, int fourcc,
 
 CV_IMPL int cvWriteFrame( CvVideoWriter* writer, const IplImage* image )
 {
+
     return writer ? writer->writeFrame(image) : 0;
 }
 
@@ -445,7 +443,7 @@ namespace cv
 VideoCapture::VideoCapture()
 {}
 
-VideoCapture::VideoCapture(const std::string& filename)
+VideoCapture::VideoCapture(const string& filename)
 {
     open(filename);
 }
@@ -460,7 +458,7 @@ VideoCapture::~VideoCapture()
     cap.release();
 }
 
-bool VideoCapture::open(const std::string& filename)
+bool VideoCapture::open(const string& filename)
 {
     if (!isOpened())
     cap = cvCreateFileCapture(filename.c_str());
@@ -532,7 +530,7 @@ double VideoCapture::get(int propId)
 VideoWriter::VideoWriter()
 {}
 
-VideoWriter::VideoWriter(const std::string& filename, int fourcc, double fps, Size frameSize, bool isColor)
+VideoWriter::VideoWriter(const string& filename, int fourcc, double fps, Size frameSize, bool isColor)
 {
     open(filename, fourcc, fps, frameSize, isColor);
 }
@@ -547,7 +545,7 @@ VideoWriter::~VideoWriter()
     release();
 }
 
-bool VideoWriter::open(const std::string& filename, int fourcc, double fps, Size frameSize, bool isColor)
+bool VideoWriter::open(const string& filename, int fourcc, double fps, Size frameSize, bool isColor)
 {
     writer = cvCreateVideoWriter(filename.c_str(), fourcc, fps, frameSize, isColor);
     return isOpened();

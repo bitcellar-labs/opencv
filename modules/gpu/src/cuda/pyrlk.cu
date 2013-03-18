@@ -52,187 +52,244 @@
 #include "opencv2/gpu/device/functional.hpp"
 #include "opencv2/gpu/device/limits.hpp"
 #include "opencv2/gpu/device/vec_math.hpp"
-#include "opencv2/gpu/device/reduce.hpp"
 
-using namespace cv::gpu;
-using namespace cv::gpu::device;
-
-namespace pyrlk
+namespace cv { namespace gpu { namespace device
 {
-    __constant__ int c_winSize_x;
-    __constant__ int c_winSize_y;
-    __constant__ int c_halfWin_x;
-    __constant__ int c_halfWin_y;
-    __constant__ int c_iters;
-
-    texture<float, cudaTextureType2D, cudaReadModeElementType> tex_If(false, cudaFilterModeLinear, cudaAddressModeClamp);
-    texture<float4, cudaTextureType2D, cudaReadModeElementType> tex_If4(false, cudaFilterModeLinear, cudaAddressModeClamp);
-    texture<uchar, cudaTextureType2D, cudaReadModeElementType> tex_Ib(false, cudaFilterModePoint, cudaAddressModeClamp);
-
-    texture<float, cudaTextureType2D, cudaReadModeElementType> tex_Jf(false, cudaFilterModeLinear, cudaAddressModeClamp);
-    texture<float4, cudaTextureType2D, cudaReadModeElementType> tex_Jf4(false, cudaFilterModeLinear, cudaAddressModeClamp);
-
-    template <int cn> struct Tex_I;
-    template <> struct Tex_I<1>
+    namespace pyrlk
     {
-        static __device__ __forceinline__ float read(float x, float y)
+        __constant__ int c_winSize_x;
+        __constant__ int c_winSize_y;
+
+        __constant__ int c_halfWin_x;
+        __constant__ int c_halfWin_y;
+
+        __constant__ int c_iters;
+
+        void loadConstants(int2 winSize, int iters)
         {
-            return tex2D(tex_If, x, y);
-        }
-    };
-    template <> struct Tex_I<4>
-    {
-        static __device__ __forceinline__ float4 read(float x, float y)
-        {
-            return tex2D(tex_If4, x, y);
-        }
-    };
+            cudaSafeCall( cudaMemcpyToSymbol(c_winSize_x, &winSize.x, sizeof(int)) );
+            cudaSafeCall( cudaMemcpyToSymbol(c_winSize_y, &winSize.y, sizeof(int)) );
 
-    template <int cn> struct Tex_J;
-    template <> struct Tex_J<1>
-    {
-        static __device__ __forceinline__ float read(float x, float y)
-        {
-            return tex2D(tex_Jf, x, y);
-        }
-    };
-    template <> struct Tex_J<4>
-    {
-        static __device__ __forceinline__ float4 read(float x, float y)
-        {
-            return tex2D(tex_Jf4, x, y);
-        }
-    };
+            int2 halfWin = make_int2((winSize.x - 1) / 2, (winSize.y - 1) / 2);
+            cudaSafeCall( cudaMemcpyToSymbol(c_halfWin_x, &halfWin.x, sizeof(int)) );
+            cudaSafeCall( cudaMemcpyToSymbol(c_halfWin_y, &halfWin.y, sizeof(int)) );
 
-    __device__ __forceinline__ void accum(float& dst, float val)
-    {
-        dst += val;
-    }
-    __device__ __forceinline__ void accum(float& dst, const float4& val)
-    {
-        dst += val.x + val.y + val.z;
-    }
-
-    __device__ __forceinline__ float abs_(float a)
-    {
-        return ::fabsf(a);
-    }
-    __device__ __forceinline__ float4 abs_(const float4& a)
-    {
-        return abs(a);
-    }
-
-    template <int cn, int PATCH_X, int PATCH_Y, bool calcErr>
-    __global__ void sparseKernel(const float2* prevPts, float2* nextPts, uchar* status, float* err, const int level, const int rows, const int cols)
-    {
-    #if __CUDA_ARCH__ <= 110
-        const int BLOCK_SIZE = 128;
-    #else
-        const int BLOCK_SIZE = 256;
-    #endif
-
-        __shared__ float smem1[BLOCK_SIZE];
-        __shared__ float smem2[BLOCK_SIZE];
-        __shared__ float smem3[BLOCK_SIZE];
-
-        const unsigned int tid = threadIdx.y * blockDim.x + threadIdx.x;
-
-        float2 prevPt = prevPts[blockIdx.x];
-        prevPt.x *= (1.0f / (1 << level));
-        prevPt.y *= (1.0f / (1 << level));
-
-        if (prevPt.x < 0 || prevPt.x >= cols || prevPt.y < 0 || prevPt.y >= rows)
-        {
-            if (tid == 0 && level == 0)
-                status[blockIdx.x] = 0;
-
-            return;
+            cudaSafeCall( cudaMemcpyToSymbol(c_iters, &iters, sizeof(int)) );
         }
 
-        prevPt.x -= c_halfWin_x;
-        prevPt.y -= c_halfWin_y;
-
-        // extract the patch from the first image, compute covariation matrix of derivatives
-
-        float A11 = 0;
-        float A12 = 0;
-        float A22 = 0;
-
-        typedef typename TypeVec<float, cn>::vec_type work_type;
-
-        work_type I_patch   [PATCH_Y][PATCH_X];
-        work_type dIdx_patch[PATCH_Y][PATCH_X];
-        work_type dIdy_patch[PATCH_Y][PATCH_X];
-
-        for (int yBase = threadIdx.y, i = 0; yBase < c_winSize_y; yBase += blockDim.y, ++i)
+        __device__ void reduce(float& val1, float& val2, float& val3, float* smem1, float* smem2, float* smem3, int tid)
         {
-            for (int xBase = threadIdx.x, j = 0; xBase < c_winSize_x; xBase += blockDim.x, ++j)
+            smem1[tid] = val1;
+            smem2[tid] = val2;
+            smem3[tid] = val3;
+            __syncthreads();
+
+#if defined(__CUDA_ARCH__) && (__CUDA_ARCH__ > 110)
+            if (tid < 128)
             {
-                float x = prevPt.x + xBase + 0.5f;
-                float y = prevPt.y + yBase + 0.5f;
+                smem1[tid] = val1 += smem1[tid + 128];
+                smem2[tid] = val2 += smem2[tid + 128];
+                smem3[tid] = val3 += smem3[tid + 128];
+            }
+            __syncthreads();
+#endif
 
-                I_patch[i][j] = Tex_I<cn>::read(x, y);
+            if (tid < 64)
+            {
+                smem1[tid] = val1 += smem1[tid + 64];
+                smem2[tid] = val2 += smem2[tid + 64];
+                smem3[tid] = val3 += smem3[tid + 64];
+            }
+            __syncthreads();
 
-                // Sharr Deriv
+            if (tid < 32)
+            {
+                volatile float* vmem1 = smem1;
+                volatile float* vmem2 = smem2;
+                volatile float* vmem3 = smem3;
 
-                work_type dIdx = 3.0f * Tex_I<cn>::read(x+1, y-1) + 10.0f * Tex_I<cn>::read(x+1, y) + 3.0f * Tex_I<cn>::read(x+1, y+1) -
-                                 (3.0f * Tex_I<cn>::read(x-1, y-1) + 10.0f * Tex_I<cn>::read(x-1, y) + 3.0f * Tex_I<cn>::read(x-1, y+1));
+                vmem1[tid] = val1 += vmem1[tid + 32];
+                vmem2[tid] = val2 += vmem2[tid + 32];
+                vmem3[tid] = val3 += vmem3[tid + 32];
 
-                work_type dIdy = 3.0f * Tex_I<cn>::read(x-1, y+1) + 10.0f * Tex_I<cn>::read(x, y+1) + 3.0f * Tex_I<cn>::read(x+1, y+1) -
-                                (3.0f * Tex_I<cn>::read(x-1, y-1) + 10.0f * Tex_I<cn>::read(x, y-1) + 3.0f * Tex_I<cn>::read(x+1, y-1));
+                vmem1[tid] = val1 += vmem1[tid + 16];
+                vmem2[tid] = val2 += vmem2[tid + 16];
+                vmem3[tid] = val3 += vmem3[tid + 16];
 
-                dIdx_patch[i][j] = dIdx;
-                dIdy_patch[i][j] = dIdy;
+                vmem1[tid] = val1 += vmem1[tid + 8];
+                vmem2[tid] = val2 += vmem2[tid + 8];
+                vmem3[tid] = val3 += vmem3[tid + 8];
 
-                accum(A11, dIdx * dIdx);
-                accum(A12, dIdx * dIdy);
-                accum(A22, dIdy * dIdy);
+                vmem1[tid] = val1 += vmem1[tid + 4];
+                vmem2[tid] = val2 += vmem2[tid + 4];
+                vmem3[tid] = val3 += vmem3[tid + 4];
+
+                vmem1[tid] = val1 += vmem1[tid + 2];
+                vmem2[tid] = val2 += vmem2[tid + 2];
+                vmem3[tid] = val3 += vmem3[tid + 2];
+
+                vmem1[tid] = val1 += vmem1[tid + 1];
+                vmem2[tid] = val2 += vmem2[tid + 1];
+                vmem3[tid] = val3 += vmem3[tid + 1];
             }
         }
 
-        reduce<BLOCK_SIZE>(smem_tuple(smem1, smem2, smem3), thrust::tie(A11, A12, A22), tid, thrust::make_tuple(plus<float>(), plus<float>(), plus<float>()));
-
-    #if __CUDA_ARCH__ >= 300
-        if (tid == 0)
+        __device__ void reduce(float& val1, float& val2, float* smem1, float* smem2, int tid)
         {
-            smem1[0] = A11;
-            smem2[0] = A12;
-            smem3[0] = A22;
+            smem1[tid] = val1;
+            smem2[tid] = val2;
+            __syncthreads();
+
+#if defined(__CUDA_ARCH__) && (__CUDA_ARCH__ > 110)
+            if (tid < 128)
+            {
+                smem1[tid] = val1 += smem1[tid + 128];
+                smem2[tid] = val2 += smem2[tid + 128];
+            }
+            __syncthreads();
+#endif
+
+            if (tid < 64)
+            {
+                smem1[tid] = val1 += smem1[tid + 64];
+                smem2[tid] = val2 += smem2[tid + 64];
+            }
+            __syncthreads();
+
+            if (tid < 32)
+            {
+                volatile float* vmem1 = smem1;
+                volatile float* vmem2 = smem2;
+
+                vmem1[tid] = val1 += vmem1[tid + 32];
+                vmem2[tid] = val2 += vmem2[tid + 32];
+
+                vmem1[tid] = val1 += vmem1[tid + 16];
+                vmem2[tid] = val2 += vmem2[tid + 16];
+
+                vmem1[tid] = val1 += vmem1[tid + 8];
+                vmem2[tid] = val2 += vmem2[tid + 8];
+
+                vmem1[tid] = val1 += vmem1[tid + 4];
+                vmem2[tid] = val2 += vmem2[tid + 4];
+
+                vmem1[tid] = val1 += vmem1[tid + 2];
+                vmem2[tid] = val2 += vmem2[tid + 2];
+
+                vmem1[tid] = val1 += vmem1[tid + 1];
+                vmem2[tid] = val2 += vmem2[tid + 1];
+            }
         }
-    #endif
 
-        __syncthreads();
-
-        A11 = smem1[0];
-        A12 = smem2[0];
-        A22 = smem3[0];
-
-        float D = A11 * A22 - A12 * A12;
-
-        if (D < numeric_limits<float>::epsilon())
+        __device__ void reduce(float& val1, float* smem1, int tid)
         {
-            if (tid == 0 && level == 0)
-                status[blockIdx.x] = 0;
+            smem1[tid] = val1;
+            __syncthreads();
 
-            return;
+#if defined(__CUDA_ARCH__) && (__CUDA_ARCH__ > 110)
+            if (tid < 128)
+            {
+                smem1[tid] = val1 += smem1[tid + 128];
+            }
+            __syncthreads();
+#endif
+
+            if (tid < 64)
+            {
+                smem1[tid] = val1 += smem1[tid + 64];
+            }
+            __syncthreads();
+
+            if (tid < 32)
+            {
+                volatile float* vmem1 = smem1;
+
+                vmem1[tid] = val1 += vmem1[tid + 32];
+                vmem1[tid] = val1 += vmem1[tid + 16];
+                vmem1[tid] = val1 += vmem1[tid + 8];
+                vmem1[tid] = val1 += vmem1[tid + 4];
+                vmem1[tid] = val1 += vmem1[tid + 2];
+                vmem1[tid] = val1 += vmem1[tid + 1];
+            }
         }
 
-        D = 1.f / D;
+        texture<float, cudaTextureType2D, cudaReadModeElementType> tex_If(false, cudaFilterModeLinear, cudaAddressModeClamp);
+        texture<float4, cudaTextureType2D, cudaReadModeElementType> tex_If4(false, cudaFilterModeLinear, cudaAddressModeClamp);
+        texture<uchar, cudaTextureType2D, cudaReadModeElementType> tex_Ib(false, cudaFilterModePoint, cudaAddressModeClamp);
 
-        A11 *= D;
-        A12 *= D;
-        A22 *= D;
+        texture<float, cudaTextureType2D, cudaReadModeElementType> tex_Jf(false, cudaFilterModeLinear, cudaAddressModeClamp);
+        texture<float4, cudaTextureType2D, cudaReadModeElementType> tex_Jf4(false, cudaFilterModeLinear, cudaAddressModeClamp);
 
-        float2 nextPt = nextPts[blockIdx.x];
-        nextPt.x *= 2.f;
-        nextPt.y *= 2.f;
-
-        nextPt.x -= c_halfWin_x;
-        nextPt.y -= c_halfWin_y;
-
-        for (int k = 0; k < c_iters; ++k)
+        template <int cn> struct Tex_I;
+        template <> struct Tex_I<1>
         {
-            if (nextPt.x < -c_halfWin_x || nextPt.x >= cols || nextPt.y < -c_halfWin_y || nextPt.y >= rows)
+            static __device__ __forceinline__ float read(float x, float y)
+            {
+                return tex2D(tex_If, x, y);
+            }
+        };
+        template <> struct Tex_I<4>
+        {
+            static __device__ __forceinline__ float4 read(float x, float y)
+            {
+                return tex2D(tex_If4, x, y);
+            }
+        };
+
+        template <int cn> struct Tex_J;
+        template <> struct Tex_J<1>
+        {
+            static __device__ __forceinline__ float read(float x, float y)
+            {
+                return tex2D(tex_Jf, x, y);
+            }
+        };
+        template <> struct Tex_J<4>
+        {
+            static __device__ __forceinline__ float4 read(float x, float y)
+            {
+                return tex2D(tex_Jf4, x, y);
+            }
+        };
+
+        __device__ __forceinline__ void accum(float& dst, float val)
+        {
+            dst += val;
+        }
+        __device__ __forceinline__ void accum(float& dst, const float4& val)
+        {
+            dst += val.x + val.y + val.z;
+        }
+
+        __device__ __forceinline__ float abs_(float a)
+        {
+            return ::fabs(a);
+        }
+        __device__ __forceinline__ float4 abs_(const float4& a)
+        {
+            return fabs(a);
+        }
+
+        template <int cn, int PATCH_X, int PATCH_Y, bool calcErr>
+        __global__ void lkSparse(const float2* prevPts, float2* nextPts, uchar* status, float* err, const int level, const int rows, const int cols)
+        {
+#if defined(__CUDA_ARCH__) && (__CUDA_ARCH__ <= 110)
+            __shared__ float smem1[128];
+            __shared__ float smem2[128];
+            __shared__ float smem3[128];
+#else
+            __shared__ float smem1[256];
+            __shared__ float smem2[256];
+            __shared__ float smem3[256];
+#endif
+
+            const int tid = threadIdx.y * blockDim.x + threadIdx.x;
+
+            float2 prevPt = prevPts[blockIdx.x];
+            prevPt.x *= (1.0f / (1 << level));
+            prevPt.y *= (1.0f / (1 << level));
+
+            if (prevPt.x < 0 || prevPt.x >= cols || prevPt.y < 0 || prevPt.y >= rows)
             {
                 if (tid == 0 && level == 0)
                     status[blockIdx.x] = 0;
@@ -240,183 +297,279 @@ namespace pyrlk
                 return;
             }
 
-            float b1 = 0;
-            float b2 = 0;
+            prevPt.x -= c_halfWin_x;
+            prevPt.y -= c_halfWin_y;
 
-            for (int y = threadIdx.y, i = 0; y < c_winSize_y; y += blockDim.y, ++i)
+            // extract the patch from the first image, compute covariation matrix of derivatives
+
+            float A11 = 0;
+            float A12 = 0;
+            float A22 = 0;
+
+            typedef typename TypeVec<float, cn>::vec_type work_type;
+
+            work_type I_patch   [PATCH_Y][PATCH_X];
+            work_type dIdx_patch[PATCH_Y][PATCH_X];
+            work_type dIdy_patch[PATCH_Y][PATCH_X];
+
+            for (int yBase = threadIdx.y, i = 0; yBase < c_winSize_y; yBase += blockDim.y, ++i)
             {
-                for (int x = threadIdx.x, j = 0; x < c_winSize_x; x += blockDim.x, ++j)
+                for (int xBase = threadIdx.x, j = 0; xBase < c_winSize_x; xBase += blockDim.x, ++j)
                 {
-                    work_type I_val = I_patch[i][j];
-                    work_type J_val = Tex_J<cn>::read(nextPt.x + x + 0.5f, nextPt.y + y + 0.5f);
+                    float x = prevPt.x + xBase + 0.5f;
+                    float y = prevPt.y + yBase + 0.5f;
 
-                    work_type diff = (J_val - I_val) * 32.0f;
+                    I_patch[i][j] = Tex_I<cn>::read(x, y);
 
-                    accum(b1, diff * dIdx_patch[i][j]);
-                    accum(b2, diff * dIdy_patch[i][j]);
+                    // Sharr Deriv
+
+                    work_type dIdx = 3.0f * Tex_I<cn>::read(x+1, y-1) + 10.0f * Tex_I<cn>::read(x+1, y) + 3.0f * Tex_I<cn>::read(x+1, y+1) -
+                                     (3.0f * Tex_I<cn>::read(x-1, y-1) + 10.0f * Tex_I<cn>::read(x-1, y) + 3.0f * Tex_I<cn>::read(x-1, y+1));
+
+                    work_type dIdy = 3.0f * Tex_I<cn>::read(x-1, y+1) + 10.0f * Tex_I<cn>::read(x, y+1) + 3.0f * Tex_I<cn>::read(x+1, y+1) -
+                                    (3.0f * Tex_I<cn>::read(x-1, y-1) + 10.0f * Tex_I<cn>::read(x, y-1) + 3.0f * Tex_I<cn>::read(x+1, y-1));
+
+                    dIdx_patch[i][j] = dIdx;
+                    dIdy_patch[i][j] = dIdy;
+
+                    accum(A11, dIdx * dIdx);
+                    accum(A12, dIdx * dIdy);
+                    accum(A22, dIdy * dIdy);
                 }
             }
 
-            reduce<BLOCK_SIZE>(smem_tuple(smem1, smem2), thrust::tie(b1, b2), tid, thrust::make_tuple(plus<float>(), plus<float>()));
+            reduce(A11, A12, A22, smem1, smem2, smem3, tid);
+            __syncthreads();
 
-        #if __CUDA_ARCH__ >= 300
+            A11 = smem1[0];
+            A12 = smem2[0];
+            A22 = smem3[0];
+
+            float D = A11 * A22 - A12 * A12;
+
+            if (D < numeric_limits<float>::epsilon())
+            {
+                if (tid == 0 && level == 0)
+                    status[blockIdx.x] = 0;
+
+                return;
+            }
+
+            D = 1.f / D;
+
+            A11 *= D;
+            A12 *= D;
+            A22 *= D;
+
+            float2 nextPt = nextPts[blockIdx.x];
+            nextPt.x *= 2.f;
+            nextPt.y *= 2.f;
+
+            nextPt.x -= c_halfWin_x;
+            nextPt.y -= c_halfWin_y;
+
+            for (int k = 0; k < c_iters; ++k)
+            {
+                if (nextPt.x < -c_halfWin_x || nextPt.x >= cols || nextPt.y < -c_halfWin_y || nextPt.y >= rows)
+                {
+                    if (tid == 0 && level == 0)
+                        status[blockIdx.x] = 0;
+
+                    return;
+                }
+
+                float b1 = 0;
+                float b2 = 0;
+
+                for (int y = threadIdx.y, i = 0; y < c_winSize_y; y += blockDim.y, ++i)
+                {
+                    for (int x = threadIdx.x, j = 0; x < c_winSize_x; x += blockDim.x, ++j)
+                    {
+                        work_type I_val = I_patch[i][j];
+                        work_type J_val = Tex_J<cn>::read(nextPt.x + x + 0.5f, nextPt.y + y + 0.5f);
+
+                        work_type diff = (J_val - I_val) * 32.0f;
+
+                        accum(b1, diff * dIdx_patch[i][j]);
+                        accum(b2, diff * dIdy_patch[i][j]);
+                    }
+                }
+
+                reduce(b1, b2, smem1, smem2, tid);
+                __syncthreads();
+
+                b1 = smem1[0];
+                b2 = smem2[0];
+
+                float2 delta;
+                delta.x = A12 * b2 - A22 * b1;
+                delta.y = A12 * b1 - A11 * b2;
+
+                nextPt.x += delta.x;
+                nextPt.y += delta.y;
+
+                if (::fabs(delta.x) < 0.01f && ::fabs(delta.y) < 0.01f)
+                    break;
+            }
+
+            float errval = 0;
+            if (calcErr)
+            {
+                for (int y = threadIdx.y, i = 0; y < c_winSize_y; y += blockDim.y, ++i)
+                {
+                    for (int x = threadIdx.x, j = 0; x < c_winSize_x; x += blockDim.x, ++j)
+                    {
+                        work_type I_val = I_patch[i][j];
+                        work_type J_val = Tex_J<cn>::read(nextPt.x + x + 0.5f, nextPt.y + y + 0.5f);
+
+                        work_type diff = J_val - I_val;
+
+                        accum(errval, abs_(diff));
+                    }
+                }
+
+                reduce(errval, smem1, tid);
+            }
+
             if (tid == 0)
             {
-                smem1[0] = b1;
-                smem2[0] = b2;
+                nextPt.x += c_halfWin_x;
+                nextPt.y += c_halfWin_y;
+
+                nextPts[blockIdx.x] = nextPt;
+
+                if (calcErr)
+                    err[blockIdx.x] = static_cast<float>(errval) / (cn * c_winSize_x * c_winSize_y);
             }
-        #endif
+        }
+
+        template <int cn, int PATCH_X, int PATCH_Y>
+        void lkSparse_caller(int rows, int cols, const float2* prevPts, float2* nextPts, uchar* status, float* err, int ptcount,
+            int level, dim3 block, cudaStream_t stream)
+        {
+            dim3 grid(ptcount);
+
+            if (level == 0 && err)
+                lkSparse<cn, PATCH_X, PATCH_Y, true><<<grid, block>>>(prevPts, nextPts, status, err, level, rows, cols);
+            else
+                lkSparse<cn, PATCH_X, PATCH_Y, false><<<grid, block>>>(prevPts, nextPts, status, err, level, rows, cols);
+
+            cudaSafeCall( cudaGetLastError() );
+
+            if (stream == 0)
+                cudaSafeCall( cudaDeviceSynchronize() );
+        }
+
+        void lkSparse1_gpu(PtrStepSzf I, PtrStepSzf J, const float2* prevPts, float2* nextPts, uchar* status, float* err, int ptcount,
+            int level, dim3 block, dim3 patch, cudaStream_t stream)
+        {
+            typedef void (*func_t)(int rows, int cols, const float2* prevPts, float2* nextPts, uchar* status, float* err, int ptcount,
+                int level, dim3 block, cudaStream_t stream);
+
+            static const func_t funcs[5][5] =
+            {
+                {lkSparse_caller<1, 1, 1>, lkSparse_caller<1, 2, 1>, lkSparse_caller<1, 3, 1>, lkSparse_caller<1, 4, 1>, lkSparse_caller<1, 5, 1>},
+                {lkSparse_caller<1, 1, 2>, lkSparse_caller<1, 2, 2>, lkSparse_caller<1, 3, 2>, lkSparse_caller<1, 4, 2>, lkSparse_caller<1, 5, 2>},
+                {lkSparse_caller<1, 1, 3>, lkSparse_caller<1, 2, 3>, lkSparse_caller<1, 3, 3>, lkSparse_caller<1, 4, 3>, lkSparse_caller<1, 5, 3>},
+                {lkSparse_caller<1, 1, 4>, lkSparse_caller<1, 2, 4>, lkSparse_caller<1, 3, 4>, lkSparse_caller<1, 4, 4>, lkSparse_caller<1, 5, 4>},
+                {lkSparse_caller<1, 1, 5>, lkSparse_caller<1, 2, 5>, lkSparse_caller<1, 3, 5>, lkSparse_caller<1, 4, 5>, lkSparse_caller<1, 5, 5>}
+            };
+
+            bindTexture(&tex_If, I);
+            bindTexture(&tex_Jf, J);
+
+            funcs[patch.y - 1][patch.x - 1](I.rows, I.cols, prevPts, nextPts, status, err, ptcount,
+                level, block, stream);
+        }
+
+        void lkSparse4_gpu(PtrStepSz<float4> I, PtrStepSz<float4> J, const float2* prevPts, float2* nextPts, uchar* status, float* err, int ptcount,
+            int level, dim3 block, dim3 patch, cudaStream_t stream)
+        {
+            typedef void (*func_t)(int rows, int cols, const float2* prevPts, float2* nextPts, uchar* status, float* err, int ptcount,
+                int level, dim3 block, cudaStream_t stream);
+
+            static const func_t funcs[5][5] =
+            {
+                {lkSparse_caller<4, 1, 1>, lkSparse_caller<4, 2, 1>, lkSparse_caller<4, 3, 1>, lkSparse_caller<4, 4, 1>, lkSparse_caller<4, 5, 1>},
+                {lkSparse_caller<4, 1, 2>, lkSparse_caller<4, 2, 2>, lkSparse_caller<4, 3, 2>, lkSparse_caller<4, 4, 2>, lkSparse_caller<4, 5, 2>},
+                {lkSparse_caller<4, 1, 3>, lkSparse_caller<4, 2, 3>, lkSparse_caller<4, 3, 3>, lkSparse_caller<4, 4, 3>, lkSparse_caller<4, 5, 3>},
+                {lkSparse_caller<4, 1, 4>, lkSparse_caller<4, 2, 4>, lkSparse_caller<4, 3, 4>, lkSparse_caller<4, 4, 4>, lkSparse_caller<4, 5, 4>},
+                {lkSparse_caller<4, 1, 5>, lkSparse_caller<4, 2, 5>, lkSparse_caller<4, 3, 5>, lkSparse_caller<4, 4, 5>, lkSparse_caller<4, 5, 5>}
+            };
+
+            bindTexture(&tex_If4, I);
+            bindTexture(&tex_Jf4, J);
+
+            funcs[patch.y - 1][patch.x - 1](I.rows, I.cols, prevPts, nextPts, status, err, ptcount,
+                level, block, stream);
+        }
+
+        template <bool calcErr>
+        __global__ void lkDense(PtrStepf u, PtrStepf v, const PtrStepf prevU, const PtrStepf prevV, PtrStepf err, const int rows, const int cols)
+        {
+            extern __shared__ int smem[];
+
+            const int patchWidth  = blockDim.x + 2 * c_halfWin_x;
+            const int patchHeight = blockDim.y + 2 * c_halfWin_y;
+
+            int* I_patch = smem;
+            int* dIdx_patch = I_patch + patchWidth * patchHeight;
+            int* dIdy_patch = dIdx_patch + patchWidth * patchHeight;
+
+            const int xBase = blockIdx.x * blockDim.x;
+            const int yBase = blockIdx.y * blockDim.y;
+
+            for (int i = threadIdx.y; i < patchHeight; i += blockDim.y)
+            {
+                for (int j = threadIdx.x; j < patchWidth; j += blockDim.x)
+                {
+                    float x = xBase - c_halfWin_x + j + 0.5f;
+                    float y = yBase - c_halfWin_y + i + 0.5f;
+
+                    I_patch[i * patchWidth + j] = tex2D(tex_Ib, x, y);
+
+                    // Sharr Deriv
+
+                    dIdx_patch[i * patchWidth + j] = 3 * tex2D(tex_Ib, x+1, y-1) + 10 * tex2D(tex_Ib, x+1, y) + 3 * tex2D(tex_Ib, x+1, y+1) -
+                                                    (3 * tex2D(tex_Ib, x-1, y-1) + 10 * tex2D(tex_Ib, x-1, y) + 3 * tex2D(tex_Ib, x-1, y+1));
+
+                    dIdy_patch[i * patchWidth + j] = 3 * tex2D(tex_Ib, x-1, y+1) + 10 * tex2D(tex_Ib, x, y+1) + 3 * tex2D(tex_Ib, x+1, y+1) -
+                                                    (3 * tex2D(tex_Ib, x-1, y-1) + 10 * tex2D(tex_Ib, x, y-1) + 3 * tex2D(tex_Ib, x+1, y-1));
+                }
+            }
 
             __syncthreads();
 
-            b1 = smem1[0];
-            b2 = smem2[0];
+            const int x = xBase + threadIdx.x;
+            const int y = yBase + threadIdx.y;
 
-            float2 delta;
-            delta.x = A12 * b2 - A22 * b1;
-            delta.y = A12 * b1 - A11 * b2;
+            if (x >= cols || y >= rows)
+                return;
 
-            nextPt.x += delta.x;
-            nextPt.y += delta.y;
+            int A11i = 0;
+            int A12i = 0;
+            int A22i = 0;
 
-            if (::fabs(delta.x) < 0.01f && ::fabs(delta.y) < 0.01f)
-                break;
-        }
-
-        float errval = 0;
-        if (calcErr)
-        {
-            for (int y = threadIdx.y, i = 0; y < c_winSize_y; y += blockDim.y, ++i)
+            for (int i = 0; i < c_winSize_y; ++i)
             {
-                for (int x = threadIdx.x, j = 0; x < c_winSize_x; x += blockDim.x, ++j)
+                for (int j = 0; j < c_winSize_x; ++j)
                 {
-                    work_type I_val = I_patch[i][j];
-                    work_type J_val = Tex_J<cn>::read(nextPt.x + x + 0.5f, nextPt.y + y + 0.5f);
+                    int dIdx = dIdx_patch[(threadIdx.y + i) * patchWidth + (threadIdx.x + j)];
+                    int dIdy = dIdy_patch[(threadIdx.y + i) * patchWidth + (threadIdx.x + j)];
 
-                    work_type diff = J_val - I_val;
-
-                    accum(errval, abs_(diff));
+                    A11i += dIdx * dIdx;
+                    A12i += dIdx * dIdy;
+                    A22i += dIdy * dIdy;
                 }
             }
 
-            reduce<BLOCK_SIZE>(smem1, errval, tid, plus<float>());
-        }
+            float A11 = A11i;
+            float A12 = A12i;
+            float A22 = A22i;
 
-        if (tid == 0)
-        {
-            nextPt.x += c_halfWin_x;
-            nextPt.y += c_halfWin_y;
+            float D = A11 * A22 - A12 * A12;
 
-            nextPts[blockIdx.x] = nextPt;
-
-            if (calcErr)
-                err[blockIdx.x] = static_cast<float>(errval) / (cn * c_winSize_x * c_winSize_y);
-        }
-    }
-
-    template <int cn, int PATCH_X, int PATCH_Y>
-    void sparse_caller(int rows, int cols, const float2* prevPts, float2* nextPts, uchar* status, float* err, int ptcount,
-                       int level, dim3 block, cudaStream_t stream)
-    {
-        dim3 grid(ptcount);
-
-        if (level == 0 && err)
-            sparseKernel<cn, PATCH_X, PATCH_Y, true><<<grid, block>>>(prevPts, nextPts, status, err, level, rows, cols);
-        else
-            sparseKernel<cn, PATCH_X, PATCH_Y, false><<<grid, block>>>(prevPts, nextPts, status, err, level, rows, cols);
-
-        cudaSafeCall( cudaGetLastError() );
-
-        if (stream == 0)
-            cudaSafeCall( cudaDeviceSynchronize() );
-    }
-
-    template <bool calcErr>
-    __global__ void denseKernel(PtrStepf u, PtrStepf v, const PtrStepf prevU, const PtrStepf prevV, PtrStepf err, const int rows, const int cols)
-    {
-        extern __shared__ int smem[];
-
-        const int patchWidth  = blockDim.x + 2 * c_halfWin_x;
-        const int patchHeight = blockDim.y + 2 * c_halfWin_y;
-
-        int* I_patch = smem;
-        int* dIdx_patch = I_patch + patchWidth * patchHeight;
-        int* dIdy_patch = dIdx_patch + patchWidth * patchHeight;
-
-        const int xBase = blockIdx.x * blockDim.x;
-        const int yBase = blockIdx.y * blockDim.y;
-
-        for (int i = threadIdx.y; i < patchHeight; i += blockDim.y)
-        {
-            for (int j = threadIdx.x; j < patchWidth; j += blockDim.x)
-            {
-                float x = xBase - c_halfWin_x + j + 0.5f;
-                float y = yBase - c_halfWin_y + i + 0.5f;
-
-                I_patch[i * patchWidth + j] = tex2D(tex_Ib, x, y);
-
-                // Sharr Deriv
-
-                dIdx_patch[i * patchWidth + j] = 3 * tex2D(tex_Ib, x+1, y-1) + 10 * tex2D(tex_Ib, x+1, y) + 3 * tex2D(tex_Ib, x+1, y+1) -
-                                                (3 * tex2D(tex_Ib, x-1, y-1) + 10 * tex2D(tex_Ib, x-1, y) + 3 * tex2D(tex_Ib, x-1, y+1));
-
-                dIdy_patch[i * patchWidth + j] = 3 * tex2D(tex_Ib, x-1, y+1) + 10 * tex2D(tex_Ib, x, y+1) + 3 * tex2D(tex_Ib, x+1, y+1) -
-                                                (3 * tex2D(tex_Ib, x-1, y-1) + 10 * tex2D(tex_Ib, x, y-1) + 3 * tex2D(tex_Ib, x+1, y-1));
-            }
-        }
-
-        __syncthreads();
-
-        const int x = xBase + threadIdx.x;
-        const int y = yBase + threadIdx.y;
-
-        if (x >= cols || y >= rows)
-            return;
-
-        int A11i = 0;
-        int A12i = 0;
-        int A22i = 0;
-
-        for (int i = 0; i < c_winSize_y; ++i)
-        {
-            for (int j = 0; j < c_winSize_x; ++j)
-            {
-                int dIdx = dIdx_patch[(threadIdx.y + i) * patchWidth + (threadIdx.x + j)];
-                int dIdy = dIdy_patch[(threadIdx.y + i) * patchWidth + (threadIdx.x + j)];
-
-                A11i += dIdx * dIdx;
-                A12i += dIdx * dIdy;
-                A22i += dIdy * dIdy;
-            }
-        }
-
-        float A11 = A11i;
-        float A12 = A12i;
-        float A22 = A22i;
-
-        float D = A11 * A22 - A12 * A12;
-
-        if (D < numeric_limits<float>::epsilon())
-        {
-            if (calcErr)
-                err(y, x) = numeric_limits<float>::max();
-
-            return;
-        }
-
-        D = 1.f / D;
-
-        A11 *= D;
-        A12 *= D;
-        A22 *= D;
-
-        float2 nextPt;
-        nextPt.x = x + prevU(y/2, x/2) * 2.0f;
-        nextPt.y = y + prevV(y/2, x/2) * 2.0f;
-
-        for (int k = 0; k < c_iters; ++k)
-        {
-            if (nextPt.x < 0 || nextPt.x >= cols || nextPt.y < 0 || nextPt.y >= rows)
+            if (D < numeric_limits<float>::epsilon())
             {
                 if (calcErr)
                     err(y, x) = numeric_limits<float>::max();
@@ -424,142 +577,108 @@ namespace pyrlk
                 return;
             }
 
-            int b1 = 0;
-            int b2 = 0;
+            D = 1.f / D;
 
-            for (int i = 0; i < c_winSize_y; ++i)
+            A11 *= D;
+            A12 *= D;
+            A22 *= D;
+
+            float2 nextPt;
+            nextPt.x = x + prevU(y/2, x/2) * 2.0f;
+            nextPt.y = y + prevV(y/2, x/2) * 2.0f;
+
+            for (int k = 0; k < c_iters; ++k)
             {
-                for (int j = 0; j < c_winSize_x; ++j)
+                if (nextPt.x < 0 || nextPt.x >= cols || nextPt.y < 0 || nextPt.y >= rows)
                 {
-                    int I = I_patch[(threadIdx.y + i) * patchWidth + threadIdx.x + j];
-                    int J = tex2D(tex_Jf, nextPt.x - c_halfWin_x + j + 0.5f, nextPt.y - c_halfWin_y + i + 0.5f);
+                    if (calcErr)
+                        err(y, x) = numeric_limits<float>::max();
 
-                    int diff = (J - I) * 32;
-
-                    int dIdx = dIdx_patch[(threadIdx.y + i) * patchWidth + (threadIdx.x + j)];
-                    int dIdy = dIdy_patch[(threadIdx.y + i) * patchWidth + (threadIdx.x + j)];
-
-                    b1 += diff * dIdx;
-                    b2 += diff * dIdy;
+                    return;
                 }
+
+                int b1 = 0;
+                int b2 = 0;
+
+                for (int i = 0; i < c_winSize_y; ++i)
+                {
+                    for (int j = 0; j < c_winSize_x; ++j)
+                    {
+                        int I = I_patch[(threadIdx.y + i) * patchWidth + threadIdx.x + j];
+                        int J = tex2D(tex_Jf, nextPt.x - c_halfWin_x + j + 0.5f, nextPt.y - c_halfWin_y + i + 0.5f);
+
+                        int diff = (J - I) * 32;
+
+                        int dIdx = dIdx_patch[(threadIdx.y + i) * patchWidth + (threadIdx.x + j)];
+                        int dIdy = dIdy_patch[(threadIdx.y + i) * patchWidth + (threadIdx.x + j)];
+
+                        b1 += diff * dIdx;
+                        b2 += diff * dIdy;
+                    }
+                }
+
+                float2 delta;
+                delta.x = A12 * b2 - A22 * b1;
+                delta.y = A12 * b1 - A11 * b2;
+
+                nextPt.x += delta.x;
+                nextPt.y += delta.y;
+
+                if (::fabs(delta.x) < 0.01f && ::fabs(delta.y) < 0.01f)
+                    break;
             }
 
-            float2 delta;
-            delta.x = A12 * b2 - A22 * b1;
-            delta.y = A12 * b1 - A11 * b2;
+            u(y, x) = nextPt.x - x;
+            v(y, x) = nextPt.y - y;
 
-            nextPt.x += delta.x;
-            nextPt.y += delta.y;
+            if (calcErr)
+            {
+                int errval = 0;
 
-            if (::fabs(delta.x) < 0.01f && ::fabs(delta.y) < 0.01f)
-                break;
+                for (int i = 0; i < c_winSize_y; ++i)
+                {
+                    for (int j = 0; j < c_winSize_x; ++j)
+                    {
+                        int I = I_patch[(threadIdx.y + i) * patchWidth + threadIdx.x + j];
+                        int J = tex2D(tex_Jf, nextPt.x - c_halfWin_x + j + 0.5f, nextPt.y - c_halfWin_y + i + 0.5f);
+
+                        errval += ::abs(J - I);
+                    }
+                }
+
+                err(y, x) = static_cast<float>(errval) / (c_winSize_x * c_winSize_y);
+            }
         }
 
-        u(y, x) = nextPt.x - x;
-        v(y, x) = nextPt.y - y;
-
-        if (calcErr)
+        void lkDense_gpu(PtrStepSzb I, PtrStepSzf J, PtrStepSzf u, PtrStepSzf v, PtrStepSzf prevU, PtrStepSzf prevV,
+                         PtrStepSzf err, int2 winSize, cudaStream_t stream)
         {
-            int errval = 0;
+            dim3 block(16, 16);
+            dim3 grid(divUp(I.cols, block.x), divUp(I.rows, block.y));
 
-            for (int i = 0; i < c_winSize_y; ++i)
+            bindTexture(&tex_Ib, I);
+            bindTexture(&tex_Jf, J);
+
+            int2 halfWin = make_int2((winSize.x - 1) / 2, (winSize.y - 1) / 2);
+            const int patchWidth  = block.x + 2 * halfWin.x;
+            const int patchHeight = block.y + 2 * halfWin.y;
+            size_t smem_size = 3 * patchWidth * patchHeight * sizeof(int);
+
+            if (err.data)
             {
-                for (int j = 0; j < c_winSize_x; ++j)
-                {
-                    int I = I_patch[(threadIdx.y + i) * patchWidth + threadIdx.x + j];
-                    int J = tex2D(tex_Jf, nextPt.x - c_halfWin_x + j + 0.5f, nextPt.y - c_halfWin_y + i + 0.5f);
-
-                    errval += ::abs(J - I);
-                }
+                lkDense<true><<<grid, block, smem_size, stream>>>(u, v, prevU, prevV, err, I.rows, I.cols);
+                cudaSafeCall( cudaGetLastError() );
+            }
+            else
+            {
+                lkDense<false><<<grid, block, smem_size, stream>>>(u, v, prevU, prevV, PtrStepf(), I.rows, I.cols);
+                cudaSafeCall( cudaGetLastError() );
             }
 
-            err(y, x) = static_cast<float>(errval) / (c_winSize_x * c_winSize_y);
+            if (stream == 0)
+                cudaSafeCall( cudaDeviceSynchronize() );
         }
     }
-
-    void loadConstants(int2 winSize, int iters)
-    {
-        cudaSafeCall( cudaMemcpyToSymbol(c_winSize_x, &winSize.x, sizeof(int)) );
-        cudaSafeCall( cudaMemcpyToSymbol(c_winSize_y, &winSize.y, sizeof(int)) );
-
-        int2 halfWin = make_int2((winSize.x - 1) / 2, (winSize.y - 1) / 2);
-        cudaSafeCall( cudaMemcpyToSymbol(c_halfWin_x, &halfWin.x, sizeof(int)) );
-        cudaSafeCall( cudaMemcpyToSymbol(c_halfWin_y, &halfWin.y, sizeof(int)) );
-
-        cudaSafeCall( cudaMemcpyToSymbol(c_iters, &iters, sizeof(int)) );
-    }
-
-    void sparse1(PtrStepSzf I, PtrStepSzf J, const float2* prevPts, float2* nextPts, uchar* status, float* err, int ptcount,
-                 int level, dim3 block, dim3 patch, cudaStream_t stream)
-    {
-        typedef void (*func_t)(int rows, int cols, const float2* prevPts, float2* nextPts, uchar* status, float* err, int ptcount,
-                               int level, dim3 block, cudaStream_t stream);
-
-        static const func_t funcs[5][5] =
-        {
-            {sparse_caller<1, 1, 1>, sparse_caller<1, 2, 1>, sparse_caller<1, 3, 1>, sparse_caller<1, 4, 1>, sparse_caller<1, 5, 1>},
-            {sparse_caller<1, 1, 2>, sparse_caller<1, 2, 2>, sparse_caller<1, 3, 2>, sparse_caller<1, 4, 2>, sparse_caller<1, 5, 2>},
-            {sparse_caller<1, 1, 3>, sparse_caller<1, 2, 3>, sparse_caller<1, 3, 3>, sparse_caller<1, 4, 3>, sparse_caller<1, 5, 3>},
-            {sparse_caller<1, 1, 4>, sparse_caller<1, 2, 4>, sparse_caller<1, 3, 4>, sparse_caller<1, 4, 4>, sparse_caller<1, 5, 4>},
-            {sparse_caller<1, 1, 5>, sparse_caller<1, 2, 5>, sparse_caller<1, 3, 5>, sparse_caller<1, 4, 5>, sparse_caller<1, 5, 5>}
-        };
-
-        bindTexture(&tex_If, I);
-        bindTexture(&tex_Jf, J);
-
-        funcs[patch.y - 1][patch.x - 1](I.rows, I.cols, prevPts, nextPts, status, err, ptcount,
-            level, block, stream);
-    }
-
-    void sparse4(PtrStepSz<float4> I, PtrStepSz<float4> J, const float2* prevPts, float2* nextPts, uchar* status, float* err, int ptcount,
-                 int level, dim3 block, dim3 patch, cudaStream_t stream)
-    {
-        typedef void (*func_t)(int rows, int cols, const float2* prevPts, float2* nextPts, uchar* status, float* err, int ptcount,
-                               int level, dim3 block, cudaStream_t stream);
-
-        static const func_t funcs[5][5] =
-        {
-            {sparse_caller<4, 1, 1>, sparse_caller<4, 2, 1>, sparse_caller<4, 3, 1>, sparse_caller<4, 4, 1>, sparse_caller<4, 5, 1>},
-            {sparse_caller<4, 1, 2>, sparse_caller<4, 2, 2>, sparse_caller<4, 3, 2>, sparse_caller<4, 4, 2>, sparse_caller<4, 5, 2>},
-            {sparse_caller<4, 1, 3>, sparse_caller<4, 2, 3>, sparse_caller<4, 3, 3>, sparse_caller<4, 4, 3>, sparse_caller<4, 5, 3>},
-            {sparse_caller<4, 1, 4>, sparse_caller<4, 2, 4>, sparse_caller<4, 3, 4>, sparse_caller<4, 4, 4>, sparse_caller<4, 5, 4>},
-            {sparse_caller<4, 1, 5>, sparse_caller<4, 2, 5>, sparse_caller<4, 3, 5>, sparse_caller<4, 4, 5>, sparse_caller<4, 5, 5>}
-        };
-
-        bindTexture(&tex_If4, I);
-        bindTexture(&tex_Jf4, J);
-
-        funcs[patch.y - 1][patch.x - 1](I.rows, I.cols, prevPts, nextPts, status, err, ptcount,
-            level, block, stream);
-    }
-
-    void dense(PtrStepSzb I, PtrStepSzf J, PtrStepSzf u, PtrStepSzf v, PtrStepSzf prevU, PtrStepSzf prevV, PtrStepSzf err, int2 winSize, cudaStream_t stream)
-    {
-        dim3 block(16, 16);
-        dim3 grid(divUp(I.cols, block.x), divUp(I.rows, block.y));
-
-        bindTexture(&tex_Ib, I);
-        bindTexture(&tex_Jf, J);
-
-        int2 halfWin = make_int2((winSize.x - 1) / 2, (winSize.y - 1) / 2);
-        const int patchWidth  = block.x + 2 * halfWin.x;
-        const int patchHeight = block.y + 2 * halfWin.y;
-        size_t smem_size = 3 * patchWidth * patchHeight * sizeof(int);
-
-        if (err.data)
-        {
-            denseKernel<true><<<grid, block, smem_size, stream>>>(u, v, prevU, prevV, err, I.rows, I.cols);
-            cudaSafeCall( cudaGetLastError() );
-        }
-        else
-        {
-            denseKernel<false><<<grid, block, smem_size, stream>>>(u, v, prevU, prevV, PtrStepf(), I.rows, I.cols);
-            cudaSafeCall( cudaGetLastError() );
-        }
-
-        if (stream == 0)
-            cudaSafeCall( cudaDeviceSynchronize() );
-    }
-}
+}}}
 
 #endif /* CUDA_DISABLER */

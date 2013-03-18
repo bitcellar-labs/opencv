@@ -36,7 +36,7 @@ int Displaying_Big_End( Mat image, char* window_name, RNG rng );
 /**
  * @function main
  */
-int main( void )
+int main( int argc, char** argv )
 {
   int c;
 
@@ -106,6 +106,7 @@ static Scalar randomColor( RNG& rng )
  */
 int Drawing_Random_Lines( Mat image, char* window_name, RNG rng )
 {
+  int lineType = 8;
   Point pt1, pt2;
 
   for( int i = 0; i < NUMBER; i++ )
@@ -302,7 +303,7 @@ int Displaying_Random_Text( Mat image, char* window_name, RNG rng )
 /**
  * @function Displaying_Big_End
  */
-int Displaying_Big_End( Mat image, char* window_name, RNG )
+int Displaying_Big_End( Mat image, char* window_name, RNG rng )
 {
   Size textsize = getTextSize("OpenCV forever!", CV_FONT_HERSHEY_COMPLEX, 3, 5, 0);
   Point org((window_width - textsize.width)/2, (window_height - textsize.height)/2);

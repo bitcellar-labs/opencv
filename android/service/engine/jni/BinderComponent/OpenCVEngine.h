@@ -23,11 +23,12 @@ public:
 
 protected:
     IPackageManager* PackageManager;
-    static const int KnownVersions[];
+    static const std::set<std::string> KnownVersions;
 
     OpenCVEngine();
-    bool ValidateVersion(int version);
-    int NormalizeVersionString(std::string version);
+    static std::set<std::string> InitKnownOpenCVersions();
+    bool ValidateVersionString(const std::string& version);
+    std::string NormalizeVersionString(std::string version);
     bool FixPermissions(const std::string& path);
 
     static const int Platform;

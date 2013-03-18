@@ -4,7 +4,8 @@
  * @author OpenCV team
  */
 
-#include "opencv2/highgui/highgui.hpp"
+#include <cv.h>
+#include <highgui.h>
 #include <iostream>
 
 using namespace cv;
@@ -16,7 +17,7 @@ int beta;  /**< Simple brightness control */
  * @function main
  * @brief Main function
  */
-int main( int, char** argv )
+int main( int argc, char** argv )
 {
    /// Read image given by user
    Mat image = imread( argv[1] );

@@ -42,6 +42,7 @@
 
 #if !defined CUDA_DISABLER
 
+#include <stdio.h>
 #include "internal_shared.hpp"
 #include "opencv2/gpu/device/common.hpp"
 #include "opencv2/gpu/device/border_interpolate.hpp"
@@ -55,6 +56,8 @@
 
 #define BORDER_SIZE 5
 #define MAX_KSIZE_HALF 100
+
+using namespace std;
 
 namespace cv { namespace gpu { namespace device { namespace optflow_farneback
 {

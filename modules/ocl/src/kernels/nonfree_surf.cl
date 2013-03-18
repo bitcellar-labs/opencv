@@ -43,42 +43,13 @@
 //
 //M*/
 
+#pragma OPENCL EXTENSION cl_amd_printf : enable
 #pragma OPENCL EXTENSION cl_khr_global_int32_base_atomics : enable
 #pragma OPENCL EXTENSION cl_khr_local_int32_base_atomics : enable
 
-// specialized for non-image2d_t supported platform, intel HD4000, for example
-#ifdef DISABLE_IMAGE2D
-#define IMAGE_INT32 __global uint  *
-#define IMAGE_INT8  __global uchar *
-#else
-#define IMAGE_INT32 image2d_t
-#define IMAGE_INT8  image2d_t
-#endif
-
-uint read_sumTex(IMAGE_INT32 img, sampler_t sam, int2 coord, int rows, int cols, int elemPerRow)
-{
-#ifdef DISABLE_IMAGE2D
-    int x = clamp(coord.x, 0, cols);
-    int y = clamp(coord.y, 0, rows);
-    return img[elemPerRow * y + x];
-#else
-    return read_imageui(img, sam, coord).x;
-#endif
-}
-uchar read_imgTex(IMAGE_INT8 img, sampler_t sam, float2 coord, int rows, int cols, int elemPerRow)
-{
-#ifdef DISABLE_IMAGE2D
-    int x = clamp(convert_int_rte(coord.x), 0, cols - 1);
-    int y = clamp(convert_int_rte(coord.y), 0, rows - 1);
-    return img[elemPerRow * y + x];
-#else
-    return (uchar)read_imageui(img, sam, coord).x;
-#endif
-}
-
 // dynamically change the precision used for floating type
 
-#if defined DOUBLE_SUPPORT
+#if defined (__ATI__) || defined (__NVIDIA__)
 #define F double
 #else
 #define F float
@@ -87,24 +58,14 @@ uchar read_imgTex(IMAGE_INT8 img, sampler_t sam, float2 coord, int rows, int col
 // Image read mode
 __constant sampler_t sampler    = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP_TO_EDGE | CLK_FILTER_NEAREST;
 
-#ifndef FLT_EPSILON
 #define FLT_EPSILON (1e-15)
-#endif
-
-#ifndef CV_PI_F
 #define CV_PI_F 3.14159265f
-#endif
+
 
 // Use integral image to calculate haar wavelets.
 // N = 2
 // for simple haar paatern
-float icvCalcHaarPatternSum_2(
-    IMAGE_INT32 sumTex,
-    __constant float src[2][5],
-    int oldSize,
-    int newSize,
-    int y, int x,
-    int rows, int cols, int elemPerRow)
+float icvCalcHaarPatternSum_2(image2d_t sumTex, __constant float src[2][5], int oldSize, int newSize, int y, int x)
 {
 
     float ratio = (float)newSize / oldSize;
@@ -120,10 +81,11 @@ float icvCalcHaarPatternSum_2(
         int dy2 = convert_int_rte(ratio * src[k][3]);
 
         F t = 0;
-        t += read_sumTex( sumTex, sampler, (int2)(x + dx1, y + dy1), rows, cols, elemPerRow );
-        t -= read_sumTex( sumTex, sampler, (int2)(x + dx1, y + dy2), rows, cols, elemPerRow );
-        t -= read_sumTex( sumTex, sampler, (int2)(x + dx2, y + dy1), rows, cols, elemPerRow );
-        t += read_sumTex( sumTex, sampler, (int2)(x + dx2, y + dy2), rows, cols, elemPerRow );
+        t += read_imageui(sumTex, sampler, (int2)(x + dx1, y + dy1)).x;
+        t -= read_imageui(sumTex, sampler, (int2)(x + dx1, y + dy2)).x;
+        t -= read_imageui(sumTex, sampler, (int2)(x + dx2, y + dy1)).x;
+        t += read_imageui(sumTex, sampler, (int2)(x + dx2, y + dy2)).x;
+
         d += t * src[k][4] / ((dx2 - dx1) * (dy2 - dy1));
     }
 
@@ -131,13 +93,7 @@ float icvCalcHaarPatternSum_2(
 }
 
 // N = 3
-float icvCalcHaarPatternSum_3(
-    IMAGE_INT32 sumTex,
-    __constant float src[2][5],
-    int oldSize,
-    int newSize,
-    int y, int x,
-    int rows, int cols, int elemPerRow)
+float icvCalcHaarPatternSum_3(image2d_t sumTex, __constant float src[3][5], int oldSize, int newSize, int y, int x)
 {
 
     float ratio = (float)newSize / oldSize;
@@ -153,10 +109,11 @@ float icvCalcHaarPatternSum_3(
         int dy2 = convert_int_rte(ratio * src[k][3]);
 
         F t = 0;
-        t += read_sumTex( sumTex, sampler, (int2)(x + dx1, y + dy1), rows, cols, elemPerRow );
-        t -= read_sumTex( sumTex, sampler, (int2)(x + dx1, y + dy2), rows, cols, elemPerRow );
-        t -= read_sumTex( sumTex, sampler, (int2)(x + dx2, y + dy1), rows, cols, elemPerRow );
-        t += read_sumTex( sumTex, sampler, (int2)(x + dx2, y + dy2), rows, cols, elemPerRow );
+        t += read_imageui(sumTex, sampler, (int2)(x + dx1, y + dy1)).x;
+        t -= read_imageui(sumTex, sampler, (int2)(x + dx1, y + dy2)).x;
+        t -= read_imageui(sumTex, sampler, (int2)(x + dx2, y + dy1)).x;
+        t += read_imageui(sumTex, sampler, (int2)(x + dx2, y + dy2)).x;
+
         d += t * src[k][4] / ((dx2 - dx1) * (dy2 - dy1));
     }
 
@@ -164,13 +121,7 @@ float icvCalcHaarPatternSum_3(
 }
 
 // N = 4
-float icvCalcHaarPatternSum_4(
-    IMAGE_INT32 sumTex,
-    __constant float src[2][5],
-    int oldSize,
-    int newSize,
-    int y, int x,
-    int rows, int cols, int elemPerRow)
+float icvCalcHaarPatternSum_4(image2d_t sumTex, __constant float src[4][5], int oldSize, int newSize, int y, int x)
 {
 
     float ratio = (float)newSize / oldSize;
@@ -186,10 +137,11 @@ float icvCalcHaarPatternSum_4(
         int dy2 = convert_int_rte(ratio * src[k][3]);
 
         F t = 0;
-        t += read_sumTex( sumTex, sampler, (int2)(x + dx1, y + dy1), rows, cols, elemPerRow );
-        t -= read_sumTex( sumTex, sampler, (int2)(x + dx1, y + dy2), rows, cols, elemPerRow );
-        t -= read_sumTex( sumTex, sampler, (int2)(x + dx2, y + dy1), rows, cols, elemPerRow );
-        t += read_sumTex( sumTex, sampler, (int2)(x + dx2, y + dy2), rows, cols, elemPerRow );
+        t += read_imageui(sumTex, sampler, (int2)(x + dx1, y + dy1)).x;
+        t -= read_imageui(sumTex, sampler, (int2)(x + dx1, y + dy2)).x;
+        t -= read_imageui(sumTex, sampler, (int2)(x + dx2, y + dy1)).x;
+        t += read_imageui(sumTex, sampler, (int2)(x + dx2, y + dy2)).x;
+
         d += t * src[k][4] / ((dx2 - dx1) * (dy2 - dy1));
     }
 
@@ -220,7 +172,7 @@ __inline int calcSize(int octave, int layer)
 
 //calculate targeted layer per-pixel determinant and trace with an integral image
 __kernel void icvCalcLayerDetAndTrace(
-    IMAGE_INT32 sumTex, // input integral image
+    image2d_t sumTex, // input integral image
     __global float * det,      // output Determinant
     __global float * trace,    // output trace
     int det_step,     // the step of det in bytes
@@ -229,13 +181,11 @@ __kernel void icvCalcLayerDetAndTrace(
     int c_img_cols,
     int c_nOctaveLayers,
     int c_octave,
-    int c_layer_rows,
-    int sumTex_step
+    int c_layer_rows
     )
 {
     det_step   /= sizeof(*det);
     trace_step /= sizeof(*trace);
-    sumTex_step/= sizeof(uint);
     // Determine the indices
     const int gridDim_y  = get_num_groups(1) / (c_nOctaveLayers + 2);
     const int blockIdx_y = get_group_id(1) % gridDim_y;
@@ -255,9 +205,9 @@ __kernel void icvCalcLayerDetAndTrace(
 
     if (size <= c_img_rows && size <= c_img_cols && i < samples_i && j < samples_j)
     {
-        const float dx  = icvCalcHaarPatternSum_3(sumTex, c_DX , 9, size, i << c_octave, j << c_octave, c_img_rows, c_img_cols, sumTex_step);
-        const float dy  = icvCalcHaarPatternSum_3(sumTex, c_DY , 9, size, i << c_octave, j << c_octave, c_img_rows, c_img_cols, sumTex_step);
-        const float dxy = icvCalcHaarPatternSum_4(sumTex, c_DXY, 9, size, i << c_octave, j << c_octave, c_img_rows, c_img_cols, sumTex_step);
+        const float dx  = icvCalcHaarPatternSum_3(sumTex, c_DX , 9, size, i << c_octave, j << c_octave);
+        const float dy  = icvCalcHaarPatternSum_3(sumTex, c_DY , 9, size, i << c_octave, j << c_octave);
+        const float dxy = icvCalcHaarPatternSum_4(sumTex, c_DXY, 9, size, i << c_octave, j << c_octave);
 
         det  [j + margin + det_step   * (layer * c_layer_rows + i + margin)] = dx * dy - 0.81f * dxy * dxy;
         trace[j + margin + trace_step * (layer * c_layer_rows + i + margin)] = dx + dy;
@@ -270,7 +220,7 @@ __kernel void icvCalcLayerDetAndTrace(
 
 __constant float c_DM[5] = {0, 0, 9, 9, 1};
 
-bool within_check(IMAGE_INT32 maskSumTex, int sum_i, int sum_j, int size, int rows, int cols, int step)
+bool within_check(image2d_t maskSumTex, int sum_i, int sum_j, int size)
 {
     float ratio = (float)size / 9.0f;
 
@@ -283,10 +233,10 @@ bool within_check(IMAGE_INT32 maskSumTex, int sum_i, int sum_j, int size, int ro
 
     float t = 0;
 
-    t += read_sumTex(maskSumTex, sampler, (int2)(sum_j + dx1, sum_i + dy1), rows, cols, step);
-    t -= read_sumTex(maskSumTex, sampler, (int2)(sum_j + dx1, sum_i + dy2), rows, cols, step);
-    t -= read_sumTex(maskSumTex, sampler, (int2)(sum_j + dx2, sum_i + dy1), rows, cols, step);
-    t += read_sumTex(maskSumTex, sampler, (int2)(sum_j + dx2, sum_i + dy2), rows, cols, step);
+    t += read_imageui(maskSumTex, sampler, (int2)(sum_j + dx1, sum_i + dy1)).x;
+    t -= read_imageui(maskSumTex, sampler, (int2)(sum_j + dx1, sum_i + dy2)).x;
+    t -= read_imageui(maskSumTex, sampler, (int2)(sum_j + dx2, sum_i + dy1)).x;
+    t += read_imageui(maskSumTex, sampler, (int2)(sum_j + dx2, sum_i + dy2)).x;
 
     d += t * c_DM[4] / ((dx2 - dx1) * (dy2 - dy1));
 
@@ -299,7 +249,7 @@ __kernel
     __global const float * det,
     __global const float * trace,
     __global int4 * maxPosBuffer,
-    volatile __global int* maxCounter,
+    volatile __global unsigned int* maxCounter,
     int counter_offset,
     int det_step,     // the step of det in bytes
     int trace_step,   // the step of trace in bytes
@@ -311,8 +261,7 @@ __kernel
     int c_layer_cols,
     int c_max_candidates,
     float c_hessianThreshold,
-    IMAGE_INT32 maskSumTex,
-    int mask_step
+    image2d_t maskSumTex
     )
 {
     volatile __local  float N9[768]; // threads.x * threads.y * 3
@@ -320,7 +269,6 @@ __kernel
     det_step   /= sizeof(*det);
     trace_step /= sizeof(*trace);
     maxCounter += counter_offset;
-    mask_step  /= sizeof(uint);
 
     // Determine the indices
     const int gridDim_y  = get_num_groups(1) / c_nOctaveLayers;
@@ -373,7 +321,7 @@ __kernel
             const int sum_i = (i - ((size >> 1) >> c_octave)) << c_octave;
             const int sum_j = (j - ((size >> 1) >> c_octave)) << c_octave;
 
-            if (within_check(maskSumTex, sum_i, sum_j, size, c_img_rows, c_img_cols, mask_step))
+            if (within_check(maskSumTex, sum_i, sum_j, size))
             {
                 // Check to see if we have a max (in its 26 neighbours)
                 const bool condmax = val0 > N9[localLin - 1 - get_local_size(0) - zoff]
@@ -408,7 +356,7 @@ __kernel
 
                 if(condmax)
                 {
-                    int ind = atomic_inc(maxCounter);
+                    unsigned int ind = atomic_inc(maxCounter);
 
                     if (ind < c_max_candidates)
                     {
@@ -427,7 +375,7 @@ __kernel
     __global float * det,
     __global float * trace,
     __global int4 * maxPosBuffer,
-    volatile __global  int* maxCounter,
+    volatile __global unsigned int* maxCounter,
     int counter_offset,
     int det_step,     // the step of det in bytes
     int trace_step,   // the step of trace in bytes
@@ -525,7 +473,7 @@ __kernel
 
             if(condmax)
             {
-                 int ind = atomic_inc(maxCounter);
+                unsigned int ind = atomic_inc(maxCounter);
 
                 if (ind < c_max_candidates)
                 {
@@ -585,7 +533,7 @@ __kernel
     __global const float * det,
     __global const int4 * maxPosBuffer,
     __global float * keypoints,
-    volatile __global  int * featureCounter,
+    volatile __global unsigned int * featureCounter,
     int det_step,
     int keypoints_step,
     int c_img_rows,
@@ -684,7 +632,7 @@ __kernel
                 if ((c_img_rows + 1) >= grad_wav_size && (c_img_cols + 1) >= grad_wav_size)
                 {
                     // Get a new feature index.
-                     int ind = atomic_inc(featureCounter);
+                    unsigned int ind = atomic_inc(featureCounter);
 
                     if (ind < c_max_features)
                     {
@@ -737,35 +685,33 @@ __constant float c_aptW[ORI_SAMPLES] = {0.001455130288377404f, 0.001707611023448
 __constant float c_NX[2][5] = {{0, 0, 2, 4, -1}, {2, 0, 4, 4, 1}};
 __constant float c_NY[2][5] = {{0, 0, 4, 2, 1}, {0, 2, 4, 4, -1}};
 
-void reduce_32_sum(volatile __local  float * data, volatile float* partial_reduction, int tid)
+void reduce_32_sum(volatile __local  float * data, float partial_reduction, int tid)
 {
-#define op(A, B) (*A)+(B)
-    data[tid] = *partial_reduction;
+#define op(A, B) (A)+(B)
+    data[tid] = partial_reduction;
     barrier(CLK_LOCAL_MEM_FENCE);
 
     if (tid < 16)
     {
-        data[tid] = *partial_reduction = op(partial_reduction, data[tid + 16]);
-        data[tid] = *partial_reduction = op(partial_reduction, data[tid + 8 ]);
-        data[tid] = *partial_reduction = op(partial_reduction, data[tid + 4 ]);
-        data[tid] = *partial_reduction = op(partial_reduction, data[tid + 2 ]);
-        data[tid] = *partial_reduction = op(partial_reduction, data[tid + 1 ]);
+        data[tid] = partial_reduction = op(partial_reduction, data[tid + 16]);
+        data[tid] = partial_reduction = op(partial_reduction, data[tid + 8 ]);
+        data[tid] = partial_reduction = op(partial_reduction, data[tid + 4 ]);
+        data[tid] = partial_reduction = op(partial_reduction, data[tid + 2 ]);
+        data[tid] = partial_reduction = op(partial_reduction, data[tid + 1 ]);
     }
 #undef op
 }
 
 __kernel
     void icvCalcOrientation(
-    IMAGE_INT32 sumTex,
+    image2d_t sumTex,
     __global float * keypoints,
     int keypoints_step,
     int c_img_rows,
-    int c_img_cols,
-    int sum_step
+    int c_img_cols
     )
 {
     keypoints_step /= sizeof(*keypoints);
-    sum_step       /= sizeof(uint);
     __global float* featureX    = keypoints + X_ROW * keypoints_step;
     __global float* featureY    = keypoints + Y_ROW * keypoints_step;
     __global float* featureSize = keypoints + SIZE_ROW * keypoints_step;
@@ -808,8 +754,8 @@ __kernel
         if (y >= 0 && y < (c_img_rows + 1) - grad_wav_size &&
             x >= 0 && x < (c_img_cols + 1) - grad_wav_size)
         {
-            X = c_aptW[tid] * icvCalcHaarPatternSum_2(sumTex, c_NX, 4, grad_wav_size, y, x, c_img_rows, c_img_cols, sum_step);
-            Y = c_aptW[tid] * icvCalcHaarPatternSum_2(sumTex, c_NY, 4, grad_wav_size, y, x, c_img_rows, c_img_cols, sum_step);
+            X = c_aptW[tid] * icvCalcHaarPatternSum_2(sumTex, c_NX, 4, grad_wav_size, y, x);
+            Y = c_aptW[tid] * icvCalcHaarPatternSum_2(sumTex, c_NY, 4, grad_wav_size, y, x);
 
             angle = atan2(Y, X);
 
@@ -831,7 +777,7 @@ __kernel
     {
         const int dir = (i * 4 + get_local_id(1)) * ORI_SEARCH_INC;
 
-        volatile float sumx = 0.0f, sumy = 0.0f;
+        float sumx = 0.0f, sumy = 0.0f;
         int d = abs(convert_int_rte(s_angle[get_local_id(0)]) - dir);
         if (d < ORI_WIN / 2 || d > 360 - ORI_WIN / 2)
         {
@@ -856,8 +802,8 @@ __kernel
             sumx += s_X[get_local_id(0) + 96];
             sumy += s_Y[get_local_id(0) + 96];
         }
-        reduce_32_sum(s_sumx + get_local_id(1) * 32, &sumx, get_local_id(0));
-        reduce_32_sum(s_sumy + get_local_id(1) * 32, &sumy, get_local_id(0));
+        reduce_32_sum(s_sumx + get_local_id(1) * 32, sumx, get_local_id(0));
+        reduce_32_sum(s_sumy + get_local_id(1) * 32, sumy, get_local_id(0));
 
         const float temp_mod = sumx * sumx + sumy * sumy;
         if (temp_mod > best_mod)
@@ -892,31 +838,13 @@ __kernel
             kp_dir += 2.0f * CV_PI_F;
         kp_dir *= 180.0f / CV_PI_F;
 
-        //kp_dir = 360.0f - kp_dir;
-        //if (fabs(kp_dir - 360.f) < FLT_EPSILON)
-        //    kp_dir = 0.f;
+        kp_dir = 360.0f - kp_dir;
+        if (fabs(kp_dir - 360.f) < FLT_EPSILON)
+            kp_dir = 0.f;
 
         featureDir[get_group_id(0)] = kp_dir;
     }
 }
-
-
-__kernel
-    void icvSetUpright(
-    __global float * keypoints,
-    int keypoints_step,
-    int nFeatures
-    )
-{
-    keypoints_step /= sizeof(*keypoints);
-    __global float* featureDir  = keypoints + ANGLE_ROW * keypoints_step;
-
-    if(get_global_id(0) <= nFeatures)
-    {
-        featureDir[get_global_id(0)] = 90.0f;
-    }
-}
-
 
 #undef ORI_SEARCH_INC
 #undef ORI_WIN
@@ -953,20 +881,20 @@ __constant float c_DW[PATCH_SZ * PATCH_SZ] =
 
 // utility for linear filter
 inline uchar readerGet(
-    IMAGE_INT8 src,
+    image2d_t src,
     const float centerX, const float centerY, const float win_offset, const float cos_dir, const float sin_dir,
-    int i, int j, int rows, int cols, int elemPerRow
+    int i, int j
     )
 {
     float pixel_x = centerX + (win_offset + j) * cos_dir + (win_offset + i) * sin_dir;
     float pixel_y = centerY - (win_offset + j) * sin_dir + (win_offset + i) * cos_dir;
-    return read_imgTex(src, sampler, (float2)(pixel_x, pixel_y), rows, cols, elemPerRow);
+    return (uchar)read_imageui(src, sampler, (float2)(pixel_x, pixel_y)).x;
 }
 
 inline float linearFilter(
-    IMAGE_INT8 src,
+    image2d_t src,
     const float centerX, const float centerY, const float win_offset, const float cos_dir, const float sin_dir,
-    float y, float x, int rows, int cols, int elemPerRow
+    float y, float x
     )
 {
     x -= 0.5f;
@@ -979,39 +907,39 @@ inline float linearFilter(
     const int x2 = x1 + 1;
     const int y2 = y1 + 1;
 
-    uchar src_reg = readerGet(src, centerX, centerY, win_offset, cos_dir, sin_dir, y1, x1, rows, cols, elemPerRow);
+    uchar src_reg = readerGet(src, centerX, centerY, win_offset, cos_dir, sin_dir, y1, x1);
     out = out + src_reg * ((x2 - x) * (y2 - y));
 
-    src_reg = readerGet(src, centerX, centerY, win_offset, cos_dir, sin_dir, y1, x2, rows, cols, elemPerRow);
+    src_reg = readerGet(src, centerX, centerY, win_offset, cos_dir, sin_dir, y1, x2);
     out = out + src_reg * ((x - x1) * (y2 - y));
 
-    src_reg = readerGet(src, centerX, centerY, win_offset, cos_dir, sin_dir, y2, x1, rows, cols, elemPerRow);
+    src_reg = readerGet(src, centerX, centerY, win_offset, cos_dir, sin_dir, y2, x1);
     out = out + src_reg * ((x2 - x) * (y - y1));
 
-    src_reg = readerGet(src, centerX, centerY, win_offset, cos_dir, sin_dir, y2, x2, rows, cols, elemPerRow);
+    src_reg = readerGet(src, centerX, centerY, win_offset, cos_dir, sin_dir, y2, x2);
     out = out + src_reg * ((x - x1) * (y - y1));
 
     return out;
 }
 
 void calc_dx_dy(
-    IMAGE_INT8 imgTex,
+    image2d_t imgTex,
     volatile __local  float s_dx_bin[25],
     volatile __local  float s_dy_bin[25],
     volatile __local  float s_PATCH[6][6],
     __global const float* featureX,
     __global const float* featureY,
     __global const float* featureSize,
-    __global const float* featureDir,
-    int rows,
-    int cols,
-    int elemPerRow
+    __global const float* featureDir
     )
 {
     const float centerX = featureX[get_group_id(0)];
     const float centerY = featureY[get_group_id(0)];
     const float size = featureSize[get_group_id(0)];
-    float descriptor_dir = featureDir[get_group_id(0)] * (float)(CV_PI_F / 180.0f);
+    float descriptor_dir = 360.0f - featureDir[get_group_id(0)];
+    if (fabs(descriptor_dir - 360.f) < FLT_EPSILON)
+        descriptor_dir = 0.f;
+    descriptor_dir *= (float)(CV_PI_F / 180.0f);
 
     /* The sampling intervals and wavelet sized for selecting an orientation
     and building the keypoint descriptor are defined relative to 's' */
@@ -1037,7 +965,7 @@ void calc_dx_dy(
     const float icoo = ((float)yIndex / (PATCH_SZ + 1)) * win_size;
     const float jcoo = ((float)xIndex / (PATCH_SZ + 1)) * win_size;
 
-    s_PATCH[get_local_id(1)][get_local_id(0)] = linearFilter(imgTex, centerX, centerY, win_offset, cos_dir, sin_dir, icoo, jcoo, rows, cols, elemPerRow);
+    s_PATCH[get_local_id(1)][get_local_id(0)] = linearFilter(imgTex, centerX, centerY, win_offset, cos_dir, sin_dir, icoo, jcoo);
 
     barrier(CLK_LOCAL_MEM_FENCE);
 
@@ -1107,18 +1035,16 @@ void reduce_sum25(
 
 __kernel
     void compute_descriptors64(
-    IMAGE_INT8 imgTex,
+    image2d_t imgTex,
     volatile __global float * descriptors,
     __global const float * keypoints,
     int descriptors_step,
-    int keypoints_step,
-    int rows,
-    int cols,
-    int img_step
+    int keypoints_step
     )
 {
     descriptors_step /= sizeof(float);
     keypoints_step   /= sizeof(float);
+
     __global const float * featureX    = keypoints + X_ROW * keypoints_step;
     __global const float * featureY    = keypoints + Y_ROW * keypoints_step;
     __global const float * featureSize = keypoints + SIZE_ROW * keypoints_step;
@@ -1131,7 +1057,7 @@ __kernel
     volatile __local  float sdyabs[25];
     volatile __local  float s_PATCH[6][6];
 
-    calc_dx_dy(imgTex, sdx, sdy, s_PATCH, featureX, featureY, featureSize, featureDir, rows, cols, img_step);
+    calc_dx_dy(imgTex, sdx, sdy, s_PATCH, featureX, featureY, featureSize, featureDir);
     barrier(CLK_LOCAL_MEM_FENCE);
 
     const int tid = get_local_id(1) * get_local_size(0) + get_local_id(0);
@@ -1140,15 +1066,11 @@ __kernel
     {
         sdxabs[tid] = fabs(sdx[tid]); // |dx| array
         sdyabs[tid] = fabs(sdy[tid]); // |dy| array
-    }
-    barrier(CLK_LOCAL_MEM_FENCE);
-    if (tid < 25)
-    {
+        barrier(CLK_LOCAL_MEM_FENCE);
+
         reduce_sum25(sdx, sdy, sdxabs, sdyabs, tid);
-    }
-    barrier(CLK_LOCAL_MEM_FENCE);
-    if (tid < 25)
-    {
+        barrier(CLK_LOCAL_MEM_FENCE);
+
         volatile __global float* descriptors_block = descriptors + descriptors_step * get_group_id(0) + (get_group_id(1) << 2);
 
         // write dx, dy, |dx|, |dy|
@@ -1163,14 +1085,11 @@ __kernel
 }
 __kernel
     void compute_descriptors128(
-    IMAGE_INT8 imgTex,
+    image2d_t imgTex,
     __global volatile float * descriptors,
     __global float * keypoints,
     int descriptors_step,
-    int keypoints_step,
-    int rows,
-    int cols,
-    int img_step
+    int keypoints_step
     )
 {
     descriptors_step /= sizeof(*descriptors);
@@ -1192,7 +1111,7 @@ __kernel
     volatile __local  float sdabs2[25];
     volatile __local  float s_PATCH[6][6];
 
-    calc_dx_dy(imgTex, sdx, sdy, s_PATCH, featureX, featureY, featureSize, featureDir, rows, cols, img_step);
+    calc_dx_dy(imgTex, sdx, sdy, s_PATCH, featureX, featureY, featureSize, featureDir);
     barrier(CLK_LOCAL_MEM_FENCE);
 
     const int tid = get_local_id(1) * get_local_size(0) + get_local_id(0);
@@ -1213,10 +1132,10 @@ __kernel
             sd2[tid] = sdx[tid];
             sdabs2[tid] = fabs(sdx[tid]);
         }
-        //barrier(CLK_LOCAL_MEM_FENCE);
+        barrier(CLK_LOCAL_MEM_FENCE);
 
         reduce_sum25(sd1, sd2, sdabs1, sdabs2, tid);
-        //barrier(CLK_LOCAL_MEM_FENCE);
+        barrier(CLK_LOCAL_MEM_FENCE);
 
         volatile __global float* descriptors_block = descriptors + descriptors_step * get_group_id(0) + (get_group_id(1) << 3);
 
@@ -1243,10 +1162,10 @@ __kernel
             sd2[tid] = sdy[tid];
             sdabs2[tid] = fabs(sdy[tid]);
         }
-        //barrier(CLK_LOCAL_MEM_FENCE);
+        barrier(CLK_LOCAL_MEM_FENCE);
 
         reduce_sum25(sd1, sd2, sdabs1, sdabs2, tid);
-        //barrier(CLK_LOCAL_MEM_FENCE);
+        barrier(CLK_LOCAL_MEM_FENCE);
 
         // write dy (dx >= 0), |dy| (dx >= 0), dy (dx < 0), |dy| (dx < 0)
         if (tid == 0)

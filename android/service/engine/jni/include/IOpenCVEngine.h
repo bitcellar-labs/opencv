@@ -4,7 +4,11 @@
 #include <binder/IInterface.h>
 #include <binder/Parcel.h>
 #include <utils/String16.h>
-#include "EngineCommon.h"
+
+// OpenCV Manager package name
+#define OPENCV_ENGINE_PACKAGE "org.opencv.engine"
+// Class name of OpenCV engine binder object. Is needned for connection to service
+#define OPECV_ENGINE_CLASSNAME "org.opencv.engine.OpenCVEngineInterface"
 
 enum EngineMethonID
 {

@@ -9,7 +9,7 @@
 using namespace cv;
 using namespace std;
 
-static void help()
+void help()
 {
     cout<< "\n--------------------------------------------------------------------------" << endl
         << "This program shows Support Vector Machines for Non-Linearly Separable Data. " << endl

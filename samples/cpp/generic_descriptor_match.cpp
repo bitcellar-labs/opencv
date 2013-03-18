@@ -6,7 +6,6 @@
 
 #include <cstdio>
 
-using namespace std;
 using namespace cv;
 
 static void help()
@@ -33,7 +32,7 @@ int main(int argc, char** argv)
     std::string params_filename = std::string(argv[4]);
 
     Ptr<GenericDescriptorMatcher> descriptorMatcher = GenericDescriptorMatcher::create(alg_name, params_filename);
-    if( descriptorMatcher.empty() )
+    if( descriptorMatcher == 0 )
     {
         printf ("Cannot create descriptor\n");
         return 0;

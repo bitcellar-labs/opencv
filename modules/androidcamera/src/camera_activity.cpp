@@ -3,14 +3,12 @@
 #include <sys/stat.h>
 #include <dirent.h>
 #include <android/log.h>
-#include <cctype>
 #include <string>
 #include <vector>
 #include <algorithm>
 #include <opencv2/core/version.hpp>
 #include "camera_activity.hpp"
 #include "camera_wrapper.h"
-#include "EngineCommon.h"
 
 #undef LOG_TAG
 #undef LOGE
@@ -27,6 +25,9 @@
 #include <stdio.h>
 #include <sys/types.h>
 #include <dirent.h>
+
+
+using namespace std;
 
 class CameraWrapperConnector
 {
@@ -47,7 +48,7 @@ private:
     static std::string getDefaultPathLibFolder();
     static CameraActivity::ErrorCode connectToLib();
     static CameraActivity::ErrorCode getSymbolFromLib(void * libHandle, const char* symbolName, void** ppSymbol);
-    static void fillListWrapperLibs(const std::string& folderPath, std::vector<std::string>& listLibs);
+    static void fillListWrapperLibs(const string& folderPath, vector<string>& listLibs);
 
     static InitCameraConnectC pInitCameraC;
     static CloseCameraConnectC pCloseCameraC;
@@ -165,7 +166,7 @@ CameraActivity::ErrorCode CameraWrapperConnector::connectToLib()
     }
 
     dlerror();
-    std::string folderPath = getPathLibFolder();
+    string folderPath = getPathLibFolder();
     if (folderPath.empty())
     {
         LOGD("Trying to find native camera in default OpenCV packages");
@@ -174,12 +175,12 @@ CameraActivity::ErrorCode CameraWrapperConnector::connectToLib()
 
     LOGD("CameraWrapperConnector::connectToLib: folderPath=%s", folderPath.c_str());
 
-    std::vector<std::string> listLibs;
+    vector<string> listLibs;
     fillListWrapperLibs(folderPath, listLibs);
-    std::sort(listLibs.begin(), listLibs.end(), std::greater<std::string>());
+    std::sort(listLibs.begin(), listLibs.end(), std::greater<string>());
 
     void * libHandle=0;
-    std::string cur_path;
+    string cur_path;
     for(size_t i = 0; i < listLibs.size(); i++) {
         cur_path=folderPath + listLibs[i];
         LOGD("try to load library '%s'", listLibs[i].c_str());
@@ -245,7 +246,7 @@ CameraActivity::ErrorCode CameraWrapperConnector::getSymbolFromLib(void* libHand
     return CameraActivity::NO_ERROR;
 }
 
-void CameraWrapperConnector::fillListWrapperLibs(const std::string& folderPath, std::vector<std::string>& listLibs)
+void CameraWrapperConnector::fillListWrapperLibs(const string& folderPath, vector<string>& listLibs)
 {
     DIR *dp;
     struct dirent *ep;
@@ -266,13 +267,12 @@ void CameraWrapperConnector::fillListWrapperLibs(const std::string& folderPath, 
 
 std::string CameraWrapperConnector::getDefaultPathLibFolder()
 {
-    #define BIN_PACKAGE_NAME(x) "org.opencv.lib_v" CVAUX_STR(CV_VERSION_EPOCH) CVAUX_STR(CV_VERSION_MAJOR) "_" x
-    const char* const packageList[] = {BIN_PACKAGE_NAME("armv7a"), OPENCV_ENGINE_PACKAGE};
-    for (size_t i = 0; i < sizeof(packageList)/sizeof(packageList[0]); i++)
+    const string packageList[] = {"tegra3", "armv7a_neon", "armv7a", "armv5", "x86"};
+    for (size_t i = 0; i < 5; i++)
     {
         char path[128];
-        sprintf(path, "/data/data/%s/lib/", packageList[i]);
-        LOGD("Trying package \"%s\" (\"%s\")", packageList[i], path);
+        sprintf(path, "/data/data/org.opencv.lib_v%d%d_%s/lib/", CV_MAJOR_VERSION, CV_MINOR_VERSION, packageList[i].c_str());
+        LOGD("Trying package \"%s\" (\"%s\")", packageList[i].c_str(), path);
 
         DIR* dir = opendir(path);
         if (!dir)
@@ -287,7 +287,7 @@ std::string CameraWrapperConnector::getDefaultPathLibFolder()
         }
     }
 
-    return std::string();
+    return string();
 }
 
 std::string CameraWrapperConnector::getPathLibFolder()
@@ -301,8 +301,8 @@ std::string CameraWrapperConnector::getPathLibFolder()
         LOGD("Library name: %s", dl_info.dli_fname);
         LOGD("Library base address: %p", dl_info.dli_fbase);
 
-        const char* libName=dl_info.dli_fname;
-        while( ((*libName)=='/') || ((*libName)=='.') )
+    const char* libName=dl_info.dli_fname;
+    while( ((*libName)=='/') || ((*libName)=='.') )
         libName++;
 
         char lineBuf[2048];
@@ -310,9 +310,9 @@ std::string CameraWrapperConnector::getPathLibFolder()
 
         if(file)
         {
-            while (fgets(lineBuf, sizeof lineBuf, file) != NULL)
-            {
-                //verify that line ends with library name
+        while (fgets(lineBuf, sizeof lineBuf, file) != NULL)
+        {
+        //verify that line ends with library name
                 int lineLength = strlen(lineBuf);
                 int libNameLength = strlen(libName);
 
@@ -325,7 +325,7 @@ std::string CameraWrapperConnector::getPathLibFolder()
 
                 if (0 != strncmp(lineBuf + lineLength - libNameLength, libName, libNameLength))
                 {
-                //the line does not contain the library name
+            //the line does not contain the library name
                     continue;
                 }
 
@@ -344,24 +344,24 @@ std::string CameraWrapperConnector::getPathLibFolder()
 
                 fclose(file);
                 return pathBegin;
-            }
-            fclose(file);
-            LOGE("Could not find library path");
+        }
+        fclose(file);
+        LOGE("Could not find library path");
         }
         else
         {
-            LOGE("Could not read /proc/self/smaps");
+        LOGE("Could not read /proc/self/smaps");
         }
     }
     else
     {
-        LOGE("Could not get library name and base address");
+    LOGE("Could not get library name and base address");
     }
 
-    return std::string();
+    return string();
 }
 
-void CameraWrapperConnector::setPathLibFolder(const std::string& path)
+void CameraWrapperConnector::setPathLibFolder(const string& path)
 {
     pathLibFolder=path;
 }
@@ -427,6 +427,7 @@ void CameraActivity::applyProperties()
 
 int CameraActivity::getFrameWidth()
 {
+    LOGD("CameraActivity::getFrameWidth()");
     if (frameWidth <= 0)
     frameWidth = getProperty(ANDROID_CAMERA_PROPERTY_FRAMEWIDTH);
     return frameWidth;
@@ -434,6 +435,7 @@ int CameraActivity::getFrameWidth()
 
 int CameraActivity::getFrameHeight()
 {
+    LOGD("CameraActivity::getFrameHeight()");
     if (frameHeight <= 0)
     frameHeight = getProperty(ANDROID_CAMERA_PROPERTY_FRAMEHEIGHT);
     return frameHeight;

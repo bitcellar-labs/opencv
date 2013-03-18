@@ -40,9 +40,8 @@
 //M*/
 
 #include "test_precomp.hpp"
-#include "opencv2/highgui.hpp"
+#include "opencv2/highgui/highgui.hpp"
 
-using namespace std;
 using namespace cv;
 
 TEST(Features2D_ORB, _1996)

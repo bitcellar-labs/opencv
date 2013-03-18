@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 ''' An example of Laplacian Pyramid construction and merging.
 
 Level : Intermediate
@@ -40,10 +38,8 @@ if __name__ == '__main__':
     import sys
     print __doc__
 
-    try:
-        fn = sys.argv[1]
-    except:
-        fn = 0
+    try: fn = sys.argv[1]
+    except: fn = 0
     cap = video.create_capture(fn)
 
     leveln = 6

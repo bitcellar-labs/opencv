@@ -42,7 +42,7 @@
 
 #include "frame_queue.h"
 
-#if defined(HAVE_CUDA) && defined(HAVE_NVCUVID)
+#if defined(HAVE_CUDA) && !defined(__APPLE__)
 
 cv::gpu::detail::FrameQueue::FrameQueue() :
     endOfDecode_(0),

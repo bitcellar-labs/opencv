@@ -1,12 +1,25 @@
 
 #include "precomp.hpp"
+#include <string>
 #include <time.h>
+
+using namespace std;
 
 #define pCvSeq CvSeq*
 #define pCvDTreeNode CvDTreeNode*
 
 #define CV_CMP_FLOAT(a,b) ((a) < (b))
 static CV_IMPLEMENT_QSORT_EX( icvSortFloat, float, CV_CMP_FLOAT, float)
+
+//===========================================================================
+static string ToString(int i)
+{
+    stringstream tmp;
+    tmp << i;
+
+    return tmp.str();
+}
+
 
 //===========================================================================
 //----------------------------- CvGBTreesParams -----------------------------
@@ -1130,7 +1143,8 @@ void CvGBTrees::write( CvFileStorage* fs, const char* name ) const
 
     for ( int j=0; j < class_count; ++j )
     {
-        s = cv::format("trees_%d", j);
+        s = "trees_";
+        s += ToString(j);
         cvStartWriteStruct( fs, s.c_str(), CV_NODE_SEQ );
 
         cvStartReadSeq( weak[j], &reader );
@@ -1183,7 +1197,8 @@ void CvGBTrees::read( CvFileStorage* fs, CvFileNode* node )
 
     for (int j=0; j<class_count; ++j)
     {
-        s = cv::format("trees_%d", j);
+        s = "trees_";
+        s += ToString(j);
 
         trees_fnode = cvGetFileNodeByName( fs, node, s.c_str() );
         if( !trees_fnode || !CV_NODE_IS_SEQ(trees_fnode->tag) )

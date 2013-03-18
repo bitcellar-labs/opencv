@@ -6,7 +6,7 @@
 using namespace std;
 using namespace cv;
 
-static void help(char* progName)
+void help(char* progName)
 {
     cout << endl
         <<  "This program shows how to filter images with mask: the write it yourself and the"

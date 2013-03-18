@@ -359,7 +359,7 @@ static void fftShift(InputOutputArray _out)
         return;
     }
 
-    std::vector<Mat> planes;
+    vector<Mat> planes;
     split(out, planes);
 
     int xMid = out.cols >> 1;

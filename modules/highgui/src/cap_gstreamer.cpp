@@ -65,24 +65,7 @@
 #define CV_WARN(message) fprintf(stderr, "warning: %s (%s:%d)\n", message, __FILE__, __LINE__)
 #endif
 
-static cv::Mutex gst_initializer_mutex;
-
-class gst_initializer
-{
-public:
-    static void init()
-    {
-        gst_initializer_mutex.lock();
-        static gst_initializer init;
-        gst_initializer_mutex.unlock();
-    }
-private:
-    gst_initializer()
-    {
-        gst_init(NULL, NULL);
-    }
-};
-
+static bool isInited = false;
 class CvCapture_GStreamer : public CvCapture
 {
 public:
@@ -315,18 +298,16 @@ bool CvCapture_GStreamer::open( int type, const char* filename )
 
     __BEGIN__;
 
-    gst_initializer::init();
-
-//    if(!isInited) {
+    if(!isInited) {
 //        printf("gst_init\n");
-//        gst_init (NULL, NULL);
+        gst_init (NULL, NULL);
 
 //        gst_debug_set_active(TRUE);
 //        gst_debug_set_colored(TRUE);
 //        gst_debug_set_default_threshold(GST_LEVEL_WARNING);
 
-//        isInited = true;
-//    }
+        isInited = true;
+    }
     bool stream = false;
     bool manualpipeline = false;
     char *uri = NULL;
@@ -399,12 +380,12 @@ bool CvCapture_GStreamer::open( int type, const char* filename )
 
     gst_app_sink_set_max_buffers (GST_APP_SINK(sink), 1);
     gst_app_sink_set_drop (GST_APP_SINK(sink), stream);
-    caps = gst_caps_new_simple("video/x-raw-rgb",
-                               "red_mask",   G_TYPE_INT, 0x0000FF,
-                               "green_mask", G_TYPE_INT, 0x00FF00,
-                               "blue_mask",  G_TYPE_INT, 0xFF0000,
-                               NULL);
-    gst_app_sink_set_caps(GST_APP_SINK(sink), caps);
+
+    gst_app_sink_set_caps(GST_APP_SINK(sink), gst_caps_new_simple("video/x-raw-rgb",
+                                                                  "red_mask",   G_TYPE_INT, 0x0000FF,
+                                                                  "green_mask", G_TYPE_INT, 0x00FF00,
+                                                                  "blue_mask",  G_TYPE_INT, 0xFF0000,
+                                                                  NULL));
     gst_caps_unref(caps);
 
     if(gst_element_set_state(GST_ELEMENT(pipeline), GST_STATE_READY) ==
@@ -461,19 +442,12 @@ protected:
 
 void CvVideoWriter_GStreamer::init()
 {
-    encs[CV_FOURCC('D','R','A','C')]=(char*)"diracenc";
     encs[CV_FOURCC('H','F','Y','U')]=(char*)"ffenc_huffyuv";
-    encs[CV_FOURCC('J','P','E','G')]=(char*)"jpegenc";
-    encs[CV_FOURCC('M','J','P','G')]=(char*)"jpegenc";
-    encs[CV_FOURCC('M','P','1','V')]=(char*)"mpeg2enc";
-    encs[CV_FOURCC('M','P','2','V')]=(char*)"mpeg2enc";
-    encs[CV_FOURCC('T','H','E','O')]=(char*)"theoraenc";
-    encs[CV_FOURCC('V','P','8','0')]=(char*)"vp8enc";
-    encs[CV_FOURCC('H','2','6','4')]=(char*)"x264enc";
-    encs[CV_FOURCC('X','2','6','4')]=(char*)"x264enc";
+    encs[CV_FOURCC('D','R','A','C')]=(char*)"diracenc";
     encs[CV_FOURCC('X','V','I','D')]=(char*)"xvidenc";
-    encs[CV_FOURCC('F','F','Y','U')]=(char*)"y4menc";
-    //encs[CV_FOURCC('H','F','Y','U')]=(char*)"y4menc";
+    encs[CV_FOURCC('X','2','6','4')]=(char*)"x264enc";
+    encs[CV_FOURCC('M','P','1','V')]=(char*)"mpeg2enc";
+    //encs[CV_FOURCC('M','P','2','V')]=(char*)"mpeg2enc";
     pipeline=0;
     buffer=0;
 }
@@ -503,11 +477,10 @@ bool CvVideoWriter_GStreamer::open( const char * filename, int fourcc,
     encit=encs.find(fourcc);
     if (encit==encs.end())
         CV_ERROR( CV_StsUnsupportedFormat,"Gstreamer Opencv backend doesn't support this codec acutally.");
-//    if(!isInited) {
-//        gst_init (NULL, NULL);
-//        isInited = true;
-//    }
-    gst_initializer::init();
+    if(!isInited) {
+        gst_init (NULL, NULL);
+        isInited = true;
+    }
     close();
     source=gst_element_factory_make("appsrc",NULL);
     file=gst_element_factory_make("filesink", NULL);

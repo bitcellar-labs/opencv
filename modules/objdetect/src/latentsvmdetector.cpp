@@ -158,7 +158,7 @@ LatentSvmDetector::ObjectDetection::ObjectDetection( const Rect& _rect, float _s
 LatentSvmDetector::LatentSvmDetector()
 {}
 
-LatentSvmDetector::LatentSvmDetector( const std::vector<std::string>& filenames, const std::vector<std::string>& _classNames )
+LatentSvmDetector::LatentSvmDetector( const vector<string>& filenames, const vector<string>& _classNames )
 {
     load( filenames, _classNames );
 }
@@ -182,7 +182,7 @@ bool LatentSvmDetector::empty() const
     return detectors.empty();
 }
 
-const std::vector<std::string>& LatentSvmDetector::getClassNames() const
+const vector<string>& LatentSvmDetector::getClassNames() const
 {
     return classNames;
 }
@@ -192,13 +192,13 @@ size_t LatentSvmDetector::getClassCount() const
     return classNames.size();
 }
 
-static std::string extractModelName( const std::string& filename )
+static string extractModelName( const string& filename )
 {
     size_t startPos = filename.rfind('/');
-    if( startPos == std::string::npos )
+    if( startPos == string::npos )
         startPos = filename.rfind('\\');
 
-    if( startPos == std::string::npos )
+    if( startPos == string::npos )
         startPos = 0;
     else
         startPos++;
@@ -210,7 +210,7 @@ static std::string extractModelName( const std::string& filename )
     return filename.substr(startPos, substrLength);
 }
 
-bool LatentSvmDetector::load( const std::vector<std::string>& filenames, const std::vector<std::string>& _classNames )
+bool LatentSvmDetector::load( const vector<string>& filenames, const vector<string>& _classNames )
 {
     clear();
 
@@ -218,7 +218,7 @@ bool LatentSvmDetector::load( const std::vector<std::string>& filenames, const s
 
     for( size_t i = 0; i < filenames.size(); i++ )
     {
-        const std::string filename = filenames[i];
+        const string filename = filenames[i];
         if( filename.length() < 5 || filename.substr(filename.length()-4, 4) != ".xml" )
             continue;
 
@@ -239,7 +239,7 @@ bool LatentSvmDetector::load( const std::vector<std::string>& filenames, const s
 }
 
 void LatentSvmDetector::detect( const Mat& image,
-                                std::vector<ObjectDetection>& objectDetections,
+                                vector<ObjectDetection>& objectDetections,
                                 float overlapThreshold,
                                 int numThreads )
 {

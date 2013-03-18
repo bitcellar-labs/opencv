@@ -5,7 +5,7 @@
 using namespace cv;
 using namespace std;
 
-static void help(char** av)
+void help(char** av)
 {
     cout << endl
         << av[0] << " shows the usage of the OpenCV serialization functionality."         << endl
@@ -42,11 +42,11 @@ public:   // Data Members
 };
 
 //These write and read functions must be defined for the serialization in FileStorage to work
-static void write(FileStorage& fs, const std::string&, const MyData& x)
+void write(FileStorage& fs, const std::string&, const MyData& x)
 {
     x.write(fs);
 }
-static void read(const FileNode& node, MyData& x, const MyData& default_value = MyData()){
+void read(const FileNode& node, MyData& x, const MyData& default_value = MyData()){
     if(node.empty())
         x = default_value;
     else
@@ -54,7 +54,7 @@ static void read(const FileNode& node, MyData& x, const MyData& default_value = 
 }
 
 // This function will print our custom class to the console
-static ostream& operator<<(ostream& out, const MyData& m)
+ostream& operator<<(ostream& out, const MyData& m)
 {
     out << "{ id = " << m.id << ", ";
     out << "X = " << m.X << ", ";

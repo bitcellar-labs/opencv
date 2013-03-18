@@ -14,15 +14,17 @@ using namespace cv;
 /**
  * @function main
  */
-int main( int, char** argv )
+int main( int argc, char** argv )
 {
 
   Mat src, src_gray;
   Mat grad;
-  const char* window_name = "Sobel Demo - Simple Edge Detector";
+  char* window_name = "Sobel Demo - Simple Edge Detector";
   int scale = 1;
   int delta = 0;
   int ddepth = CV_16S;
+
+  int c;
 
   /// Load an image
   src = imread( argv[1] );

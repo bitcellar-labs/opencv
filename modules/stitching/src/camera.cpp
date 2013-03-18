@@ -42,6 +42,8 @@
 
 #include "precomp.hpp"
 
+using namespace std;
+
 namespace cv {
 namespace detail {
 

@@ -21,7 +21,6 @@ PERF_TEST_P( MatType_Length, dot,
     Mat b(size, size, type);
 
     declare.in(a, b, WARMUP_RNG);
-    declare.time(100);
 
     double product;
 

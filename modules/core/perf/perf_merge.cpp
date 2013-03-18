@@ -30,8 +30,7 @@ PERF_TEST_P( Size_SrcDepth_DstChannels, merge,
     }
 
     Mat dst;
-    int runs = (sz.width <= 640) ? 8 : 1;
-    TEST_CYCLE_MULTIRUN(runs) merge( (vector<Mat> &)mv, dst );
+    TEST_CYCLE() merge( (vector<Mat> &)mv, dst );
 
     SANITY_CHECK(dst, 1e-12);
 }

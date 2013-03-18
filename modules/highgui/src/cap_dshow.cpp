@@ -1203,7 +1203,7 @@ bool videoInput::setupDevice(int deviceNumber, int w, int h){
 bool videoInput::setupDeviceFourcc(int deviceNumber, int w, int h,int fourcc){
     if(deviceNumber >= VI_MAX_CAMERAS || VDList[deviceNumber]->readyToCapture) return false;
 
-    if ( fourcc != -1 ) {
+    if ( fourcc > 0 ) {
         GUID *mediaType = getMediaSubtypeFromFourcc(fourcc);
         if ( mediaType ) {
             setAttemptCaptureSize(deviceNumber,w,h,*mediaType);
@@ -2193,7 +2193,7 @@ int videoInput::getFourccFromMediaSubtype(GUID type) {
 GUID *videoInput::getMediaSubtypeFromFourcc(int fourcc){
 
     for (int i=0;i<VI_NUM_TYPES;i++) {
-        if ( (unsigned long)(unsigned)fourcc == mediaSubtypes[i].Data1 ) {
+        if ( (unsigned long)fourcc == mediaSubtypes[i].Data1 ) {
             return &mediaSubtypes[i];
         }
     }
@@ -3120,7 +3120,6 @@ protected:
     void init();
 
     int index, width, height,fourcc;
-    int widthSet, heightSet;
     IplImage* frame;
     static videoInput VI;
 };
@@ -3139,7 +3138,6 @@ CvCaptureCAM_DShow::CvCaptureCAM_DShow()
     index = -1;
     frame = 0;
     width = height = fourcc = -1;
-    widthSet = heightSet = -1;
     CoInitialize(0);
 }
 
@@ -3157,7 +3155,7 @@ void CvCaptureCAM_DShow::close()
         index = -1;
         cvReleaseImage(&frame);
     }
-    widthSet = heightSet = width = height = -1;
+    width = height = -1;
 }
 
 // Initialize camera input
@@ -3270,8 +3268,8 @@ bool CvCaptureCAM_DShow::setProperty( int property_id, double value )
         break;
 
     case CV_CAP_PROP_FOURCC:
-        fourcc = (int)(unsigned long)(value);
-        if ( fourcc == -1 ) {
+        fourcc = cvRound(value);
+        if ( fourcc < 0 ) {
             // following cvCreateVideo usage will pop up caprturepindialog here if fourcc=-1
             // TODO - how to create a capture pin dialog
         }
@@ -3284,12 +3282,9 @@ bool CvCaptureCAM_DShow::setProperty( int property_id, double value )
         {
             VI.stopDevice(index);
             VI.setIdealFramerate(index,fps);
-            if (widthSet > 0 && heightSet > 0)
-                VI.setupDevice(index, widthSet, heightSet);
-            else
-                VI.setupDevice(index);
+            VI.setupDevice(index);
         }
-        return VI.isDeviceSetup(index);
+        break;
 
     }
 
@@ -3304,15 +3299,8 @@ bool CvCaptureCAM_DShow::setProperty( int property_id, double value )
                 VI.setIdealFramerate(index, fps);
                 VI.setupDeviceFourcc(index, width, height, fourcc);
             }
-
-            bool success = VI.isDeviceSetup(index);
-            if (success)
-            {
-                widthSet = width;
-                heightSet = height;
-                width = height = fourcc = -1;
-            }
-            return success;
+            width = height = fourcc = -1;
+            return VI.isDeviceSetup(index);
         }
         return true;
     }

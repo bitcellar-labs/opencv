@@ -41,7 +41,7 @@
 //M*/
 
 #include "test_precomp.hpp"
-#include "opencv2/highgui.hpp"
+#include "opencv2/highgui/highgui.hpp"
 
 using namespace cv;
 using namespace std;

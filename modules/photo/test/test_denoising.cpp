@@ -41,7 +41,7 @@
 //M*/
 
 #include "test_precomp.hpp"
-#include "opencv2/photo.hpp"
+#include "opencv2/photo/photo.hpp"
 #include <string>
 
 using namespace cv;
@@ -56,7 +56,7 @@ using namespace std;
 #endif
 
 
-TEST(Photo_DenoisingGrayscale, regression)
+TEST(Imgproc_DenoisingGrayscale, regression)
 {
     string folder = string(cvtest::TS::ptr()->get_data_path()) + "denoising/";
     string original_path = folder + "lena_noised_gaussian_sigma=10.png";
@@ -76,7 +76,7 @@ TEST(Photo_DenoisingGrayscale, regression)
     ASSERT_EQ(0, norm(result != expected));
 }
 
-TEST(Photo_DenoisingColored, regression)
+TEST(Imgproc_DenoisingColored, regression)
 {
     string folder = string(cvtest::TS::ptr()->get_data_path()) + "denoising/";
     string original_path = folder + "lena_noised_gaussian_sigma=10.png";
@@ -96,7 +96,7 @@ TEST(Photo_DenoisingColored, regression)
     ASSERT_EQ(0, norm(result != expected));
 }
 
-TEST(Photo_DenoisingGrayscaleMulti, regression)
+TEST(Imgproc_DenoisingGrayscaleMulti, regression)
 {
     const int imgs_count = 3;
     string folder = string(cvtest::TS::ptr()->get_data_path()) + "denoising/";
@@ -121,7 +121,7 @@ TEST(Photo_DenoisingGrayscaleMulti, regression)
     ASSERT_EQ(0, norm(result != expected));
 }
 
-TEST(Photo_DenoisingColoredMulti, regression)
+TEST(Imgproc_DenoisingColoredMulti, regression)
 {
     const int imgs_count = 3;
     string folder = string(cvtest::TS::ptr()->get_data_path()) + "denoising/";
@@ -146,13 +146,3 @@ TEST(Photo_DenoisingColoredMulti, regression)
     ASSERT_EQ(0, norm(result != expected));
 }
 
-TEST(Photo_White, issue_2646)
-{
-    cv::Mat img(50, 50, CV_8UC1, cv::Scalar::all(255));
-    cv::Mat filtered;
-    cv::fastNlMeansDenoising(img, filtered);
-
-    int nonWhitePixelsCount = (int)img.total() - cv::countNonZero(filtered == img);
-
-    ASSERT_EQ(0, nonWhitePixelsCount);
-}

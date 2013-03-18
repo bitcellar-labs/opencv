@@ -77,8 +77,7 @@ public class TermCriteriaTest extends OpenCVTestCase {
 
     public void testToString() {
         String actual = tc2.toString();
-        double eps = EPS;
-        String expected = "{ type: 2, maxCount: 4, epsilon: " + eps + "}";
+        String expected = "{ type: 2, maxCount: 4, epsilon: 0.001}";
 
         assertEquals(expected, actual);
     }

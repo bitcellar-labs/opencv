@@ -46,13 +46,15 @@
 #include "precomp.hpp"
 #include "opencv2/opencv_modules.hpp"
 #ifdef HAVE_OPENCV_HIGHGUI
-#  include "opencv2/highgui.hpp"
+#  include "opencv2/highgui/highgui.hpp"
 #endif
 #include <iostream>
 #include <queue>
 
 namespace cv
 {
+
+using std::queue;
 
 typedef std::pair<int,int> coordinate_t;
 typedef float orientation_t;
@@ -620,6 +622,7 @@ void ChamferMatcher::Matching::followContour(Mat& templ_img, template_coords_t& 
 {
     const int dir[][2] = { {-1,-1}, {-1,0}, {-1,1}, {0,1}, {1,1}, {1,0}, {1,-1}, {0,-1} };
     coordinate_t next;
+    coordinate_t next_temp;
     unsigned char ptr;
 
     assert (direction==-1 || !coords.empty());
@@ -764,8 +767,8 @@ void ChamferMatcher::Matching::findContourOrientations(const template_coords_t& 
         }
 
         // get the middle two angles
-        std::nth_element(angles.begin(), angles.begin()+M-1,  angles.end());
-        std::nth_element(angles.begin()+M-1, angles.begin()+M,  angles.end());
+        nth_element(angles.begin(), angles.begin()+M-1,  angles.end());
+        nth_element(angles.begin()+M-1, angles.begin()+M,  angles.end());
         //        sort(angles.begin(), angles.end());
 
         // average them to compute tangent
@@ -822,7 +825,7 @@ ChamferMatcher::Template::Template(Mat& edge_image, float scale_) : addr_width(-
 }
 
 
-std::vector<int>& ChamferMatcher::Template::getTemplateAddresses(int width)
+vector<int>& ChamferMatcher::Template::getTemplateAddresses(int width)
 {
     if (addr_width!=width) {
         addr.resize(coords.size());
@@ -928,13 +931,15 @@ void ChamferMatcher::Template::show() const
 void ChamferMatcher::Matching::addTemplateFromImage(Mat& templ, float scale)
 {
     Template* cmt = new Template(templ, scale);
-    templates.clear();
+    if(templates.size() > 0)
+        templates.clear();
     templates.push_back(cmt);
     cmt->show();
 }
 
 void ChamferMatcher::Matching::addTemplate(Template& template_){
-    templates.clear();
+    if(templates.size() > 0)
+        templates.clear();
     templates.push_back(&template_);
 }
 /**

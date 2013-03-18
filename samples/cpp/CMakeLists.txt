@@ -4,7 +4,7 @@
 # ----------------------------------------------------------------------------
 
 SET(OPENCV_CPP_SAMPLES_REQUIRED_DEPS opencv_core opencv_flann opencv_imgproc
-    opencv_highgui opencv_ml opencv_video opencv_objdetect opencv_photo opencv_nonfree opencv_softcascade
+    opencv_highgui opencv_ml opencv_video opencv_objdetect opencv_photo opencv_nonfree
     opencv_features2d opencv_calib3d opencv_legacy opencv_contrib opencv_stitching opencv_videostab)
 
 ocv_check_dependencies(${OPENCV_CPP_SAMPLES_REQUIRED_DEPS})
@@ -28,16 +28,7 @@ if(BUILD_EXAMPLES AND OCV_DEPENDENCIES_FOUND)
   #      Define executable targets
   # ---------------------------------------------
   MACRO(OPENCV_DEFINE_CPP_EXAMPLE name srcs)
-
-    if("${srcs}" MATCHES "tutorial_code")
-      set(sample_kind tutorial)
-      set(sample_KIND TUTORIAL)
-    else()
-      set(sample_kind example)
-      set(sample_KIND EXAMPLE)
-    endif()
-
-    set(the_target "${sample_kind}_${name}")
+    set(the_target "example_${name}")
     add_executable(${the_target} ${srcs})
     target_link_libraries(${the_target} ${OPENCV_LINKER_LIBS} ${OPENCV_CPP_SAMPLES_REQUIRED_DEPS})
 
@@ -46,11 +37,11 @@ if(BUILD_EXAMPLES AND OCV_DEPENDENCIES_FOUND)
     endif()
 
     set_target_properties(${the_target} PROPERTIES
-      OUTPUT_NAME "cpp-${sample_kind}-${name}"
-      PROJECT_LABEL "(${sample_KIND}) ${name}")
+      OUTPUT_NAME "${name}"
+      PROJECT_LABEL "(EXAMPLE) ${name}")
 
     if(ENABLE_SOLUTION_FOLDERS)
-      set_target_properties(${the_target} PROPERTIES FOLDER "${sample_kind}s//cpp")
+      set_target_properties(${the_target} PROPERTIES FOLDER "samples//cpp")
     endif()
 
     if(WIN32)
@@ -58,19 +49,11 @@ if(BUILD_EXAMPLES AND OCV_DEPENDENCIES_FOUND)
         set_target_properties(${the_target} PROPERTIES LINK_FLAGS "/NODEFAULTLIB:atlthunk.lib /NODEFAULTLIB:atlsd.lib /DEBUG")
       endif()
       install(TARGETS ${the_target}
-              RUNTIME DESTINATION "${sample_kind}s/cpp" COMPONENT main)
+              RUNTIME DESTINATION "samples/cpp" COMPONENT main)
     endif()
   ENDMACRO()
 
-  file(GLOB_RECURSE cpp_samples RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *.cpp)
-
-  if(NOT HAVE_OPENGL)
-    ocv_list_filterout(cpp_samples Qt_sample)
-  endif()
-
-  if(NOT HAVE_opencv_gpu)
-    ocv_list_filterout(cpp_samples "/gpu/")
-  endif()
+  file(GLOB cpp_samples RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *.cpp)
 
   foreach(sample_filename ${cpp_samples})
     get_filename_component(sample ${sample_filename} NAME_WE)

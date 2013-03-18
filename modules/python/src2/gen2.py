@@ -1,5 +1,3 @@
-#/usr/bin/env python
-
 import hdr_parser, sys, re, os, cStringIO
 from string import Template
 
@@ -214,8 +212,7 @@ simple_argtype_mapping = {
     "int": ("int", "i", "0"),
     "float": ("float", "f", "0.f"),
     "double": ("double", "d", "0"),
-    "c_string": ("char*", "s", '(char*)""'),
-    "string": ("std::string", "s", None)
+    "c_string": ("char*", "s", '(char*)""')
 }
 
 def normalize_class_name(name):
@@ -244,9 +241,9 @@ class ClassInfo(object):
         if decl:
             self.bases = decl[1].split()[1:]
             if len(self.bases) > 1:
-                print "Note: Class %s has more than 1 base class (not supported by Python C extensions)" % (self.name,)
-                print "      Bases: ", " ".join(self.bases)
-                print "      Only the first base class will be used"
+                print "Warning: class %s has more than 1 base class (not supported by Python C extensions)" % (self.name,)
+                print "Bases: ", " ".join(self.bases)
+                print "Only the first base class will be used"
                 self.bases = [self.bases[0].strip(",")]
                 #return sys.exit(-1)
             if self.bases and self.bases[0].startswith("cv::"):
@@ -570,7 +567,7 @@ class FuncInfo(object):
             else:
                 code_fcall = "ERRWRAP2( "
                 if v.rettype:
-                    code_decl += "    " + simple_argtype_mapping.get(v.rettype, (v.rettype, None, None))[0]  + " retval;\n"
+                    code_decl += "    " + v.rettype + " retval;\n"
                     code_fcall += "retval = "
                 if ismethod:
                     code_fcall += "_self_->" + self.cname

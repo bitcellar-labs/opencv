@@ -42,6 +42,8 @@
 
 #include "precomp.hpp"
 
+using namespace std;
+
 namespace cv {
 
 Stitcher Stitcher::createDefault(bool try_use_gpu)
@@ -88,11 +90,11 @@ Stitcher Stitcher::createDefault(bool try_use_gpu)
 
 Stitcher::Status Stitcher::estimateTransform(InputArray images)
 {
-    return estimateTransform(images, std::vector<std::vector<Rect> >());
+    return estimateTransform(images, vector<vector<Rect> >());
 }
 
 
-Stitcher::Status Stitcher::estimateTransform(InputArray images, const std::vector<std::vector<Rect> > &rois)
+Stitcher::Status Stitcher::estimateTransform(InputArray images, const vector<vector<Rect> > &rois)
 {
     images.getMatVector(imgs_);
     rois_ = rois;
@@ -111,7 +113,7 @@ Stitcher::Status Stitcher::estimateTransform(InputArray images, const std::vecto
 
 Stitcher::Status Stitcher::composePanorama(OutputArray pano)
 {
-    return composePanorama(std::vector<Mat>(), pano);
+    return composePanorama(vector<Mat>(), pano);
 }
 
 
@@ -119,7 +121,7 @@ Stitcher::Status Stitcher::composePanorama(InputArray images, OutputArray pano)
 {
     LOGLN("Warping images (auxiliary)... ");
 
-    std::vector<Mat> imgs;
+    vector<Mat> imgs;
     images.getMatVector(imgs);
     if (!imgs.empty())
     {
@@ -135,8 +137,8 @@ Stitcher::Status Stitcher::composePanorama(InputArray images, OutputArray pano)
             seam_est_imgs_[i] = img.clone();
         }
 
-        std::vector<Mat> seam_est_imgs_subset;
-        std::vector<Mat> imgs_subset;
+        vector<Mat> seam_est_imgs_subset;
+        vector<Mat> imgs_subset;
 
         for (size_t i = 0; i < indices_.size(); ++i)
         {
@@ -154,11 +156,11 @@ Stitcher::Status Stitcher::composePanorama(InputArray images, OutputArray pano)
     int64 t = getTickCount();
 #endif
 
-    std::vector<Point> corners(imgs_.size());
-    std::vector<Mat> masks_warped(imgs_.size());
-    std::vector<Mat> images_warped(imgs_.size());
-    std::vector<Size> sizes(imgs_.size());
-    std::vector<Mat> masks(imgs_.size());
+    vector<Point> corners(imgs_.size());
+    vector<Mat> masks_warped(imgs_.size());
+    vector<Mat> images_warped(imgs_.size());
+    vector<Size> sizes(imgs_.size());
+    vector<Mat> masks(imgs_.size());
 
     // Prepare image masks
     for (size_t i = 0; i < imgs_.size(); ++i)
@@ -184,7 +186,7 @@ Stitcher::Status Stitcher::composePanorama(InputArray images, OutputArray pano)
         w->warp(masks[i], K, cameras_[i].R, INTER_NEAREST, BORDER_CONSTANT, masks_warped[i]);
     }
 
-    std::vector<Mat> images_warped_f(imgs_.size());
+    vector<Mat> images_warped_f(imgs_.size());
     for (size_t i = 0; i < imgs_.size(); ++i)
         images_warped[i].convertTo(images_warped_f[i], CV_32F);
 
@@ -225,7 +227,7 @@ Stitcher::Status Stitcher::composePanorama(InputArray images, OutputArray pano)
         if (!is_compose_scale_set)
         {
             if (compose_resol_ > 0)
-                compose_scale = std::min(1.0, std::sqrt(compose_resol_ * 1e6 / full_img.size().area()));
+                compose_scale = min(1.0, sqrt(compose_resol_ * 1e6 / full_img.size().area()));
             is_compose_scale_set = true;
 
             // Compute relative scales
@@ -323,7 +325,7 @@ Stitcher::Status Stitcher::stitch(InputArray images, OutputArray pano)
 }
 
 
-Stitcher::Status Stitcher::stitch(InputArray images, const std::vector<std::vector<Rect> > &rois, OutputArray pano)
+Stitcher::Status Stitcher::stitch(InputArray images, const vector<vector<Rect> > &rois, OutputArray pano)
 {
     Status status = estimateTransform(images, rois);
     if (status != OK)
@@ -370,14 +372,14 @@ Stitcher::Status Stitcher::matchImages()
         {
             if (!is_work_scale_set)
             {
-                work_scale_ = std::min(1.0, std::sqrt(registr_resol_ * 1e6 / full_img.size().area()));
+                work_scale_ = min(1.0, sqrt(registr_resol_ * 1e6 / full_img.size().area()));
                 is_work_scale_set = true;
             }
             resize(full_img, img, Size(), work_scale_, work_scale_);
         }
         if (!is_seam_scale_set)
         {
-            seam_scale_ = std::min(1.0, std::sqrt(seam_est_resol_ * 1e6 / full_img.size().area()));
+            seam_scale_ = min(1.0, sqrt(seam_est_resol_ * 1e6 / full_img.size().area()));
             seam_work_aspect_ = seam_scale_ / work_scale_;
             is_seam_scale_set = true;
         }
@@ -386,7 +388,7 @@ Stitcher::Status Stitcher::matchImages()
             (*features_finder_)(img, features_[i]);
         else
         {
-            std::vector<Rect> rois(rois_[i].size());
+            vector<Rect> rois(rois_[i].size());
             for (size_t j = 0; j < rois_[i].size(); ++j)
             {
                 Point tl(cvRound(rois_[i][j].x * work_scale_), cvRound(rois_[i][j].y * work_scale_));
@@ -419,9 +421,9 @@ Stitcher::Status Stitcher::matchImages()
 
     // Leave only images we are sure are from the same panorama
     indices_ = detail::leaveBiggestComponent(features_, pairwise_matches_, (float)conf_thresh_);
-    std::vector<Mat> seam_est_imgs_subset;
-    std::vector<Mat> imgs_subset;
-    std::vector<Size> full_img_sizes_subset;
+    vector<Mat> seam_est_imgs_subset;
+    vector<Mat> imgs_subset;
+    vector<Size> full_img_sizes_subset;
     for (size_t i = 0; i < indices_.size(); ++i)
     {
         imgs_subset.push_back(imgs_[indices_[i]]);
@@ -459,14 +461,14 @@ void Stitcher::estimateCameraParams()
     (*bundle_adjuster_)(features_, pairwise_matches_, cameras_);
 
     // Find median focal length and use it as final image scale
-    std::vector<double> focals;
+    vector<double> focals;
     for (size_t i = 0; i < cameras_.size(); ++i)
     {
         LOGLN("Camera #" << indices_[i] + 1 << ":\n" << cameras_[i].K());
         focals.push_back(cameras_[i].focal);
     }
 
-    std::sort(focals.begin(), focals.end());
+    sort(focals.begin(), focals.end());
     if (focals.size() % 2 == 1)
         warped_image_scale_ = static_cast<float>(focals[focals.size() / 2]);
     else
@@ -474,7 +476,7 @@ void Stitcher::estimateCameraParams()
 
     if (do_wave_correct_)
     {
-        std::vector<Mat> rmats;
+        vector<Mat> rmats;
         for (size_t i = 0; i < cameras_.size(); ++i)
             rmats.push_back(cameras_[i].R);
         detail::waveCorrect(rmats, wave_correct_kind_);

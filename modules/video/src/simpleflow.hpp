@@ -45,6 +45,8 @@
 
 #include <vector>
 
+using namespace std;
+
 #define MASK_TRUE_VALUE 255
 #define UNKNOWN_FLOW_THRESH 1e9
 

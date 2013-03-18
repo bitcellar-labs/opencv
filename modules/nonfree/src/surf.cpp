@@ -260,9 +260,9 @@ interpolateKeypoint( float N9[3][9], int dx, int dy, int ds, KeyPoint& kpt )
 // Multi-threaded construction of the scale-space pyramid
 struct SURFBuildInvoker
 {
-    SURFBuildInvoker( const Mat& _sum, const std::vector<int>& _sizes,
-                      const std::vector<int>& _sampleSteps,
-                      std::vector<Mat>& _dets, std::vector<Mat>& _traces )
+    SURFBuildInvoker( const Mat& _sum, const vector<int>& _sizes,
+                      const vector<int>& _sampleSteps,
+                      vector<Mat>& _dets, vector<Mat>& _traces )
     {
         sum = &_sum;
         sizes = &_sizes;
@@ -278,19 +278,19 @@ struct SURFBuildInvoker
     }
 
     const Mat *sum;
-    const std::vector<int> *sizes;
-    const std::vector<int> *sampleSteps;
-    std::vector<Mat>* dets;
-    std::vector<Mat>* traces;
+    const vector<int> *sizes;
+    const vector<int> *sampleSteps;
+    vector<Mat>* dets;
+    vector<Mat>* traces;
 };
 
 // Multi-threaded search of the scale-space pyramid for keypoints
 struct SURFFindInvoker
 {
     SURFFindInvoker( const Mat& _sum, const Mat& _mask_sum,
-                     const std::vector<Mat>& _dets, const std::vector<Mat>& _traces,
-                     const std::vector<int>& _sizes, const std::vector<int>& _sampleSteps,
-                     const std::vector<int>& _middleIndices, std::vector<KeyPoint>& _keypoints,
+                     const vector<Mat>& _dets, const vector<Mat>& _traces,
+                     const vector<int>& _sizes, const vector<int>& _sampleSteps,
+                     const vector<int>& _middleIndices, vector<KeyPoint>& _keypoints,
                      int _nOctaveLayers, float _hessianThreshold )
     {
         sum = &_sum;
@@ -306,8 +306,8 @@ struct SURFFindInvoker
     }
 
     static void findMaximaInLayer( const Mat& sum, const Mat& mask_sum,
-                   const std::vector<Mat>& dets, const std::vector<Mat>& traces,
-                   const std::vector<int>& sizes, std::vector<KeyPoint>& keypoints,
+                   const vector<Mat>& dets, const vector<Mat>& traces,
+                   const vector<int>& sizes, vector<KeyPoint>& keypoints,
                    int octave, int layer, float hessianThreshold, int sampleStep );
 
     void operator()(const BlockedRange& range) const
@@ -324,12 +324,12 @@ struct SURFFindInvoker
 
     const Mat *sum;
     const Mat *mask_sum;
-    const std::vector<Mat>* dets;
-    const std::vector<Mat>* traces;
-    const std::vector<int>* sizes;
-    const std::vector<int>* sampleSteps;
-    const std::vector<int>* middleIndices;
-    std::vector<KeyPoint>* keypoints;
+    const vector<Mat>* dets;
+    const vector<Mat>* traces;
+    const vector<int>* sizes;
+    const vector<int>* sampleSteps;
+    const vector<int>* middleIndices;
+    vector<KeyPoint>* keypoints;
     int nOctaveLayers;
     float hessianThreshold;
 
@@ -348,8 +348,8 @@ tbb::mutex SURFFindInvoker::findMaximaInLayer_m;
  * scale-space pyramid
  */
 void SURFFindInvoker::findMaximaInLayer( const Mat& sum, const Mat& mask_sum,
-                   const std::vector<Mat>& dets, const std::vector<Mat>& traces,
-                   const std::vector<int>& sizes, std::vector<KeyPoint>& keypoints,
+                   const vector<Mat>& dets, const vector<Mat>& traces,
+                   const vector<int>& sizes, vector<KeyPoint>& keypoints,
                    int octave, int layer, float hessianThreshold, int sampleStep )
 {
     // Wavelet Data
@@ -465,7 +465,7 @@ struct KeypointGreater
 };
 
 
-static void fastHessianDetector( const Mat& sum, const Mat& mask_sum, std::vector<KeyPoint>& keypoints,
+static void fastHessianDetector( const Mat& sum, const Mat& mask_sum, vector<KeyPoint>& keypoints,
                                  int nOctaves, int nOctaveLayers, float hessianThreshold )
 {
     /* Sampling step along image x and y axes at first octave. This is doubled
@@ -476,13 +476,11 @@ static void fastHessianDetector( const Mat& sum, const Mat& mask_sum, std::vecto
     int nTotalLayers = (nOctaveLayers+2)*nOctaves;
     int nMiddleLayers = nOctaveLayers*nOctaves;
 
-    std::vector<Mat> dets(nTotalLayers);
-    std::vector<Mat> traces(nTotalLayers);
-    std::vector<int> sizes(nTotalLayers);
-    std::vector<int> sampleSteps(nTotalLayers);
-    std::vector<int> middleIndices(nMiddleLayers);
-
-    keypoints.clear();
+    vector<Mat> dets(nTotalLayers);
+    vector<Mat> traces(nTotalLayers);
+    vector<int> sizes(nTotalLayers);
+    vector<int> sampleSteps(nTotalLayers);
+    vector<int> middleIndices(nMiddleLayers);
 
     // Allocate space and calculate properties of each layer
     int index = 0, middleIndex = 0, step = SAMPLE_STEP0;
@@ -523,7 +521,7 @@ struct SURFInvoker
     enum { ORI_RADIUS = 6, ORI_WIN = 60, PATCH_SZ = 20 };
 
     SURFInvoker( const Mat& _img, const Mat& _sum,
-                 std::vector<KeyPoint>& _keypoints, Mat& _descriptors,
+                 vector<KeyPoint>& _keypoints, Mat& _descriptors,
                  bool _extended, bool _upright )
     {
         keypoints = &_keypoints;
@@ -698,12 +696,11 @@ struct SURFInvoker
                 cvGetQuadrangleSubPix( img, &win, &W );
                 */
 
+                // Nearest neighbour version (faster)
                 float win_offset = -(float)(win_size-1)/2;
                 float start_x = center.x + win_offset*cos_dir + win_offset*sin_dir;
                 float start_y = center.y - win_offset*sin_dir + win_offset*cos_dir;
                 uchar* WIN = win.data;
-#if 0
-                // Nearest neighbour version (faster)
                 for( i = 0; i < win_size; i++, start_x += sin_dir, start_y += cos_dir )
                 {
                     float pixel_x = start_x;
@@ -715,36 +712,6 @@ struct SURFInvoker
                         WIN[i*win_size + j] = img->at<uchar>(y, x);
                     }
                 }
-#else
-                int ncols1 = img->cols-1, nrows1 = img->rows-1;
-                size_t imgstep = img->step;
-                for( i = 0; i < win_size; i++, start_x += sin_dir, start_y += cos_dir )
-                {
-                    double pixel_x = start_x;
-                    double pixel_y = start_y;
-                    for( j = 0; j < win_size; j++, pixel_x += cos_dir, pixel_y -= sin_dir )
-                    {
-                        int ix = cvFloor(pixel_x), iy = cvFloor(pixel_y);
-                        if( (unsigned)ix < (unsigned)ncols1 &&
-                            (unsigned)iy < (unsigned)nrows1 )
-                        {
-                            float a = (float)(pixel_x - ix), b = (float)(pixel_y - iy);
-                            const uchar* imgptr = &img->at<uchar>(iy, ix);
-                            WIN[i*win_size + j] = (uchar)
-                                cvRound(imgptr[0]*(1.f - a)*(1.f - b) +
-                                        imgptr[1]*a*(1.f - b) +
-                                        imgptr[imgstep]*(1.f - a)*b +
-                                        imgptr[imgstep+1]*a*b);
-                        }
-                        else
-                        {
-                            int x = std::min(std::max(cvRound(pixel_x), 0), ncols1);
-                            int y = std::min(std::max(cvRound(pixel_y), 0), nrows1);
-                            WIN[i*win_size + j] = img->at<uchar>(y, x);
-                        }
-                    }
-                }
-#endif
             }
             else
             {
@@ -850,7 +817,7 @@ struct SURFInvoker
 
             // unit vector is essential for contrast invariance
             vec = descriptors->ptr<float>(k);
-            float scale = (float)(1./(std::sqrt(square_mag) + DBL_EPSILON));
+            float scale = (float)(1./(sqrt(square_mag) + DBL_EPSILON));
             for( kk = 0; kk < dsize; kk++ )
                 vec[kk] *= scale;
         }
@@ -859,26 +826,26 @@ struct SURFInvoker
     // Parameters
     const Mat* img;
     const Mat* sum;
-    std::vector<KeyPoint>* keypoints;
+    vector<KeyPoint>* keypoints;
     Mat* descriptors;
     bool extended;
     bool upright;
 
     // Pre-calculated values
     int nOriSamples;
-    std::vector<Point> apt;
-    std::vector<float> aptw;
-    std::vector<float> DW;
+    vector<Point> apt;
+    vector<float> aptw;
+    vector<float> DW;
 };
 
 
 SURF::SURF()
 {
     hessianThreshold = 100;
-    extended = false;
+    extended = true;
     upright = false;
     nOctaves = 4;
-    nOctaveLayers = 3;
+    nOctaveLayers = 2;
 }
 
 SURF::SURF(double _threshold, int _nOctaves, int _nOctaveLayers, bool _extended, bool _upright)
@@ -894,13 +861,13 @@ int SURF::descriptorSize() const { return extended ? 128 : 64; }
 int SURF::descriptorType() const { return CV_32F; }
 
 void SURF::operator()(InputArray imgarg, InputArray maskarg,
-                      CV_OUT std::vector<KeyPoint>& keypoints) const
+                      CV_OUT vector<KeyPoint>& keypoints) const
 {
     (*this)(imgarg, maskarg, keypoints, noArray(), false);
 }
 
 void SURF::operator()(InputArray _img, InputArray _mask,
-                      CV_OUT std::vector<KeyPoint>& keypoints,
+                      CV_OUT vector<KeyPoint>& keypoints,
                       OutputArray _descriptors,
                       bool useProvidedKeypoints) const
 {
@@ -986,12 +953,12 @@ void SURF::operator()(InputArray _img, InputArray _mask,
 }
 
 
-void SURF::detectImpl( const Mat& image, std::vector<KeyPoint>& keypoints, const Mat& mask) const
+void SURF::detectImpl( const Mat& image, vector<KeyPoint>& keypoints, const Mat& mask) const
 {
     (*this)(image, mask, keypoints, noArray(), false);
 }
 
-void SURF::computeImpl( const Mat& image, std::vector<KeyPoint>& keypoints, Mat& descriptors) const
+void SURF::computeImpl( const Mat& image, vector<KeyPoint>& keypoints, Mat& descriptors) const
 {
     (*this)(image, Mat(), keypoints, descriptors, true);
 }

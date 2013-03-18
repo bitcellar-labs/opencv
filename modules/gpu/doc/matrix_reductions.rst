@@ -32,8 +32,6 @@ Returns the norm of a matrix (or difference of two matrices).
 
 .. ocv:function:: double gpu::norm(const GpuMat& src1, int normType, GpuMat& buf)
 
-.. ocv:function:: double gpu::norm(const GpuMat& src1, int normType, const GpuMat& mask, GpuMat& buf)
-
 .. ocv:function:: double gpu::norm(const GpuMat& src1, const GpuMat& src2, int normType=NORM_L2)
 
     :param src1: Source matrix. Any matrices except 64F are supported.
@@ -41,8 +39,6 @@ Returns the norm of a matrix (or difference of two matrices).
     :param src2: Second source matrix (if any) with the same size and type as ``src1``.
 
     :param normType: Norm type.  ``NORM_L1`` ,  ``NORM_L2`` , and  ``NORM_INF``  are supported for now.
-
-    :param mask: optional operation mask; it must have the same size as ``src1`` and ``CV_8UC1`` type.
 
     :param buf: Optional buffer to avoid extra memory allocations. It is resized automatically.
 
@@ -58,11 +54,7 @@ Returns the sum of matrix elements.
 
 .. ocv:function:: Scalar gpu::sum(const GpuMat& src, GpuMat& buf)
 
-.. ocv:function:: Scalar gpu::sum(const GpuMat& src, const GpuMat& mask, GpuMat& buf)
-
     :param src: Source image of any depth except for ``CV_64F`` .
-
-    :param mask: optional operation mask; it must have the same size as ``src1`` and ``CV_8UC1`` type.
 
     :param buf: Optional buffer to avoid extra memory allocations. It is resized automatically.
 
@@ -78,11 +70,7 @@ Returns the sum of absolute values for matrix elements.
 
 .. ocv:function:: Scalar gpu::absSum(const GpuMat& src, GpuMat& buf)
 
-.. ocv:function:: Scalar gpu::absSum(const GpuMat& src, const GpuMat& mask, GpuMat& buf)
-
     :param src: Source image of any depth except for ``CV_64F`` .
-
-    :param mask: optional operation mask; it must have the same size as ``src1`` and ``CV_8UC1`` type.
 
     :param buf: Optional buffer to avoid extra memory allocations. It is resized automatically.
 
@@ -96,11 +84,7 @@ Returns the squared sum of matrix elements.
 
 .. ocv:function:: Scalar gpu::sqrSum(const GpuMat& src, GpuMat& buf)
 
-.. ocv:function:: Scalar gpu::sqrSum(const GpuMat& src, const GpuMat& mask, GpuMat& buf)
-
     :param src: Source image of any depth except for ``CV_64F`` .
-
-    :param mask: optional operation mask; it must have the same size as ``src1`` and ``CV_8UC1`` type.
 
     :param buf: Optional buffer to avoid extra memory allocations. It is resized automatically.
 

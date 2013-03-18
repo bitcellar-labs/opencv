@@ -48,6 +48,10 @@
 
 using namespace cv;
 using namespace cv::ocl;
+using namespace std;
+
+using std::cout;
+using std::endl;
 
 namespace cv
 {
@@ -62,7 +66,7 @@ namespace cv
 //////////////////////////////////////////////////////////////////////////////
 /////////////////////// add subtract multiply divide /////////////////////////
 //////////////////////////////////////////////////////////////////////////////
-static void pyrdown_run(const oclMat &src, const oclMat &dst)
+void pyrdown_run(const oclMat &src, const oclMat &dst)
 {
 
     CV_Assert(src.type() == dst.type());
@@ -72,7 +76,7 @@ static void pyrdown_run(const oclMat &src, const oclMat &dst)
     //int channels = dst.channels();
     //int depth = dst.depth();
 
-    std::string kernelName = "pyrDown";
+    string kernelName = "pyrDown";
 
     //int vector_lengths[4][7] = {{4, 0, 4, 4, 1, 1, 1},
     //    {4, 0, 4, 4, 1, 1, 1},
@@ -87,14 +91,14 @@ static void pyrdown_run(const oclMat &src, const oclMat &dst)
     size_t globalThreads[3] = { src.cols, dst.rows, 1};
 
     //int dst_step1 = dst.cols * dst.elemSize();
-    std::vector<std::pair<size_t , const void *> > args;
-    args.push_back( std::make_pair( sizeof(cl_mem), (void *)&src.data ));
-    args.push_back( std::make_pair( sizeof(cl_int), (void *)&src.step ));
-    args.push_back( std::make_pair( sizeof(cl_int), (void *)&src.rows));
-    args.push_back( std::make_pair( sizeof(cl_int), (void *)&src.cols));
-    args.push_back( std::make_pair( sizeof(cl_mem), (void *)&dst.data ));
-    args.push_back( std::make_pair( sizeof(cl_int), (void *)&dst.step ));
-    args.push_back( std::make_pair( sizeof(cl_int), (void *)&dst.cols));
+    vector<pair<size_t , const void *> > args;
+    args.push_back( make_pair( sizeof(cl_mem), (void *)&src.data ));
+    args.push_back( make_pair( sizeof(cl_int), (void *)&src.step ));
+    args.push_back( make_pair( sizeof(cl_int), (void *)&src.rows));
+    args.push_back( make_pair( sizeof(cl_int), (void *)&src.cols));
+    args.push_back( make_pair( sizeof(cl_mem), (void *)&dst.data ));
+    args.push_back( make_pair( sizeof(cl_int), (void *)&dst.step ));
+    args.push_back( make_pair( sizeof(cl_int), (void *)&dst.cols));
 
     openCLExecuteKernel(clCxt, &pyr_down, kernelName, globalThreads, localThreads, args, src.oclchannels(), src.depth());
 }
