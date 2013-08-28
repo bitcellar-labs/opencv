@@ -116,13 +116,13 @@ struct CriticalSection
     CRITICAL_SECTION cs;
 };
 
-void* SystemAlloc(size_t size)
+static void* SystemAlloc(size_t size)
 {
     void* ptr = malloc(size);
     return ptr ? ptr : OutOfMemoryError(size);
 }
 
-void SystemFree(void* ptr, size_t)
+static void SystemFree(void* ptr, size_t)
 {
     free(ptr);
 }
@@ -141,7 +141,7 @@ struct CriticalSection
     pthread_mutex_t mutex;
 };
 
-void* SystemAlloc(size_t size)
+static void* SystemAlloc(size_t size)
 {
     #ifndef MAP_ANONYMOUS
     #define MAP_ANONYMOUS MAP_ANON
@@ -151,16 +151,16 @@ void* SystemAlloc(size_t size)
     return ptr != MAP_FAILED ? ptr : OutOfMemoryError(size);
 }
 
-void SystemFree(void* ptr, size_t size)
+static void SystemFree(void* ptr, size_t size)
 {
     munmap(ptr, size);
 }
 #endif //WIN32
 
-struct AutoLock
+struct AutoLock_
 {
-    AutoLock(CriticalSection& _cs) : cs(&_cs) { cs->lock(); }
-    ~AutoLock() { cs->unlock(); }
+    AutoLock_(CriticalSection& _cs) : cs(&_cs) { cs->lock(); }
+    ~AutoLock_() { cs->unlock(); }
     CriticalSection* cs;
 };
 
@@ -294,7 +294,7 @@ struct BlockPool
 
     ~BlockPool()
     {
-        AutoLock lock(cs);
+        AutoLock_ lock(cs);
         while( pool )
         {
             BigBlock* nextBlock = pool->next;
@@ -306,7 +306,7 @@ struct BlockPool
 
     Block* alloc()
     {
-        AutoLock lock(cs);
+        AutoLock_ lock(cs);
         Block* block;
         if( !freeBlocks )
         {
@@ -325,7 +325,7 @@ struct BlockPool
 
     void free(Block* block)
     {
-        AutoLock lock(cs);
+        AutoLock_ lock(cs);
         block->prev = 0;
         block->next = freeBlocks;
         freeBlocks = block;
@@ -360,7 +360,7 @@ struct ThreadData
                     Block* next = block->next;
                     int allocated = block->allocated;
                     {
-                    AutoLock lock(block->cs);
+                    AutoLock_ lock(block->cs);
                     block->next = block->prev = 0;
                     block->threadData = 0;
                     Node *node = block->publicFreeList;
