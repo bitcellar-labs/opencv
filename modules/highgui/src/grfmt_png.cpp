@@ -51,7 +51,6 @@
     and png2bmp sample from libpng distribution (Copyright (C) 1999-2001 MIYASAKA Masaru)
 \****************************************************************************************/
 
-#undef HAVE_UNISTD_H //to avoid redefinition
 #ifndef _LFS64_LARGEFILE
 #  define _LFS64_LARGEFILE 0
 #endif
@@ -72,6 +71,11 @@
     // interaction between '_setjmp' and C++ object destruction is non-portable
     #pragma warning( disable: 4611 )
 #endif
+
+// the following defines are a hack to avoid multiple problems with frame ponter handling and setjmp
+// see http://gcc.gnu.org/ml/gcc/2011-10/msg00324.html for some details
+#define mingw_getsp(...) 0
+#define __builtin_frame_address(...) 0
 
 namespace cv
 {

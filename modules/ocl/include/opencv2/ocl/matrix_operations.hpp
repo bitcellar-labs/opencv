@@ -211,8 +211,8 @@ namespace cv
         {
             flags &= roi.width < m.cols ? ~Mat::CONTINUOUS_FLAG : -1;
             offset += roi.y * step + roi.x * elemSize();
-            CV_Assert( 0 <= roi.x && 0 <= roi.width && roi.x + roi.width <= m.cols &&
-                       0 <= roi.y && 0 <= roi.height && roi.y + roi.height <= m.rows );
+            CV_Assert( 0 <= roi.x && 0 <= roi.width && roi.x + roi.width <= m.wholecols &&
+                       0 <= roi.y && 0 <= roi.height && roi.y + roi.height <= m.wholerows );
             if( refcount )
                 CV_XADD(refcount, 1);
             if( rows <= 0 || cols <= 0 )
@@ -459,28 +459,28 @@ namespace cv
         inline uchar *oclMat::ptr(int y)
         {
             CV_DbgAssert( (unsigned)y < (unsigned)rows );
-            CV_Error(CV_GpuNotSupported, "This function hasn't been supported yet.\n");
+            CV_Error(Error::GpuNotSupported, "This function hasn't been supported yet.\n");
             return data + step * y;
         }
 
         inline const uchar *oclMat::ptr(int y) const
         {
             CV_DbgAssert( (unsigned)y < (unsigned)rows );
-            CV_Error(CV_GpuNotSupported, "This function hasn't been supported yet.\n");
+            CV_Error(Error::GpuNotSupported, "This function hasn't been supported yet.\n");
             return data + step * y;
         }
 
         template<typename _Tp> inline _Tp *oclMat::ptr(int y)
         {
             CV_DbgAssert( (unsigned)y < (unsigned)rows );
-            CV_Error(CV_GpuNotSupported, "This function hasn't been supported yet.\n");
+            CV_Error(Error::GpuNotSupported, "This function hasn't been supported yet.\n");
             return (_Tp *)(data + step * y);
         }
 
         template<typename _Tp> inline const _Tp *oclMat::ptr(int y) const
         {
             CV_DbgAssert( (unsigned)y < (unsigned)rows );
-            CV_Error(CV_GpuNotSupported, "This function hasn't been supported yet.\n");
+            CV_Error(Error::GpuNotSupported, "This function hasn't been supported yet.\n");
             return (const _Tp *)(data + step * y);
         }
 

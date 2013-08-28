@@ -49,6 +49,43 @@ Point\_
 -------
 .. ocv:class:: Point_
 
+::
+
+    template<typename _Tp> class CV_EXPORTS Point_
+    {
+    public:
+        typedef _Tp value_type;
+
+        // various constructors
+        Point_();
+        Point_(_Tp _x, _Tp _y);
+        Point_(const Point_& pt);
+        Point_(const CvPoint& pt);
+        Point_(const CvPoint2D32f& pt);
+        Point_(const Size_<_Tp>& sz);
+        Point_(const Vec<_Tp, 2>& v);
+
+        Point_& operator = (const Point_& pt);
+        //! conversion to another data type
+        template<typename _Tp2> operator Point_<_Tp2>() const;
+
+        //! conversion to the old-style C structures
+        operator CvPoint() const;
+        operator CvPoint2D32f() const;
+        operator Vec<_Tp, 2>() const;
+
+        //! dot product
+        _Tp dot(const Point_& pt) const;
+        //! dot product computed in double-precision arithmetics
+        double ddot(const Point_& pt) const;
+        //! cross-product
+        double cross(const Point_& pt) const;
+        //! checks whether the point is inside the specified rectangle
+        bool inside(const Rect_<_Tp>& r) const;
+
+        _Tp x, y; //< the point coordinates
+    };
+
 Template class for 2D points specified by its coordinates
 :math:`x` and
 :math:`y` .
@@ -84,6 +121,39 @@ Point3\_
 --------
 .. ocv:class:: Point3_
 
+::
+
+    template<typename _Tp> class CV_EXPORTS Point3_
+    {
+    public:
+        typedef _Tp value_type;
+
+        // various constructors
+        Point3_();
+        Point3_(_Tp _x, _Tp _y, _Tp _z);
+        Point3_(const Point3_& pt);
+        explicit Point3_(const Point_<_Tp>& pt);
+        Point3_(const CvPoint3D32f& pt);
+        Point3_(const Vec<_Tp, 3>& v);
+
+        Point3_& operator = (const Point3_& pt);
+        //! conversion to another data type
+        template<typename _Tp2> operator Point3_<_Tp2>() const;
+        //! conversion to the old-style CvPoint...
+        operator CvPoint3D32f() const;
+        //! conversion to cv::Vec<>
+        operator Vec<_Tp, 3>() const;
+
+        //! dot product
+        _Tp dot(const Point3_& pt) const;
+        //! dot product computed in double-precision arithmetics
+        double ddot(const Point3_& pt) const;
+        //! cross product of the 2 3D points
+        Point3_ cross(const Point3_& pt) const;
+
+        _Tp x, y, z; //< the point coordinates
+    };
+
 Template class for 3D points specified by its coordinates
 :math:`x`,
 :math:`y` and
@@ -100,6 +170,35 @@ Size\_
 ------
 .. ocv:class:: Size_
 
+::
+
+    template<typename _Tp> class CV_EXPORTS Size_
+    {
+    public:
+        typedef _Tp value_type;
+
+        //! various constructors
+        Size_();
+        Size_(_Tp _width, _Tp _height);
+        Size_(const Size_& sz);
+        Size_(const CvSize& sz);
+        Size_(const CvSize2D32f& sz);
+        Size_(const Point_<_Tp>& pt);
+
+        Size_& operator = (const Size_& sz);
+        //! the area (width*height)
+        _Tp area() const;
+
+        //! conversion of another data type.
+        template<typename _Tp2> operator Size_<_Tp2>() const;
+
+        //! conversion to the old-style OpenCV types
+        operator CvSize() const;
+        operator CvSize2D32f() const;
+
+        _Tp width, height; // the width and the height
+    };
+
 Template class for specifying the size of an image or rectangle. The class includes two members called ``width`` and ``height``. The structure can be converted to and from the old OpenCV structures
 ``CvSize`` and ``CvSize2D32f`` . The same set of arithmetic and comparison operations as for ``Point_`` is available.
 
@@ -112,6 +211,43 @@ OpenCV defines the following ``Size_<>`` aliases: ::
 Rect\_
 ------
 .. ocv:class:: Rect_
+
+::
+
+    template<typename _Tp> class CV_EXPORTS Rect_
+    {
+    public:
+        typedef _Tp value_type;
+
+        //! various constructors
+        Rect_();
+        Rect_(_Tp _x, _Tp _y, _Tp _width, _Tp _height);
+        Rect_(const Rect_& r);
+        Rect_(const CvRect& r);
+        Rect_(const Point_<_Tp>& org, const Size_<_Tp>& sz);
+        Rect_(const Point_<_Tp>& pt1, const Point_<_Tp>& pt2);
+
+        Rect_& operator = ( const Rect_& r );
+        //! the top-left corner
+        Point_<_Tp> tl() const;
+        //! the bottom-right corner
+        Point_<_Tp> br() const;
+
+        //! size (width, height) of the rectangle
+        Size_<_Tp> size() const;
+        //! area (width*height) of the rectangle
+        _Tp area() const;
+
+        //! conversion to another data type
+        template<typename _Tp2> operator Rect_<_Tp2>() const;
+        //! conversion to the old-style CvRect
+        operator CvRect() const;
+
+        //! checks whether the rectangle contains the point
+        bool contains(const Point_<_Tp>& pt) const;
+
+        _Tp x, y, width, height; //< the top-left corner, as well as width and height of the rectangle
+    };
 
 Template class for 2D rectangles, described by the following parameters:
 
@@ -171,11 +307,32 @@ RotatedRect
 -----------
 .. ocv:class:: RotatedRect
 
+::
+
+    class CV_EXPORTS RotatedRect
+    {
+    public:
+        //! various constructors
+        RotatedRect();
+        RotatedRect(const Point2f& center, const Size2f& size, float angle);
+        RotatedRect(const CvBox2D& box);
+
+        //! returns 4 vertices of the rectangle
+        void points(Point2f pts[]) const;
+        //! returns the minimal up-right rectangle containing the rotated rectangle
+        Rect boundingRect() const;
+        //! conversion to the old-style CvBox2D structure
+        operator CvBox2D() const;
+
+        Point2f center; //< the rectangle mass center
+        Size2f size;    //< width and height of the rectangle
+        float angle;    //< the rotation angle. When the angle is 0, 90, 180, 270 etc., the rectangle becomes an up-right rectangle.
+    };
+
 The class represents rotated (i.e. not up-right) rectangles on a plane. Each rectangle is specified by the center point (mass center), length of each side (represented by cv::Size2f structure) and the rotation angle in degrees.
 
     .. ocv:function:: RotatedRect::RotatedRect()
     .. ocv:function:: RotatedRect::RotatedRect(const Point2f& center, const Size2f& size, float angle)
-    .. ocv:function:: RotatedRect::RotatedRect(const CvBox2D& box)
 
         :param center: The rectangle mass center.
         :param size: Width and height of the rectangle.
@@ -184,7 +341,6 @@ The class represents rotated (i.e. not up-right) rectangles on a plane. Each rec
 
     .. ocv:function:: void RotatedRect::points( Point2f pts[] ) const
     .. ocv:function:: Rect RotatedRect::boundingRect() const
-    .. ocv:function:: RotatedRect::operator CvBox2D() const
 
         :param pts: The points array for storing rectangle vertices.
 
@@ -219,7 +375,33 @@ TermCriteria
 ------------
 .. ocv:class:: TermCriteria
 
-  The class defining termination criteria for iterative algorithms. You can initialize it by default constructor and then override any parameters, or the structure may be fully initialized using the advanced variant of the constructor.
+::
+
+    class CV_EXPORTS TermCriteria
+    {
+    public:
+        enum
+        {
+            COUNT=1, //!< the maximum number of iterations or elements to compute
+            MAX_ITER=COUNT, //!< ditto
+            EPS=2 //!< the desired accuracy or change in parameters at which the iterative algorithm stops
+        };
+
+        //! default constructor
+        TermCriteria();
+        //! full constructor
+        TermCriteria(int type, int maxCount, double epsilon);
+        //! conversion from CvTermCriteria
+        TermCriteria(const CvTermCriteria& criteria);
+        //! conversion to CvTermCriteria
+        operator CvTermCriteria() const;
+
+        int type; //!< the type of termination criteria: COUNT, EPS or COUNT + EPS
+        int maxCount; // the maximum number of iterations/elements
+        double epsilon; // the desired accuracy
+    };
+
+The class defining termination criteria for iterative algorithms. You can initialize it by default constructor and then override any parameters, or the structure may be fully initialized using the advanced variant of the constructor.
 
 TermCriteria::TermCriteria
 --------------------------
@@ -229,8 +411,6 @@ The constructors.
 
 .. ocv:function:: TermCriteria::TermCriteria(int type, int maxCount, double epsilon)
 
-.. ocv:function:: TermCriteria::TermCriteria(const CvTermCriteria& criteria)
-
     :param type: The type of termination criteria: ``TermCriteria::COUNT``, ``TermCriteria::EPS`` or ``TermCriteria::COUNT`` + ``TermCriteria::EPS``.
 
     :param maxCount: The maximum number of iterations or elements to compute.
@@ -239,11 +419,6 @@ The constructors.
 
     :param criteria: Termination criteria in the deprecated ``CvTermCriteria`` format.
 
-TermCriteria::operator CvTermCriteria
--------------------------------------
-Converts to the deprecated ``CvTermCriteria`` format.
-
-.. ocv:function:: TermCriteria::operator CvTermCriteria() const
 
 Matx
 ----
@@ -330,9 +505,36 @@ Scalar\_
 --------
 .. ocv:class:: Scalar_
 
-Template class for a 4-element vector derived from Vec. ::
+Template class for a 4-element vector derived from Vec.
 
-    template<typename _Tp> class Scalar_ : public Vec<_Tp, 4> { ... };
+::
+
+    template<typename _Tp> class CV_EXPORTS Scalar_ : public Vec<_Tp, 4>
+    {
+    public:
+        //! various constructors
+        Scalar_();
+        Scalar_(_Tp v0, _Tp v1, _Tp v2=0, _Tp v3=0);
+        Scalar_(const CvScalar& s);
+        Scalar_(_Tp v0);
+
+        //! returns a scalar with all elements set to v0
+        static Scalar_<_Tp> all(_Tp v0);
+        //! conversion to the old-style CvScalar
+        operator CvScalar() const;
+
+        //! conversion to another data type
+        template<typename T2> operator Scalar_<T2>() const;
+
+        //! per-element product
+        Scalar_<_Tp> mul(const Scalar_<_Tp>& t, double scale=1 ) const;
+
+        // returns (v0, -v1, -v2, -v3)
+        Scalar_<_Tp> conj() const;
+
+        // returns true iff v1 == v2 == v3 == 0
+        bool isReal() const;
+    };
 
     typedef Scalar_<double> Scalar;
 
@@ -342,12 +544,21 @@ Range
 -----
 .. ocv:class:: Range
 
-Template class specifying a continuous subsequence (slice) of a sequence. ::
+Template class specifying a continuous subsequence (slice) of a sequence. 
 
-    class Range
+::
+
+    class CV_EXPORTS Range
     {
     public:
-        ...
+        Range();
+        Range(int _start, int _end);
+        Range(const CvSlice& slice);
+        int size() const;
+        bool empty() const;
+        static Range all();
+        operator CvSlice() const;
+
         int start, end;
     };
 
@@ -366,6 +577,96 @@ The static method ``Range::all()`` returns a special variable that means "the wh
             // process [r.start, r.end)
         }
     }
+
+
+KeyPoint
+--------
+.. ocv:class:: KeyPoint
+
+  Data structure for salient point detectors.
+
+  .. ocv:member:: Point2f pt
+
+     coordinates of the keypoint
+
+  .. ocv:member:: float size
+
+     diameter of the meaningful keypoint neighborhood
+
+  .. ocv:member:: float angle
+
+     computed orientation of the keypoint (-1 if not applicable). Its possible values are in a range [0,360) degrees. It is measured relative to image coordinate system (y-axis is directed downward), ie in clockwise.
+
+  .. ocv:member:: float response
+
+     the response by which the most strong keypoints have been selected. Can be used for further sorting or subsampling
+
+  .. ocv:member:: int octave
+
+     octave (pyramid layer) from which the keypoint has been extracted
+
+  .. ocv:member:: int class_id
+
+     object id that can be used to clustered keypoints by an object they belong to
+
+KeyPoint::KeyPoint
+------------------
+The keypoint constructors
+
+.. ocv:function:: KeyPoint::KeyPoint()
+
+.. ocv:function:: KeyPoint::KeyPoint(Point2f _pt, float _size, float _angle=-1, float _response=0, int _octave=0, int _class_id=-1)
+
+.. ocv:function:: KeyPoint::KeyPoint(float x, float y, float _size, float _angle=-1, float _response=0, int _octave=0, int _class_id=-1)
+
+.. ocv:pyfunction:: cv2.KeyPoint([x, y, _size[, _angle[, _response[, _octave[, _class_id]]]]]) -> <KeyPoint object>
+
+    :param x: x-coordinate of the keypoint
+
+    :param y: y-coordinate of the keypoint
+
+    :param _pt: x & y coordinates of the keypoint
+
+    :param _size: keypoint diameter
+
+    :param _angle: keypoint orientation
+
+    :param _response: keypoint detector response on the keypoint (that is, strength of the keypoint)
+
+    :param _octave: pyramid octave in which the keypoint has been detected
+
+    :param _class_id: object id
+
+
+DMatch
+------
+.. ocv:class:: DMatch
+
+Class for matching keypoint descriptors: query descriptor index,
+train descriptor index, train image index, and distance between descriptors. ::
+
+    class DMatch
+    {
+    public:
+        DMatch() : queryIdx(-1), trainIdx(-1), imgIdx(-1),
+                   distance(std::numeric_limits<float>::max()) {}
+        DMatch( int _queryIdx, int _trainIdx, float _distance ) :
+                queryIdx(_queryIdx), trainIdx(_trainIdx), imgIdx(-1),
+                distance(_distance) {}
+        DMatch( int _queryIdx, int _trainIdx, int _imgIdx, float _distance ) :
+                queryIdx(_queryIdx), trainIdx(_trainIdx), imgIdx(_imgIdx),
+                distance(_distance) {}
+
+        int queryIdx; // query descriptor index
+        int trainIdx; // train descriptor index
+        int imgIdx;   // train image index
+
+        float distance;
+
+        // less is better
+        bool operator<( const DMatch &m ) const;
+    };
+
 
 
 .. _Ptr:
@@ -489,6 +790,9 @@ Various Ptr constructors.
 .. ocv:function:: Ptr::Ptr(_Tp* _obj)
 .. ocv:function:: Ptr::Ptr(const Ptr& ptr)
 
+    :param _obj: Object for copy.
+    :param ptr: Object for copy.
+
 Ptr::~Ptr
 ---------
 The Ptr destructor.
@@ -500,6 +804,8 @@ Ptr::operator =
 Assignment operator.
 
 .. ocv:function:: Ptr& Ptr::operator = (const Ptr& ptr)
+
+    :param ptr: Object for assignment.
 
 Decrements own reference counter (with ``release()``) and increments ptr's reference counter.
 
@@ -531,8 +837,8 @@ Ptr::operator ->
 ----------------
 Provide access to the object fields and methods.
 
- .. ocv:function:: template<typename _Tp> _Tp* Ptr::operator -> ()
- .. ocv:function:: template<typename _Tp> const _Tp* Ptr::operator -> () const
+.. ocv:function:: template<typename _Tp> _Tp* Ptr::operator -> ()
+.. ocv:function:: template<typename _Tp> const _Tp* Ptr::operator -> () const
 
 
 Ptr::operator _Tp*
@@ -540,15 +846,16 @@ Ptr::operator _Tp*
 Returns the underlying object pointer. Thanks to the methods, the ``Ptr<_Tp>`` can be used instead
 of ``_Tp*``.
 
- .. ocv:function:: template<typename _Tp> Ptr::operator _Tp* ()
- .. ocv:function:: template<typename _Tp> Ptr::operator const _Tp*() const
+.. ocv:function:: template<typename _Tp> Ptr::operator _Tp* ()
+.. ocv:function:: template<typename _Tp> Ptr::operator const _Tp*() const
 
 
 Mat
 ---
 .. ocv:class:: Mat
 
-OpenCV C++ n-dimensional dense array class ::
+OpenCV C++ n-dimensional dense array class 
+::
 
     class CV_EXPORTS Mat
     {
@@ -577,7 +884,6 @@ OpenCV C++ n-dimensional dense array class ::
         // other members
         ...
     };
-
 
 The class ``Mat`` represents an n-dimensional dense numerical single-channel or multi-channel array. It can be used to store real or complex-valued vectors and matrices, grayscale or color images, voxel volumes, vector fields, point clouds, tensors, histograms (though, very high-dimensional histograms may be better stored in a ``SparseMat`` ). The data layout of the array
 :math:`M` is defined by the array ``M.step[]``, so that the address of element
@@ -798,6 +1104,9 @@ Finally, there are STL-style iterators that are smart enough to skip gaps betwee
 
 The matrix iterators are random-access iterators, so they can be passed to any STL algorithm, including ``std::sort()`` .
 
+.. note::
+
+   * An example demonstrating the serial out capabilities of cv::Mat can be found at opencv_source_code/samples/cpp/cout_mat.cpp
 
 .. _MatrixExpressions:
 
@@ -910,10 +1219,6 @@ Various Mat constructors
 .. ocv:function:: Mat::Mat( const Mat& m, const Range& rowRange, const Range& colRange=Range::all() )
 
 .. ocv:function:: Mat::Mat(const Mat& m, const Rect& roi)
-
-.. ocv:function:: Mat::Mat(const CvMat* m, bool copyData=false)
-
-.. ocv:function:: Mat::Mat(const IplImage* img, bool copyData=false)
 
 .. ocv:function:: template<typename T, int n> explicit Mat::Mat(const Vec<T, n>& vec, bool copyData=true)
 
@@ -1398,7 +1703,7 @@ Such a scheme makes the memory management robust and efficient at the same time 
     Mat color;
     ...
     Mat gray(color.rows, color.cols, color.depth());
-    cvtColor(color, gray, CV_BGR2GRAY);
+    cvtColor(color, gray, COLOR_BGR2GRAY);
 
 
 you can simply write: ::
@@ -1406,7 +1711,7 @@ you can simply write: ::
     Mat color;
     ...
     Mat gray;
-    cvtColor(color, gray, CV_BGR2GRAY);
+    cvtColor(color, gray, COLOR_BGR2GRAY);
 
 
 because ``cvtColor`` , as well as the most of OpenCV functions, calls ``Mat::create()`` for the output array internally.
@@ -1465,6 +1770,7 @@ Adds elements to the bottom of the matrix.
 .. ocv:function:: void Mat::push_back( const Mat& m )
 
     :param elem: Added element(s).
+    :param m: Added line(s).
 
 The methods add one or more elements to the bottom of the matrix. They emulate the corresponding method of the STL vector class. When ``elem`` is ``Mat`` , its type and the number of columns must be the same as in the container matrix.
 
@@ -1551,33 +1857,6 @@ The operators make a new header for the specified sub-array of ``*this`` . They 
 :ocv:func:`Mat::rowRange`, and
 :ocv:func:`Mat::colRange` . For example, ``A(Range(0, 10), Range::all())`` is equivalent to ``A.rowRange(0, 10)`` . Similarly to all of the above, the operators are O(1) operations, that is, no matrix data is copied.
 
-
-Mat::operator CvMat
--------------------
-Creates the ``CvMat`` header for the matrix.
-
-.. ocv:function:: Mat::operator CvMat() const
-
-
-The operator creates the ``CvMat`` header for the matrix without copying the underlying data. The reference counter is not taken into account by this operation. Thus, you should make sure than the original matrix is not deallocated while the ``CvMat`` header is used. The operator is useful for intermixing the new and the old OpenCV API's, for example: ::
-
-    Mat img(Size(320, 240), CV_8UC3);
-    ...
-
-    CvMat cvimg = img;
-    mycvOldFunc( &cvimg, ...);
-
-
-where ``mycvOldFunc`` is a function written to work with OpenCV 1.x data structures.
-
-
-Mat::operator IplImage
-----------------------
-Creates the ``IplImage`` header for the matrix.
-
-.. ocv:function:: Mat::operator IplImage() const
-
-The operator creates the ``IplImage`` header for the matrix without copying the underlying data. You should make sure than the original matrix is not deallocated while the ``IplImage`` header is used. Similarly to ``Mat::operator CvMat`` , the operator is useful for intermixing the new and the old OpenCV API's.
 
 Mat::total
 ----------
@@ -1691,7 +1970,7 @@ Returns the depth of a matrix element.
 
 .. ocv:function:: int Mat::depth() const
 
-The method returns the identifier of the matrix element depth (the type of each individual channel). For example, for a 16-bit signed 3-channel array, the method returns ``CV_16S`` . A complete list of matrix types contains the following values:
+The method returns the identifier of the matrix element depth (the type of each individual channel). For example, for a 16-bit signed element array, the method returns ``CV_16S`` . A complete list of matrix types contains the following values:
 
 * ``CV_8U``     - 8-bit unsigned integers ( ``0..255``     )
 
@@ -2153,14 +2432,12 @@ Various SparseMat constructors.
 .. ocv:function:: SparseMat::SparseMat( int dims, const int* _sizes, int _type )
 .. ocv:function:: SparseMat::SparseMat( const SparseMat& m )
 .. ocv:function:: SparseMat::SparseMat( const Mat& m )
-.. ocv:function:: SparseMat::SparseMat( const CvSparseMat* m )
 
 
     :param m: Source matrix for copy constructor. If m is dense matrix (ocv:class:`Mat`) then it will be converted to sparse representation.
     :param dims: Array dimensionality.
     :param _sizes: Sparce matrix size on all dementions.
     :param _type: Sparse matrix data type.
-    :param try1d: if try1d is true and matrix is a single-column matrix (Nx1), then the sparse matrix will be 1-dimensional.
 
 SparseMat::~SparseMat
 ---------------------
@@ -2174,6 +2451,8 @@ Provides sparse matrix assignment operators.
 
 .. ocv:function:: SparseMat& SparseMat::operator = (const SparseMat& m)
 .. ocv:function:: SparseMat& SparseMat::operator = (const Mat& m)
+
+    :param m: Matrix for assignment.
 
 The last variant is equivalent to the corresponding constructor with try1d=false.
 
@@ -2201,6 +2480,10 @@ Convert sparse matrix with possible type change and scaling.
 
 .. ocv:function:: void SparseMat::convertTo( SparseMat& m, int rtype, double alpha=1 ) const
 .. ocv:function:: void SparseMat::convertTo( Mat& m, int rtype, double alpha=1, double beta=0 ) const
+
+    :param m: Destination matrix.
+    :param rtype: Destination matrix type.
+    :param alpha: Conversion multiplier.
 
 The first version converts arbitrary sparse matrix to dense matrix and multiplies all the matrix elements by the specified scalar.
 The second versiob converts sparse matrix to dense matrix with optional type conversion and scaling.
@@ -2294,7 +2577,7 @@ The method returns the number of matrix channels.
 
 SparseMat::size
 ---------------
-Returns the array of sizes or matrix size by i dimention and 0 if the matrix is not allocated.
+Returns the array of sizes or matrix size by i dimension and 0 if the matrix is not allocated.
 
 .. ocv:function:: const int* SparseMat::size() const
 .. ocv:function:: int SparseMat::size(int i) const
@@ -2322,6 +2605,11 @@ Compute element hash value from the element indices.
 .. ocv:function:: size_t SparseMat::hash(int i0, int i1, int i2) const
 .. ocv:function:: size_t SparseMat::hash(const int* idx) const
 
+    :param i0: The first dimension index.
+    :param i1: The second dimension index.
+    :param i2: The third dimension index.
+    :param idx: Array of element indices for multidimensional matices.
+
 SparseMat::ptr
 --------------
 Low-level element-access functions, special variants for 1D, 2D, 3D cases, and the generic one for n-D case.
@@ -2330,6 +2618,12 @@ Low-level element-access functions, special variants for 1D, 2D, 3D cases, and t
 .. ocv:function:: uchar* SparseMat::ptr(int i0, int i1, bool createMissing, size_t* hashval=0)
 .. ocv:function:: uchar* SparseMat::ptr(int i0, int i1, int i2, bool createMissing, size_t* hashval=0)
 .. ocv:function:: uchar* SparseMat::ptr(const int* idx, bool createMissing, size_t* hashval=0)
+
+    :param i0: The first dimension index.
+    :param i1: The second dimension index.
+    :param i2: The third dimension index.
+    :param idx: Array of element indices for multidimensional matices.
+    :param createMissing: Create new element with 0 value if it does not exist in SparseMat.
 
 Return pointer to the matrix element. If the element is there (it is non-zero), the pointer to it is returned.
 If it is not there and ``createMissing=false``, NULL pointer is returned. If it is not there and ``createMissing=true``,
@@ -2343,6 +2637,11 @@ Erase the specified matrix element. When there is no such an element, the method
 .. ocv:function:: void SparseMat::erase(int i0, int i1, size_t* hashval=0)
 .. ocv:function:: void SparseMat::erase(int i0, int i1, int i2, size_t* hashval=0)
 .. ocv:function:: void SparseMat::erase(const int* idx, size_t* hashval=0)
+
+    :param i0: The first dimension index.
+    :param i1: The second dimension index.
+    :param i2: The third dimension index.
+    :param idx: Array of element indices for multidimensional matices.
 
 SparseMat\_
 -----------
@@ -2412,6 +2711,82 @@ Algorithm
 ---------
 .. ocv:class:: Algorithm
 
+::
+
+    class CV_EXPORTS_W Algorithm
+    {
+    public:
+        Algorithm();
+        virtual ~Algorithm();
+        string name() const;
+
+        template<typename _Tp> typename ParamType<_Tp>::member_type get(const string& name) const;
+        template<typename _Tp> typename ParamType<_Tp>::member_type get(const char* name) const;
+
+        CV_WRAP int getInt(const string& name) const;
+        CV_WRAP double getDouble(const string& name) const;
+        CV_WRAP bool getBool(const string& name) const;
+        CV_WRAP string getString(const string& name) const;
+        CV_WRAP Mat getMat(const string& name) const;
+        CV_WRAP vector<Mat> getMatVector(const string& name) const;
+        CV_WRAP Ptr<Algorithm> getAlgorithm(const string& name) const;
+
+        void set(const string& name, int value);
+        void set(const string& name, double value);
+        void set(const string& name, bool value);
+        void set(const string& name, const string& value);
+        void set(const string& name, const Mat& value);
+        void set(const string& name, const vector<Mat>& value);
+        void set(const string& name, const Ptr<Algorithm>& value);
+        template<typename _Tp> void set(const string& name, const Ptr<_Tp>& value);
+
+        CV_WRAP void setInt(const string& name, int value);
+        CV_WRAP void setDouble(const string& name, double value);
+        CV_WRAP void setBool(const string& name, bool value);
+        CV_WRAP void setString(const string& name, const string& value);
+        CV_WRAP void setMat(const string& name, const Mat& value);
+        CV_WRAP void setMatVector(const string& name, const vector<Mat>& value);
+        CV_WRAP void setAlgorithm(const string& name, const Ptr<Algorithm>& value);
+        template<typename _Tp> void setAlgorithm(const string& name, const Ptr<_Tp>& value);
+
+        void set(const char* name, int value);
+        void set(const char* name, double value);
+        void set(const char* name, bool value);
+        void set(const char* name, const string& value);
+        void set(const char* name, const Mat& value);
+        void set(const char* name, const vector<Mat>& value);
+        void set(const char* name, const Ptr<Algorithm>& value);
+        template<typename _Tp> void set(const char* name, const Ptr<_Tp>& value);
+
+        void setInt(const char* name, int value);
+        void setDouble(const char* name, double value);
+        void setBool(const char* name, bool value);
+        void setString(const char* name, const string& value);
+        void setMat(const char* name, const Mat& value);
+        void setMatVector(const char* name, const vector<Mat>& value);
+        void setAlgorithm(const char* name, const Ptr<Algorithm>& value);
+        template<typename _Tp> void setAlgorithm(const char* name, const Ptr<_Tp>& value);
+
+        CV_WRAP string paramHelp(const string& name) const;
+        int paramType(const char* name) const;
+        CV_WRAP int paramType(const string& name) const;
+        CV_WRAP void getParams(CV_OUT vector<string>& names) const;
+
+
+        virtual void write(FileStorage& fs) const;
+        virtual void read(const FileNode& fn);
+
+        typedef Algorithm* (*Constructor)(void);
+        typedef int (Algorithm::*Getter)() const;
+        typedef void (Algorithm::*Setter)(int);
+
+        CV_WRAP static void getList(CV_OUT vector<string>& algorithms);
+        CV_WRAP static Ptr<Algorithm> _create(const string& name);
+        template<typename _Tp> static Ptr<_Tp> create(const string& name);
+
+        virtual AlgorithmInfo* info() const /* TODO: make it = 0;*/ { return 0; }
+    };
+
 This is a base class for all more or less complex algorithms in OpenCV, especially for classes of algorithms, for which there can be multiple implementations. The examples are stereo correspondence (for which there are algorithms like block matching, semi-global block matching, graph-cut etc.), background subtraction (which can be done using mixture-of-gaussians models, codebook-based algorithm etc.), optical flow (block matching, Lucas-Kanade, Horn-Schunck etc.).
 
 The class provides the following features for all derived classes:
@@ -2457,13 +2832,13 @@ Algorithm::name
 ---------------
 Returns the algorithm name
 
-.. ocv:function:: string Algorithm::name() const
+.. ocv:function:: String Algorithm::name() const
 
 Algorithm::get
 --------------
 Returns the algorithm parameter
 
-.. ocv:function:: template<typename _Tp> typename ParamType<_Tp>::member_type Algorithm::get(const string& name) const
+.. ocv:function:: template<typename _Tp> typename ParamType<_Tp>::member_type Algorithm::get(const String& name) const
 
     :param name: The parameter name.
 
@@ -2472,7 +2847,7 @@ The method returns value of the particular parameter. Since the compiler can not
     * myalgo.get<int>("param_name")
     * myalgo.get<double>("param_name")
     * myalgo.get<bool>("param_name")
-    * myalgo.get<string>("param_name")
+    * myalgo.get<String>("param_name")
     * myalgo.get<Mat>("param_name")
     * myalgo.get<vector<Mat> >("param_name")
     * myalgo.get<Algorithm>("param_name") (it returns Ptr<Algorithm>).
@@ -2484,13 +2859,13 @@ Algorithm::set
 --------------
 Sets the algorithm parameter
 
-.. ocv:function:: void Algorithm::set(const string& name, int value)
-.. ocv:function:: void Algorithm::set(const string& name, double value)
-.. ocv:function:: void Algorithm::set(const string& name, bool value)
-.. ocv:function:: void Algorithm::set(const string& name, const string& value)
-.. ocv:function:: void Algorithm::set(const string& name, const Mat& value)
-.. ocv:function:: void Algorithm::set(const string& name, const vector<Mat>& value)
-.. ocv:function:: void Algorithm::set(const string& name, const Ptr<Algorithm>& value)
+.. ocv:function:: void Algorithm::set(const String& name, int value)
+.. ocv:function:: void Algorithm::set(const String& name, double value)
+.. ocv:function:: void Algorithm::set(const String& name, bool value)
+.. ocv:function:: void Algorithm::set(const String& name, const String& value)
+.. ocv:function:: void Algorithm::set(const String& name, const Mat& value)
+.. ocv:function:: void Algorithm::set(const String& name, const vector<Mat>& value)
+.. ocv:function:: void Algorithm::set(const String& name, const Ptr<Algorithm>& value)
 
     :param name: The parameter name.
     :param value: The parameter value.
@@ -2529,13 +2904,13 @@ Algorithm::getList
 ------------------
 Returns the list of registered algorithms
 
-.. ocv:function:: void Algorithm::getList(vector<string>& algorithms)
+.. ocv:function:: void Algorithm::getList(vector<String>& algorithms)
 
     :param algorithms: The output vector of algorithm names.
 
 This static method returns the list of registered algorithms in alphabetical order. Here is how to use it ::
 
-    vector<string> algorithms;
+    vector<String> algorithms;
     Algorithm::getList(algorithms);
     cout << "Algorithms: " << algorithms.size() << endl;
     for (size_t i=0; i < algorithms.size(); i++)
@@ -2546,7 +2921,7 @@ Algorithm::create
 -----------------
 Creates algorithm instance by name
 
-.. ocv:function:: template<typename _Tp> Ptr<_Tp> Algorithm::create(const string& name)
+.. ocv:function:: template<typename _Tp> Ptr<_Tp> Algorithm::create(const String& name)
 
     :param name: The algorithm name, one of the names returned by ``Algorithm::getList()``.
 

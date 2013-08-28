@@ -45,7 +45,8 @@
 #include <fstream>
 #include <string>
 #include "opencv2/opencv_modules.hpp"
-#include "opencv2/highgui/highgui.hpp"
+#include <opencv2/core/utility.hpp>
+#include "opencv2/highgui.hpp"
 #include "opencv2/stitching/detail/autocalib.hpp"
 #include "opencv2/stitching/detail/blenders.hpp"
 #include "opencv2/stitching/detail/camera.hpp"
@@ -120,7 +121,7 @@ static void printUsage()
 
 
 // Default command line args
-vector<string> img_names;
+vector<String> img_names;
 bool preview = false;
 bool try_gpu = false;
 double work_megapix = 0.6;
@@ -355,7 +356,7 @@ int main(int argc, char* argv[])
     Ptr<FeaturesFinder> finder;
     if (features_type == "surf")
     {
-#ifdef HAVE_OPENCV_GPU
+#ifdef HAVE_OPENCV_NONFREE
         if (try_gpu && gpu::getCudaEnabledDeviceCount() > 0)
             finder = new SurfFeaturesFinderGpu();
         else
@@ -445,7 +446,7 @@ int main(int argc, char* argv[])
     // Leave only images we are sure are from the same panorama
     vector<int> indices = leaveBiggestComponent(features, pairwise_matches, conf_thresh);
     vector<Mat> img_subset;
-    vector<string> img_names_subset;
+    vector<String> img_names_subset;
     vector<Size> full_img_sizes_subset;
     for (size_t i = 0; i < indices.size(); ++i)
     {
@@ -468,7 +469,11 @@ int main(int argc, char* argv[])
 
     HomographyBasedEstimator estimator;
     vector<CameraParams> cameras;
-    estimator(features, pairwise_matches, cameras);
+    if (!estimator(features, pairwise_matches, cameras))
+    {
+        cout << "Homography estimation failed.\n";
+        return -1;
+    }
 
     for (size_t i = 0; i < cameras.size(); ++i)
     {
@@ -494,7 +499,11 @@ int main(int argc, char* argv[])
     if (ba_refine_mask[3] == 'x') refine_mask(1,1) = 1;
     if (ba_refine_mask[4] == 'x') refine_mask(1,2) = 1;
     adjuster->setRefinementMask(refine_mask);
-    (*adjuster)(features, pairwise_matches, cameras);
+    if (!(*adjuster)(features, pairwise_matches, cameras))
+    {
+        cout << "Camera parameters adjusting failed.\n";
+        return -1;
+    }
 
     // Find median focal length
 
@@ -543,7 +552,7 @@ int main(int argc, char* argv[])
     // Warp images and their masks
 
     Ptr<WarperCreator> warper_creator;
-#ifdef HAVE_OPENCV_GPU
+#ifdef HAVE_OPENCV_GPUWARPING
     if (try_gpu && gpu::getCudaEnabledDeviceCount() > 0)
     {
         if (warp_type == "plane") warper_creator = new cv::PlaneWarperGpu();
