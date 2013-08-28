@@ -2421,7 +2421,7 @@ protected:
         }
 
         Mat diff = abs(anglesInDegrees - resInDeg);
-        int errDegCount = diff.total() - countNonZero((diff < maxAngleDiff) | ((360 - diff) < maxAngleDiff));
+        size_t errDegCount = diff.total() - countNonZero((diff < maxAngleDiff) | ((360 - diff) < maxAngleDiff));
         if(errDegCount > 0)
         {
             ts->printf(cvtest::TS::LOG, "There are incorrect result angles (in degrees) (part of them is %f)\n",
@@ -2430,8 +2430,8 @@ protected:
         }
 
         Mat convertedRes = resInRad * 180. / CV_PI;
-        double normDiff = norm(convertedRes - resInDeg);
-        if(normDiff > FLT_EPSILON)
+        double normDiff = norm(convertedRes - resInDeg, NORM_INF);
+        if(normDiff > FLT_EPSILON * 180.)
         {
             ts->printf(cvtest::TS::LOG, "There are incorrect result angles (in radians)\n");
             ts->set_failed_test_info(cvtest::TS::FAIL_INVALID_OUTPUT);
@@ -2536,15 +2536,48 @@ TYPED_TEST_P(Core_CheckRange, Zero)
     double min_bound = 0.0;
     double max_bound = 0.1;
 
-    cv::Mat src = cv::Mat::zeros(3,3, cv::DataDepth<TypeParam>::value);
+    cv::Mat src1 = cv::Mat::zeros(3, 3, cv::DataDepth<TypeParam>::value);
 
-    ASSERT_TRUE( checkRange(src, true, NULL, min_bound, max_bound) );
+    int sizes[] = {5, 6, 7};
+    cv::Mat src2 = cv::Mat::zeros(3, sizes, cv::DataDepth<TypeParam>::value);
+
+    ASSERT_TRUE( checkRange(src1, true, NULL, min_bound, max_bound) );
+    ASSERT_TRUE( checkRange(src2, true, NULL, min_bound, max_bound) );
 }
 
-REGISTER_TYPED_TEST_CASE_P(Core_CheckRange, Negative, Positive, Bounds, Zero);
+TYPED_TEST_P(Core_CheckRange, One)
+{
+    double min_bound = 1.0;
+    double max_bound = 1.1;
+
+    cv::Mat src1 = cv::Mat::ones(3, 3, cv::DataDepth<TypeParam>::value);
+
+    int sizes[] = {5, 6, 7};
+    cv::Mat src2 = cv::Mat::ones(3, sizes, cv::DataDepth<TypeParam>::value);
+
+    ASSERT_TRUE( checkRange(src1, true, NULL, min_bound, max_bound) );
+    ASSERT_TRUE( checkRange(src2, true, NULL, min_bound, max_bound) );
+}
+
+REGISTER_TYPED_TEST_CASE_P(Core_CheckRange, Negative, Positive, Bounds, Zero, One);
 
 typedef ::testing::Types<signed char,unsigned char, signed short, unsigned short, signed int> mat_data_types;
 INSTANTIATE_TYPED_TEST_CASE_P(Negative_Test, Core_CheckRange, mat_data_types);
+
+TEST(Core_Invert, small)
+{
+    cv::Mat a = (cv::Mat_<float>(3,3) << 2.42104644730331, 1.81444796521479, -3.98072565304758, 0, 7.08389214348967e-3, 5.55326770986007e-3, 0,0, 7.44556154284261e-3);
+    //cv::randu(a, -1, 1);
+
+    cv::Mat b = a.t()*a;
+    cv::Mat c, i = Mat_<float>::eye(3, 3);
+    cv::invert(b, c, cv::DECOMP_LU); //std::cout << b*c << std::endl;
+    ASSERT_LT( cv::norm(b*c, i, CV_C), 0.1 );
+    cv::invert(b, c, cv::DECOMP_SVD); //std::cout << b*c << std::endl;
+    ASSERT_LT( cv::norm(b*c, i, CV_C), 0.1 );
+    cv::invert(b, c, cv::DECOMP_CHOLESKY); //std::cout << b*c << std::endl;
+    ASSERT_LT( cv::norm(b*c, i, CV_C), 0.1 );
+}
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 

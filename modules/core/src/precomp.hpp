@@ -47,7 +47,7 @@
 #include "cvconfig.h"
 #endif
 
-#include "opencv2/core/core.hpp"
+#include "opencv2/core.hpp"
 #include "opencv2/core/core_c.h"
 #include "opencv2/core/internal.hpp"
 
@@ -64,6 +64,25 @@
 #include "opencv2/core/core_tegra.hpp"
 #else
 #define GET_OPTIMIZED(func) (func)
+#endif
+
+#ifdef HAVE_CUDA
+#  include <cuda_runtime_api.h>
+#  include "opencv2/core/gpumat.hpp"
+
+#  if defined(__GNUC__)
+#    define cudaSafeCall(expr)  ___cudaSafeCall(expr, __FILE__, __LINE__, __func__)
+#  else
+#    define cudaSafeCall(expr)  ___cudaSafeCall(expr, __FILE__, __LINE__)
+#  endif
+
+static inline void ___cudaSafeCall(cudaError_t err, const char *file, const int line, const char *func = "")
+{
+    if (cudaSuccess != err) cv::gpu::error(cudaGetErrorString(err), file, line, func);
+}
+
+#else
+#  define cudaSafeCall(expr)
 #endif
 
 namespace cv
@@ -94,7 +113,7 @@ template<typename T1, typename T2=T1, typename T3=T1> struct OpAdd
     typedef T1 type1;
     typedef T2 type2;
     typedef T3 rtype;
-    T3 operator ()(T1 a, T2 b) const { return saturate_cast<T3>(a + b); }
+    T3 operator ()(const T1 a, const T2 b) const { return saturate_cast<T3>(a + b); }
 };
 
 template<typename T1, typename T2=T1, typename T3=T1> struct OpSub
@@ -102,7 +121,7 @@ template<typename T1, typename T2=T1, typename T3=T1> struct OpSub
     typedef T1 type1;
     typedef T2 type2;
     typedef T3 rtype;
-    T3 operator ()(T1 a, T2 b) const { return saturate_cast<T3>(a - b); }
+    T3 operator ()(const T1 a, const T2 b) const { return saturate_cast<T3>(a - b); }
 };
 
 template<typename T1, typename T2=T1, typename T3=T1> struct OpRSub
@@ -110,7 +129,7 @@ template<typename T1, typename T2=T1, typename T3=T1> struct OpRSub
     typedef T1 type1;
     typedef T2 type2;
     typedef T3 rtype;
-    T3 operator ()(T1 a, T2 b) const { return saturate_cast<T3>(b - a); }
+    T3 operator ()(const T1 a, const T2 b) const { return saturate_cast<T3>(b - a); }
 };
 
 template<typename T> struct OpMin
@@ -118,7 +137,7 @@ template<typename T> struct OpMin
     typedef T type1;
     typedef T type2;
     typedef T rtype;
-    T operator ()(T a, T b) const { return std::min(a, b); }
+    T operator ()(const T a, const T b) const { return std::min(a, b); }
 };
 
 template<typename T> struct OpMax
@@ -126,7 +145,7 @@ template<typename T> struct OpMax
     typedef T type1;
     typedef T type2;
     typedef T rtype;
-    T operator ()(T a, T b) const { return std::max(a, b); }
+    T operator ()(const T a, const T b) const { return std::max(a, b); }
 };
 
 inline Size getContinuousSize( const Mat& m1, int widthScale=1 )

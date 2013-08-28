@@ -113,7 +113,7 @@ namespace cv
 
 Exception::Exception() { code = 0; line = 0; }
 
-Exception::Exception(int _code, const string& _err, const string& _func, const string& _file, int _line)
+Exception::Exception(int _code, const std::string& _err, const std::string& _func, const std::string& _file, int _line)
 : code(_code), err(_err), func(_func), file(_file), line(_line)
 {
     formatMessage();
@@ -348,37 +348,35 @@ const std::string& getBuildInformation()
     return build_info;
 }
 
-string format( const char* fmt, ... )
+std::string format( const char* fmt, ... )
 {
     char buf[1 << 16];
     va_list args;
     va_start( args, fmt );
     vsprintf( buf, fmt, args );
-    return string(buf);
+    return std::string(buf);
 }
 
-string tempfile( const char* suffix )
+std::string tempfile( const char* suffix )
 {
+    const char *temp_dir = getenv("OPENCV_TEMP_PATH");
+    std::string fname;
+
 #if defined WIN32 || defined _WIN32
-    char temp_dir[MAX_PATH + 1] = { 0 };
+    char temp_dir2[MAX_PATH + 1] = { 0 };
     char temp_file[MAX_PATH + 1] = { 0 };
 
-    ::GetTempPathA(sizeof(temp_dir), temp_dir);
+    if (temp_dir == 0 || temp_dir[0] == 0)
+    {
+        ::GetTempPathA(sizeof(temp_dir2), temp_dir2);
+        temp_dir = temp_dir2;
+    }
     if(0 == ::GetTempFileNameA(temp_dir, "ocv", 0, temp_file))
-        return string();
+        return std::string();
 
     DeleteFileA(temp_file);
 
-    string name = temp_file;
-    if(suffix)
-    {
-        if (suffix[0] != '.')
-            return name + "." + suffix;
-        else
-            return name + suffix;
-    }
-    else
-        return name;
+    fname = temp_file;
 # else
 #  ifdef ANDROID
     //char defaultTemplate[] = "/mnt/sdcard/__opencv_temp.XXXXXX";
@@ -387,9 +385,7 @@ string tempfile( const char* suffix )
     char defaultTemplate[] = "/tmp/__opencv_temp.XXXXXX";
 #  endif
 
-    string fname;
-    const char *temp_dir = getenv("OPENCV_TEMP_PATH");
-    if(temp_dir == 0 || temp_dir[0] == 0)
+    if (temp_dir == 0 || temp_dir[0] == 0)
         fname = defaultTemplate;
     else
     {
@@ -401,19 +397,20 @@ string tempfile( const char* suffix )
     }
 
     const int fd = mkstemp((char*)fname.c_str());
-    if(fd == -1) return "";
+    if (fd == -1) return std::string();
+
     close(fd);
     remove(fname.c_str());
+# endif
 
-    if(suffix)
+    if (suffix)
     {
         if (suffix[0] != '.')
-            fname = fname + "." + suffix;
+            return fname + "." + suffix;
         else
-            fname += suffix;
+            return fname + suffix;
     }
     return fname;
-# endif
 }
 
 static CvErrorCallback customErrorCallback = 0;
@@ -442,7 +439,7 @@ void error( const Exception& exc )
             exc.func.c_str() : "unknown function", exc.file.c_str(), exc.line );
         fprintf( stderr, "%s\n", buf );
         fflush( stderr );
-#  ifdef ANDROID
+#  ifdef __ANDROID__
         __android_log_print(ANDROID_LOG_ERROR, "cv::error()", "%s", buf);
 #  endif
     }
@@ -813,17 +810,6 @@ struct Mutex::Impl
     CRITICAL_SECTION cs;
     int refcount;
 };
-
-#ifndef __GNUC__
-int _interlockedExchangeAdd(int* addr, int delta)
-{
-#if defined _MSC_VER && _MSC_VER >= 1500
-    return (int)_InterlockedExchangeAdd((long volatile*)addr, delta);
-#else
-    return (int)InterlockedExchangeAdd((long volatile*)addr, delta);
-#endif
-}
-#endif // __GNUC__
 
 #elif defined __APPLE__
 
