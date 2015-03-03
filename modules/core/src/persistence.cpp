@@ -385,13 +385,8 @@ cvCreateMap( int flags, int header_size, int elem_size,
     return map;
 }
 
-#ifdef __GNUC__
 #define CV_PARSE_ERROR( errmsg )                                    \
-    icvParseError( fs, __func__, (errmsg), __FILE__, __LINE__ )
-#else
-#define CV_PARSE_ERROR( errmsg )                                    \
-    icvParseError( fs, "", (errmsg), __FILE__, __LINE__ )
-#endif
+    icvParseError( fs, CV_Func, (errmsg), __FILE__, __LINE__ )
 
 static void
 icvParseError( CvFileStorage* fs, const char* func_name,
@@ -1182,7 +1177,7 @@ force_int:
                         int val, is_hex = d == 'x';
                         c = ptr[3];
                         ptr[3] = '\0';
-                        val = strtol( ptr + is_hex, &endptr, is_hex ? 8 : 16 );
+                        val = (int)strtol( ptr + is_hex, &endptr, is_hex ? 8 : 16 );
                         ptr[3] = c;
                         if( endptr == ptr + is_hex )
                             buf[len++] = 'x';
@@ -2222,7 +2217,6 @@ icvXMLParse( CvFileStorage* fs )
     ptr = icvXMLSkipSpaces( fs, ptr, CV_XML_INSIDE_TAG );
 
     if( memcmp( ptr, "<?xml", 5 ) != 0 )
-
         CV_PARSE_ERROR( "Valid XML should start with \'<?xml ...?>\'" );
 
     ptr = icvXMLParseTag( fs, ptr, &key, &list, &tag_type );
@@ -2793,7 +2787,7 @@ cvOpenFileStorage( const char* filename, CvMemStorage* dststorage, int flags, co
                 // find the last occurence of </opencv_storage>
                 for(;;)
                 {
-                    int line_offset = ftell( fs->file );
+                    int line_offset = (int)ftell( fs->file );
                     char* ptr0 = icvGets( fs, xml_buf, xml_buf_size ), *ptr;
                     if( !ptr0 )
                         break;
@@ -4829,7 +4823,7 @@ cvRegisterType( const CvTypeInfo* _info )
             "Type name should contain only letters, digits, - and _" );
     }
 
-    info = (CvTypeInfo*)malloc( sizeof(*info) + len + 1 );
+    info = (CvTypeInfo*)cvAlloc( sizeof(*info) + len + 1 );
 
     *info = *_info;
     info->type_name = (char*)(info + 1);
@@ -4867,7 +4861,7 @@ cvUnregisterType( const char* type_name )
         if( !CvType::first || !CvType::last )
             CvType::first = CvType::last = 0;
 
-        free( info );
+        cvFree( &info );
     }
 }
 
@@ -5129,9 +5123,11 @@ FileStorage::FileStorage(const String& filename, int flags, const String& encodi
     open( filename, flags, encoding );
 }
 
-FileStorage::FileStorage(CvFileStorage* _fs)
+FileStorage::FileStorage(CvFileStorage* _fs, bool owning)
 {
-    fs = Ptr<CvFileStorage>(_fs);
+    if (owning) fs.reset(_fs);
+    else fs = Ptr<CvFileStorage>(Ptr<CvFileStorage>(), _fs);
+
     state = _fs ? NAME_EXPECTED + INSIDE_MAP : UNDEFINED;
 }
 
@@ -5147,8 +5143,8 @@ FileStorage::~FileStorage()
 bool FileStorage::open(const String& filename, int flags, const String& encoding)
 {
     release();
-    fs = Ptr<CvFileStorage>(cvOpenFileStorage( filename.c_str(), 0, flags,
-                                               !encoding.empty() ? encoding.c_str() : 0));
+    fs.reset(cvOpenFileStorage( filename.c_str(), 0, flags,
+                                !encoding.empty() ? encoding.c_str() : 0));
     bool ok = isOpened();
     state = ok ? NAME_EXPECTED + INSIDE_MAP : UNDEFINED;
     return ok;
@@ -5156,7 +5152,7 @@ bool FileStorage::open(const String& filename, int flags, const String& encoding
 
 bool FileStorage::isOpened() const
 {
-    return !fs.empty() && fs.obj->is_opened;
+    return fs && fs->is_opened;
 }
 
 void FileStorage::release()
@@ -5169,8 +5165,8 @@ void FileStorage::release()
 String FileStorage::releaseAndGetString()
 {
     String buf;
-    if( fs.obj && fs.obj->outbuf )
-        icvClose(fs.obj, &buf);
+    if( fs && fs->outbuf )
+        icvClose(fs, &buf);
 
     release();
     return buf;
@@ -5479,7 +5475,7 @@ void write( FileStorage& fs, const String& name, const Mat& value )
 // TODO: the 4 functions below need to be implemented more efficiently
 void write( FileStorage& fs, const String& name, const SparseMat& value )
 {
-    Ptr<CvSparseMat> mat = cvCreateSparseMat(value);
+    Ptr<CvSparseMat> mat(cvCreateSparseMat(value));
     cvWrite( *fs, name.size() ? name.c_str() : 0, mat );
 }
 
@@ -5489,11 +5485,27 @@ internal::WriteStructContext::WriteStructContext(FileStorage& _fs,
 {
     cvStartWriteStruct(**fs, !name.empty() ? name.c_str() : 0, flags,
                        !typeName.empty() ? typeName.c_str() : 0);
+    fs->elname = String();
+    if ((flags & FileNode::TYPE_MASK) == FileNode::SEQ)
+    {
+        fs->state = FileStorage::VALUE_EXPECTED;
+        fs->structs.push_back('[');
+    }
+    else
+    {
+        fs->state = FileStorage::NAME_EXPECTED + FileStorage::INSIDE_MAP;
+        fs->structs.push_back('{');
+    }
 }
 
 internal::WriteStructContext::~WriteStructContext()
 {
     cvEndWriteStruct(**fs);
+    fs->structs.pop_back();
+    fs->state = fs->structs.empty() || fs->structs.back() == '{' ?
+        FileStorage::NAME_EXPECTED + FileStorage::INSIDE_MAP :
+        FileStorage::VALUE_EXPECTED;
+    fs->elname = String();
 }
 
 
@@ -5529,14 +5541,14 @@ void read( const FileNode& node, SparseMat& mat, const SparseMat& default_mat )
         default_mat.copyTo(mat);
         return;
     }
-    Ptr<CvSparseMat> m = (CvSparseMat*)cvRead((CvFileStorage*)node.fs, (CvFileNode*)*node);
-    CV_Assert(CV_IS_SPARSE_MAT(m.obj));
+    Ptr<CvSparseMat> m((CvSparseMat*)cvRead((CvFileStorage*)node.fs, (CvFileNode*)*node));
+    CV_Assert(CV_IS_SPARSE_MAT(m));
     m->copyToSparseMat(mat);
 }
 
 void write(FileStorage& fs, const String& objname, const std::vector<KeyPoint>& keypoints)
 {
-    internal::WriteStructContext ws(fs, objname, CV_NODE_SEQ + CV_NODE_FLOW);
+    cv::internal::WriteStructContext ws(fs, objname, CV_NODE_SEQ + CV_NODE_FLOW);
 
     int i, npoints = (int)keypoints.size();
     for( i = 0; i < npoints; i++ )

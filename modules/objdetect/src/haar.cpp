@@ -159,7 +159,7 @@ icvReleaseHidHaarClassifierCascade( CvHidHaarClassifierCascade** _cascade )
     {
 #ifdef HAVE_IPP
         CvHidHaarClassifierCascade* cascade = *_cascade;
-        if( cascade->ipp_stages )
+        if( CV_IPP_CHECK_COND && cascade->ipp_stages )
         {
             int i;
             for( i = 0; i < cascade->count; i++ )
@@ -336,9 +336,9 @@ icvCreateHidHaarClassifierCascade( CvHaarClassifierCascade* cascade )
             out->isStumpBased &= node_count == 1;
         }
     }
-
+/*
 #ifdef HAVE_IPP
-    int can_use_ipp = !out->has_tilted_features && !out->is_tree && out->isStumpBased;
+    int can_use_ipp = CV_IPP_CHECK_COND && (!out->has_tilted_features && !out->is_tree && out->isStumpBased);
 
     if( can_use_ipp )
     {
@@ -392,7 +392,7 @@ icvCreateHidHaarClassifierCascade( CvHaarClassifierCascade* cascade )
         }
     }
 #endif
-
+*/
     cascade->hid_cascade = out;
     assert( (char*)haar_node_ptr - (char*)out <= datasize );
 
@@ -1315,12 +1315,12 @@ public:
         int x, y, ystep = factor > 2 ? 1 : 2;
 
 #ifdef HAVE_IPP
-        if( cascade->hid_cascade->ipp_stages )
+        if(CV_IPP_CHECK_COND && cascade->hid_cascade->ipp_stages )
         {
             IppiRect iequRect = {equRect.x, equRect.y, equRect.width, equRect.height};
-            ippiRectStdDev_32f_C1R(sum1.ptr<float>(y1), sum1.step,
-                                   sqsum1.ptr<double>(y1), sqsum1.step,
-                                   norm1->ptr<float>(y1), norm1->step,
+            ippiRectStdDev_32f_C1R(sum1.ptr<float>(y1), (int)sum1.step,
+                                   sqsum1.ptr<double>(y1), (int)sqsum1.step,
+                                   norm1->ptr<float>(y1), (int)norm1->step,
                                    ippiSize(ssz.width, ssz.height), iequRect );
 
             int positive = (ssz.width/ystep)*((ssz.height + ystep-1)/ystep);
@@ -1341,9 +1341,9 @@ public:
             for( int j = 0; j < cascade->count; j++ )
             {
                 if( ippiApplyHaarClassifier_32f_C1R(
-                            sum1.ptr<float>(y1), sum1.step,
-                            norm1->ptr<float>(y1), norm1->step,
-                            mask1->ptr<uchar>(y1), mask1->step,
+                            sum1.ptr<float>(y1), (int)sum1.step,
+                            norm1->ptr<float>(y1), (int)norm1->step,
+                            mask1->ptr<uchar>(y1), (int)mask1->step,
                             ippiSize(ssz.width, ssz.height), &positive,
                             cascade->hid_cascade->stage_classifier[j].threshold,
                             (IppiHaarClassifier_32f*)cascade->hid_cascade->ipp_stages[j]) < 0 )
@@ -1351,6 +1351,7 @@ public:
                 if( positive <= 0 )
                     break;
             }
+            CV_IMPL_ADD(CV_IMPL_IPP|CV_IMPL_MT);
 
             if( positive > 0 )
                 for( y = y1; y < y2; y += ystep )
@@ -1536,15 +1537,15 @@ cvHaarDetectObjectsForROC( const CvArr* _img,
         maxSize.width = img->cols;
     }
 
-    temp = cvCreateMat( img->rows, img->cols, CV_8UC1 );
-    sum = cvCreateMat( img->rows + 1, img->cols + 1, CV_32SC1 );
-    sqsum = cvCreateMat( img->rows + 1, img->cols + 1, CV_64FC1 );
+    temp.reset(cvCreateMat( img->rows, img->cols, CV_8UC1 ));
+    sum.reset(cvCreateMat( img->rows + 1, img->cols + 1, CV_32SC1 ));
+    sqsum.reset(cvCreateMat( img->rows + 1, img->cols + 1, CV_64FC1 ));
 
     if( !cascade->hid_cascade )
         icvCreateHidHaarClassifierCascade(cascade);
 
     if( cascade->hid_cascade->has_tilted_features )
-        tilted = cvCreateMat( img->rows + 1, img->cols + 1, CV_32SC1 );
+        tilted.reset(cvCreateMat( img->rows + 1, img->cols + 1, CV_32SC1 ));
 
     result_seq = cvCreateSeq( 0, sizeof(CvSeq), sizeof(CvAvgComp), storage );
 
@@ -1561,12 +1562,12 @@ cvHaarDetectObjectsForROC( const CvArr* _img,
     {
         CvSize winSize0 = cascade->orig_window_size;
 #ifdef HAVE_IPP
-        int use_ipp = cascade->hid_cascade->ipp_stages != 0;
+        int use_ipp = CV_IPP_CHECK_COND && (cascade->hid_cascade->ipp_stages != 0);
 
         if( use_ipp )
-            normImg = cvCreateMat( img->rows, img->cols, CV_32FC1 );
+            normImg.reset(cvCreateMat( img->rows, img->cols, CV_32FC1));
 #endif
-        imgSmall = cvCreateMat( img->rows + 1, img->cols + 1, CV_8UC1 );
+        imgSmall.reset(cvCreateMat( img->rows + 1, img->cols + 1, CV_8UC1 ));
 
         for( factor = 1; ; factor *= scaleFactor )
         {
@@ -1635,7 +1636,7 @@ cvHaarDetectObjectsForROC( const CvArr* _img,
 
         if( doCannyPruning )
         {
-            sumcanny = cvCreateMat( img->rows + 1, img->cols + 1, CV_32SC1 );
+            sumcanny.reset(cvCreateMat( img->rows + 1, img->cols + 1, CV_32SC1 ));
             cvCanny( img, temp, 0, 50, 3 );
             cvIntegral( temp, sumcanny );
         }
@@ -1965,10 +1966,10 @@ cvLoadHaarClassifierCascade( const char* directory, CvSize orig_window_size )
 
     size += (n+1)*sizeof(char*);
     const char** input_cascade = (const char**)cvAlloc( size );
-    
+
     if( !input_cascade )
       CV_Error( CV_StsNoMem, "Could not allocate memory for input_cascade" );
-      
+
     char* ptr = (char*)(input_cascade + n + 1);
 
     for( int i = 0; i < n; i++ )
@@ -1978,7 +1979,7 @@ cvLoadHaarClassifierCascade( const char* directory, CvSize orig_window_size )
         if( !f )
             CV_Error( CV_StsError, "" );
         fseek( f, 0, SEEK_END );
-        size = ftell( f );
+        size = (int)ftell( f );
         fseek( f, 0, SEEK_SET );
         size_t elements_read = fread( ptr, 1, size, f );
         CV_Assert(elements_read == (size_t)(size));
@@ -1989,7 +1990,7 @@ cvLoadHaarClassifierCascade( const char* directory, CvSize orig_window_size )
     }
 
     input_cascade[n] = 0;
-    
+
     CvHaarClassifierCascade* cascade = icvLoadCascadeCART( input_cascade, n, orig_window_size );
 
     if( input_cascade )

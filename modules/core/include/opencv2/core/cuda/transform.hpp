@@ -40,14 +40,20 @@
 //
 //M*/
 
-#ifndef __OPENCV_GPU_TRANSFORM_HPP__
-#define __OPENCV_GPU_TRANSFORM_HPP__
+#ifndef __OPENCV_CUDA_TRANSFORM_HPP__
+#define __OPENCV_CUDA_TRANSFORM_HPP__
 
 #include "common.hpp"
 #include "utility.hpp"
 #include "detail/transform_detail.hpp"
 
-namespace cv { namespace gpu { namespace cudev
+/** @file
+ * @deprecated Use @ref cudev instead.
+ */
+
+//! @cond IGNORED
+
+namespace cv { namespace cuda { namespace device
 {
     template <typename T, typename D, typename UnOp, typename Mask>
     static inline void transform(PtrStepSz<T> src, PtrStepSz<D> dst, UnOp op, const Mask& mask, cudaStream_t stream)
@@ -64,4 +70,6 @@ namespace cv { namespace gpu { namespace cudev
     }
 }}}
 
-#endif // __OPENCV_GPU_TRANSFORM_HPP__
+//! @endcond
+
+#endif // __OPENCV_CUDA_TRANSFORM_HPP__

@@ -83,7 +83,7 @@ static bool cvTsCheckSparse(const CvSparseMat* m1, const CvSparseMat* m2, double
 class Core_IOTest : public cvtest::BaseTest
 {
 public:
-    Core_IOTest() {};
+    Core_IOTest() { }
 protected:
     void run(int)
     {
@@ -126,7 +126,7 @@ protected:
 
             CvSeq* seq = cvCreateSeq(test_mat.type(), (int)sizeof(CvSeq),
                                      (int)test_mat.elemSize(), storage);
-            cvSeqPushMulti(seq, test_mat.data, test_mat.cols*test_mat.rows);
+            cvSeqPushMulti(seq, test_mat.ptr(), test_mat.cols*test_mat.rows);
 
             CvGraph* graph = cvCreateGraph( CV_ORIENTED_GRAPH,
                                            sizeof(CvGraph), sizeof(CvGraphVtx),
@@ -270,16 +270,16 @@ protected:
 
             cvRelease((void**)&m_nd);
 
-            Ptr<CvSparseMat> m_s = (CvSparseMat*)fs["test_sparse_mat"].readObj();
-            Ptr<CvSparseMat> _test_sparse_ = cvCreateSparseMat(test_sparse_mat);
-            Ptr<CvSparseMat> _test_sparse = (CvSparseMat*)cvClone(_test_sparse_);
+            Ptr<CvSparseMat> m_s((CvSparseMat*)fs["test_sparse_mat"].readObj());
+            Ptr<CvSparseMat> _test_sparse_(cvCreateSparseMat(test_sparse_mat));
+            Ptr<CvSparseMat> _test_sparse((CvSparseMat*)cvClone(_test_sparse_));
             SparseMat m_s2;
             fs["test_sparse_mat"] >> m_s2;
-            Ptr<CvSparseMat> _m_s2 = cvCreateSparseMat(m_s2);
+            Ptr<CvSparseMat> _m_s2(cvCreateSparseMat(m_s2));
 
             if( !m_s || !CV_IS_SPARSE_MAT(m_s) ||
-               !cvTsCheckSparse(m_s, _test_sparse,0) ||
-               !cvTsCheckSparse(_m_s2, _test_sparse,0))
+               !cvTsCheckSparse(m_s, _test_sparse, 0) ||
+               !cvTsCheckSparse(_m_s2, _test_sparse, 0))
             {
                 ts->printf( cvtest::TS::LOG, "the read sparse matrix is not correct\n" );
                 ts->set_failed_test_info( cvtest::TS::FAIL_INVALID_OUTPUT );
@@ -380,6 +380,40 @@ TEST(Core_InputOutput, write_read_consistency) { Core_IOTest test; test.safe_run
 
 extern void testFormatter();
 
+
+struct UserDefinedType
+{
+    int a;
+    float b;
+};
+
+static inline bool operator==(const UserDefinedType &x,
+                              const UserDefinedType &y) {
+    return (x.a == y.a) && (x.b == y.b);
+}
+
+static inline void write(FileStorage &fs,
+                         const String&,
+                         const UserDefinedType &value)
+{
+    fs << "{:" << "a" << value.a << "b" << value.b << "}";
+}
+
+static inline void read(const FileNode& node,
+                        UserDefinedType& value,
+                        const UserDefinedType& default_value
+                          = UserDefinedType()) {
+    if(node.empty())
+    {
+        value = default_value;
+    }
+    else
+    {
+        node["a"] >> value.a;
+        node["b"] >> value.b;
+    }
+}
+
 class CV_MiscIOTest : public cvtest::BaseTest
 {
 public:
@@ -393,11 +427,14 @@ protected:
             string fname = cv::tempfile(".xml");
             vector<int> mi, mi2, mi3, mi4;
             vector<Mat> mv, mv2, mv3, mv4;
+            vector<UserDefinedType> vudt, vudt2, vudt3, vudt4;
             Mat m(10, 9, CV_32F);
             Mat empty;
+            UserDefinedType udt = { 8, 3.3f };
             randu(m, 0, 1);
             mi3.push_back(5);
             mv3.push_back(m);
+            vudt3.push_back(udt);
             Point_<float> p1(1.1f, 2.2f), op1;
             Point3i p2(3, 4, 5), op2;
             Size s1(6, 7), os1;
@@ -406,12 +443,14 @@ protected:
             Vec<int, 5> v1(15, 16, 17, 18, 19), ov1;
             Scalar sc1(20.0, 21.1, 22.2, 23.3), osc1;
             Range g1(7, 8), og1;
-            
+
             FileStorage fs(fname, FileStorage::WRITE);
             fs << "mi" << mi;
             fs << "mv" << mv;
             fs << "mi3" << mi3;
             fs << "mv3" << mv3;
+            fs << "vudt" << vudt;
+            fs << "vudt3" << vudt3;
             fs << "empty" << empty;
             fs << "p1" << p1;
             fs << "p2" << p2;
@@ -428,6 +467,8 @@ protected:
             fs["mv"] >> mv2;
             fs["mi3"] >> mi4;
             fs["mv3"] >> mv4;
+            fs["vudt"] >> vudt2;
+            fs["vudt3"] >> vudt4;
             fs["empty"] >> empty;
             fs["p1"] >> op1;
             fs["p2"] >> op2;
@@ -439,9 +480,11 @@ protected:
             fs["g1"] >> og1;
             CV_Assert( mi2.empty() );
             CV_Assert( mv2.empty() );
-            CV_Assert( norm(mi3, mi4, CV_C) == 0 );
+            CV_Assert( cvtest::norm(Mat(mi3), Mat(mi4), CV_C) == 0 );
             CV_Assert( mv4.size() == 1 );
-            double n = norm(mv3[0], mv4[0], CV_C);
+            double n = cvtest::norm(mv3[0], mv4[0], CV_C);
+            CV_Assert( vudt2.empty() );
+            CV_Assert( vudt3 == vudt4 );
             CV_Assert( n == 0 );
             CV_Assert( op1 == p1 );
             CV_Assert( op2 == p2 );

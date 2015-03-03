@@ -51,12 +51,22 @@
 
 namespace cv { namespace cudev {
 
+//! @addtogroup cudev
+//! @{
+
+/** @brief Structure similar to cv::cudev::GlobPtrSz but containing only a pointer and row step.
+
+Width and height fields are excluded due to performance reasons. The structure is intended
+for internal use or for users who write device code.
+ */
 template <typename T> struct GlobPtr
 {
     typedef T   value_type;
     typedef int index_type;
 
     T* data;
+
+    //! stride between two consecutive rows in bytes. Step is stored always and everywhere in bytes!!!
     size_t step;
 
     __device__ __forceinline__       T* row(int y)       { return (      T*)( (      uchar*)data + y * step); }
@@ -66,13 +76,19 @@ template <typename T> struct GlobPtr
     __device__ __forceinline__ const T& operator ()(int y, int x) const { return row(y)[x]; }
 };
 
+/** @brief Lightweight class encapsulating pitched memory on a GPU and passed to nvcc-compiled code (CUDA
+kernels).
+
+Typically, it is used internally by OpenCV and by users who write device code. You can call
+its members from both host and device code.
+ */
 template <typename T> struct GlobPtrSz : GlobPtr<T>
 {
     int rows, cols;
 };
 
 template <typename T>
-__host__ GlobPtr<T> globPtr(T* data, size_t step)
+__host__ __device__ GlobPtr<T> globPtr(T* data, size_t step)
 {
     GlobPtr<T> p;
     p.data = data;
@@ -81,7 +97,7 @@ __host__ GlobPtr<T> globPtr(T* data, size_t step)
 }
 
 template <typename T>
-__host__ GlobPtrSz<T> globPtr(T* data, size_t step, int rows, int cols)
+__host__ __device__ GlobPtrSz<T> globPtr(T* data, size_t step, int rows, int cols)
 {
     GlobPtrSz<T> p;
     p.data = data;
@@ -105,6 +121,8 @@ __host__ GlobPtrSz<T> globPtr(const GpuMat& mat)
 template <typename T> struct PtrTraits< GlobPtrSz<T> > : PtrTraitsBase<GlobPtrSz<T>, GlobPtr<T> >
 {
 };
+
+//! @}
 
 }}
 

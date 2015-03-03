@@ -40,8 +40,8 @@
 //
 //M*/
 
-#ifndef __OPENCV_GPU_COLOR_DETAIL_HPP__
-#define __OPENCV_GPU_COLOR_DETAIL_HPP__
+#ifndef __OPENCV_CUDA_COLOR_DETAIL_HPP__
+#define __OPENCV_CUDA_COLOR_DETAIL_HPP__
 
 #include "../common.hpp"
 #include "../vec_traits.hpp"
@@ -49,7 +49,9 @@
 #include "../limits.hpp"
 #include "../functional.hpp"
 
-namespace cv { namespace gpu { namespace cudev
+//! @cond IGNORED
+
+namespace cv { namespace cuda { namespace device
 {
     #ifndef CV_DESCALE
         #define CV_DESCALE(x, n) (((x) + (1 << ((n)-1))) >> (n))
@@ -143,10 +145,10 @@ namespace cv { namespace gpu { namespace cudev
         };
     }
 
-#define OPENCV_GPU_IMPLEMENT_RGB2RGB_TRAITS(name, scn, dcn, bidx) \
+#define OPENCV_CUDA_IMPLEMENT_RGB2RGB_TRAITS(name, scn, dcn, bidx) \
     template <typename T> struct name ## _traits \
     { \
-        typedef ::cv::gpu::cudev::color_detail::RGB2RGB<T, scn, dcn, bidx> functor_type; \
+        typedef ::cv::cuda::device::color_detail::RGB2RGB<T, scn, dcn, bidx> functor_type; \
         static __host__ __device__ __forceinline__ functor_type create_functor() \
         { \
             return functor_type(); \
@@ -216,10 +218,10 @@ namespace cv { namespace gpu { namespace cudev
         };
     }
 
-#define OPENCV_GPU_IMPLEMENT_RGB2RGB5x5_TRAITS(name, scn, bidx, green_bits) \
+#define OPENCV_CUDA_IMPLEMENT_RGB2RGB5x5_TRAITS(name, scn, bidx, green_bits) \
     struct name ## _traits \
     { \
-        typedef ::cv::gpu::cudev::color_detail::RGB2RGB5x5<scn, bidx, green_bits> functor_type; \
+        typedef ::cv::cuda::device::color_detail::RGB2RGB5x5<scn, bidx, green_bits> functor_type; \
         static __host__ __device__ __forceinline__ functor_type create_functor() \
         { \
             return functor_type(); \
@@ -297,10 +299,10 @@ namespace cv { namespace gpu { namespace cudev
         };
     }
 
-#define OPENCV_GPU_IMPLEMENT_RGB5x52RGB_TRAITS(name, dcn, bidx, green_bits) \
+#define OPENCV_CUDA_IMPLEMENT_RGB5x52RGB_TRAITS(name, dcn, bidx, green_bits) \
     struct name ## _traits \
     { \
-        typedef ::cv::gpu::cudev::color_detail::RGB5x52RGB<dcn, bidx, green_bits> functor_type; \
+        typedef ::cv::cuda::device::color_detail::RGB5x52RGB<dcn, bidx, green_bits> functor_type; \
         static __host__ __device__ __forceinline__ functor_type create_functor() \
         { \
             return functor_type(); \
@@ -343,10 +345,10 @@ namespace cv { namespace gpu { namespace cudev
         };
     }
 
-#define OPENCV_GPU_IMPLEMENT_GRAY2RGB_TRAITS(name, dcn) \
+#define OPENCV_CUDA_IMPLEMENT_GRAY2RGB_TRAITS(name, dcn) \
     template <typename T> struct name ## _traits \
     { \
-        typedef ::cv::gpu::cudev::color_detail::Gray2RGB<T, dcn> functor_type; \
+        typedef ::cv::cuda::device::color_detail::Gray2RGB<T, dcn> functor_type; \
         static __host__ __device__ __forceinline__ functor_type create_functor() \
         { \
             return functor_type(); \
@@ -385,10 +387,10 @@ namespace cv { namespace gpu { namespace cudev
         };
     }
 
-#define OPENCV_GPU_IMPLEMENT_GRAY2RGB5x5_TRAITS(name, green_bits) \
+#define OPENCV_CUDA_IMPLEMENT_GRAY2RGB5x5_TRAITS(name, green_bits) \
     struct name ## _traits \
     { \
-        typedef ::cv::gpu::cudev::color_detail::Gray2RGB5x5<green_bits> functor_type; \
+        typedef ::cv::cuda::device::color_detail::Gray2RGB5x5<green_bits> functor_type; \
         static __host__ __device__ __forceinline__ functor_type create_functor() \
         { \
             return functor_type(); \
@@ -427,10 +429,10 @@ namespace cv { namespace gpu { namespace cudev
         };
     }
 
-#define OPENCV_GPU_IMPLEMENT_RGB5x52GRAY_TRAITS(name, green_bits) \
+#define OPENCV_CUDA_IMPLEMENT_RGB5x52GRAY_TRAITS(name, green_bits) \
     struct name ## _traits \
     { \
-        typedef ::cv::gpu::cudev::color_detail::RGB5x52Gray<green_bits> functor_type; \
+        typedef ::cv::cuda::device::color_detail::RGB5x52Gray<green_bits> functor_type; \
         static __host__ __device__ __forceinline__ functor_type create_functor() \
         { \
             return functor_type(); \
@@ -478,10 +480,10 @@ namespace cv { namespace gpu { namespace cudev
         };
     }
 
-#define OPENCV_GPU_IMPLEMENT_RGB2GRAY_TRAITS(name, scn, bidx) \
+#define OPENCV_CUDA_IMPLEMENT_RGB2GRAY_TRAITS(name, scn, bidx) \
     template <typename T> struct name ## _traits \
     { \
-        typedef ::cv::gpu::cudev::color_detail::RGB2Gray<T, scn, bidx> functor_type; \
+        typedef ::cv::cuda::device::color_detail::RGB2Gray<T, scn, bidx> functor_type; \
         static __host__ __device__ __forceinline__ functor_type create_functor() \
         { \
             return functor_type(); \
@@ -529,10 +531,10 @@ namespace cv { namespace gpu { namespace cudev
         };
     }
 
-#define OPENCV_GPU_IMPLEMENT_RGB2YUV_TRAITS(name, scn, dcn, bidx) \
+#define OPENCV_CUDA_IMPLEMENT_RGB2YUV_TRAITS(name, scn, dcn, bidx) \
     template <typename T> struct name ## _traits \
     { \
-        typedef ::cv::gpu::cudev::color_detail::RGB2YUV<T, scn, dcn, bidx> functor_type; \
+        typedef ::cv::cuda::device::color_detail::RGB2YUV<T, scn, dcn, bidx> functor_type; \
         static __host__ __device__ __forceinline__ functor_type create_functor() \
         { \
             return functor_type(); \
@@ -617,10 +619,10 @@ namespace cv { namespace gpu { namespace cudev
         };
     }
 
-#define OPENCV_GPU_IMPLEMENT_YUV2RGB_TRAITS(name, scn, dcn, bidx) \
+#define OPENCV_CUDA_IMPLEMENT_YUV2RGB_TRAITS(name, scn, dcn, bidx) \
     template <typename T> struct name ## _traits \
     { \
-        typedef ::cv::gpu::cudev::color_detail::YUV2RGB<T, scn, dcn, bidx> functor_type; \
+        typedef ::cv::cuda::device::color_detail::YUV2RGB<T, scn, dcn, bidx> functor_type; \
         static __host__ __device__ __forceinline__ functor_type create_functor() \
         { \
             return functor_type(); \
@@ -696,10 +698,10 @@ namespace cv { namespace gpu { namespace cudev
         };
     }
 
-#define OPENCV_GPU_IMPLEMENT_RGB2YCrCb_TRAITS(name, scn, dcn, bidx) \
+#define OPENCV_CUDA_IMPLEMENT_RGB2YCrCb_TRAITS(name, scn, dcn, bidx) \
     template <typename T> struct name ## _traits \
     { \
-        typedef ::cv::gpu::cudev::color_detail::RGB2YCrCb<T, scn, dcn, bidx> functor_type; \
+        typedef ::cv::cuda::device::color_detail::RGB2YCrCb<T, scn, dcn, bidx> functor_type; \
         static __host__ __device__ __forceinline__ functor_type create_functor() \
         { \
             return functor_type(); \
@@ -775,10 +777,10 @@ namespace cv { namespace gpu { namespace cudev
         };
     }
 
-#define OPENCV_GPU_IMPLEMENT_YCrCb2RGB_TRAITS(name, scn, dcn, bidx) \
+#define OPENCV_CUDA_IMPLEMENT_YCrCb2RGB_TRAITS(name, scn, dcn, bidx) \
     template <typename T> struct name ## _traits \
     { \
-        typedef ::cv::gpu::cudev::color_detail::YCrCb2RGB<T, scn, dcn, bidx> functor_type; \
+        typedef ::cv::cuda::device::color_detail::YCrCb2RGB<T, scn, dcn, bidx> functor_type; \
         static __host__ __device__ __forceinline__ functor_type create_functor() \
         { \
             return functor_type(); \
@@ -851,10 +853,10 @@ namespace cv { namespace gpu { namespace cudev
         };
     }
 
-#define OPENCV_GPU_IMPLEMENT_RGB2XYZ_TRAITS(name, scn, dcn, bidx) \
+#define OPENCV_CUDA_IMPLEMENT_RGB2XYZ_TRAITS(name, scn, dcn, bidx) \
     template <typename T> struct name ## _traits \
     { \
-        typedef ::cv::gpu::cudev::color_detail::RGB2XYZ<T, scn, dcn, bidx> functor_type; \
+        typedef ::cv::cuda::device::color_detail::RGB2XYZ<T, scn, dcn, bidx> functor_type; \
         static __host__ __device__ __forceinline__ functor_type create_functor() \
         { \
             return functor_type(); \
@@ -926,10 +928,10 @@ namespace cv { namespace gpu { namespace cudev
         };
     }
 
-#define OPENCV_GPU_IMPLEMENT_XYZ2RGB_TRAITS(name, scn, dcn, bidx) \
+#define OPENCV_CUDA_IMPLEMENT_XYZ2RGB_TRAITS(name, scn, dcn, bidx) \
     template <typename T> struct name ## _traits \
     { \
-        typedef ::cv::gpu::cudev::color_detail::XYZ2RGB<T, scn, dcn, bidx> functor_type; \
+        typedef ::cv::cuda::device::color_detail::XYZ2RGB<T, scn, dcn, bidx> functor_type; \
         static __host__ __device__ __forceinline__ functor_type create_functor() \
         { \
             return functor_type(); \
@@ -1064,10 +1066,10 @@ namespace cv { namespace gpu { namespace cudev
         };
     }
 
-#define OPENCV_GPU_IMPLEMENT_RGB2HSV_TRAITS(name, scn, dcn, bidx) \
+#define OPENCV_CUDA_IMPLEMENT_RGB2HSV_TRAITS(name, scn, dcn, bidx) \
     template <typename T> struct name ## _traits \
     { \
-        typedef ::cv::gpu::cudev::color_detail::RGB2HSV<T, scn, dcn, bidx, 180> functor_type; \
+        typedef ::cv::cuda::device::color_detail::RGB2HSV<T, scn, dcn, bidx, 180> functor_type; \
         static __host__ __device__ __forceinline__ functor_type create_functor() \
         { \
             return functor_type(); \
@@ -1075,7 +1077,7 @@ namespace cv { namespace gpu { namespace cudev
     }; \
     template <typename T> struct name ## _full_traits \
     { \
-        typedef ::cv::gpu::cudev::color_detail::RGB2HSV<T, scn, dcn, bidx, 256> functor_type; \
+        typedef ::cv::cuda::device::color_detail::RGB2HSV<T, scn, dcn, bidx, 256> functor_type; \
         static __host__ __device__ __forceinline__ functor_type create_functor() \
         { \
             return functor_type(); \
@@ -1083,7 +1085,7 @@ namespace cv { namespace gpu { namespace cudev
     }; \
     template <> struct name ## _traits<float> \
     { \
-        typedef ::cv::gpu::cudev::color_detail::RGB2HSV<float, scn, dcn, bidx, 360> functor_type; \
+        typedef ::cv::cuda::device::color_detail::RGB2HSV<float, scn, dcn, bidx, 360> functor_type; \
         static __host__ __device__ __forceinline__ functor_type create_functor() \
         { \
             return functor_type(); \
@@ -1091,7 +1093,7 @@ namespace cv { namespace gpu { namespace cudev
     }; \
     template <> struct name ## _full_traits<float> \
     { \
-        typedef ::cv::gpu::cudev::color_detail::RGB2HSV<float, scn, dcn, bidx, 360> functor_type; \
+        typedef ::cv::cuda::device::color_detail::RGB2HSV<float, scn, dcn, bidx, 360> functor_type; \
         static __host__ __device__ __forceinline__ functor_type create_functor() \
         { \
             return functor_type(); \
@@ -1204,10 +1206,10 @@ namespace cv { namespace gpu { namespace cudev
         };
     }
 
-#define OPENCV_GPU_IMPLEMENT_HSV2RGB_TRAITS(name, scn, dcn, bidx) \
+#define OPENCV_CUDA_IMPLEMENT_HSV2RGB_TRAITS(name, scn, dcn, bidx) \
     template <typename T> struct name ## _traits \
     { \
-        typedef ::cv::gpu::cudev::color_detail::HSV2RGB<T, scn, dcn, bidx, 180> functor_type; \
+        typedef ::cv::cuda::device::color_detail::HSV2RGB<T, scn, dcn, bidx, 180> functor_type; \
         static __host__ __device__ __forceinline__ functor_type create_functor() \
         { \
             return functor_type(); \
@@ -1215,7 +1217,7 @@ namespace cv { namespace gpu { namespace cudev
     }; \
     template <typename T> struct name ## _full_traits \
     { \
-        typedef ::cv::gpu::cudev::color_detail::HSV2RGB<T, scn, dcn, bidx, 255> functor_type; \
+        typedef ::cv::cuda::device::color_detail::HSV2RGB<T, scn, dcn, bidx, 255> functor_type; \
         static __host__ __device__ __forceinline__ functor_type create_functor() \
         { \
             return functor_type(); \
@@ -1223,7 +1225,7 @@ namespace cv { namespace gpu { namespace cudev
     }; \
     template <> struct name ## _traits<float> \
     { \
-        typedef ::cv::gpu::cudev::color_detail::HSV2RGB<float, scn, dcn, bidx, 360> functor_type; \
+        typedef ::cv::cuda::device::color_detail::HSV2RGB<float, scn, dcn, bidx, 360> functor_type; \
         static __host__ __device__ __forceinline__ functor_type create_functor() \
         { \
             return functor_type(); \
@@ -1231,7 +1233,7 @@ namespace cv { namespace gpu { namespace cudev
     }; \
     template <> struct name ## _full_traits<float> \
     { \
-        typedef ::cv::gpu::cudev::color_detail::HSV2RGB<float, scn, dcn, bidx, 360> functor_type; \
+        typedef ::cv::cuda::device::color_detail::HSV2RGB<float, scn, dcn, bidx, 360> functor_type; \
         static __host__ __device__ __forceinline__ functor_type create_functor() \
         { \
             return functor_type(); \
@@ -1337,10 +1339,10 @@ namespace cv { namespace gpu { namespace cudev
         };
     }
 
-#define OPENCV_GPU_IMPLEMENT_RGB2HLS_TRAITS(name, scn, dcn, bidx) \
+#define OPENCV_CUDA_IMPLEMENT_RGB2HLS_TRAITS(name, scn, dcn, bidx) \
     template <typename T> struct name ## _traits \
     { \
-        typedef ::cv::gpu::cudev::color_detail::RGB2HLS<T, scn, dcn, bidx, 180> functor_type; \
+        typedef ::cv::cuda::device::color_detail::RGB2HLS<T, scn, dcn, bidx, 180> functor_type; \
         static __host__ __device__ __forceinline__ functor_type create_functor() \
         { \
             return functor_type(); \
@@ -1348,7 +1350,7 @@ namespace cv { namespace gpu { namespace cudev
     }; \
     template <typename T> struct name ## _full_traits \
     { \
-        typedef ::cv::gpu::cudev::color_detail::RGB2HLS<T, scn, dcn, bidx, 256> functor_type; \
+        typedef ::cv::cuda::device::color_detail::RGB2HLS<T, scn, dcn, bidx, 256> functor_type; \
         static __host__ __device__ __forceinline__ functor_type create_functor() \
         { \
             return functor_type(); \
@@ -1356,7 +1358,7 @@ namespace cv { namespace gpu { namespace cudev
     }; \
     template <> struct name ## _traits<float> \
     { \
-        typedef ::cv::gpu::cudev::color_detail::RGB2HLS<float, scn, dcn, bidx, 360> functor_type; \
+        typedef ::cv::cuda::device::color_detail::RGB2HLS<float, scn, dcn, bidx, 360> functor_type; \
         static __host__ __device__ __forceinline__ functor_type create_functor() \
         { \
             return functor_type(); \
@@ -1364,7 +1366,7 @@ namespace cv { namespace gpu { namespace cudev
     }; \
     template <> struct name ## _full_traits<float> \
     { \
-        typedef ::cv::gpu::cudev::color_detail::RGB2HLS<float, scn, dcn, bidx, 360> functor_type; \
+        typedef ::cv::cuda::device::color_detail::RGB2HLS<float, scn, dcn, bidx, 360> functor_type; \
         static __host__ __device__ __forceinline__ functor_type create_functor() \
         { \
             return functor_type(); \
@@ -1477,10 +1479,10 @@ namespace cv { namespace gpu { namespace cudev
         };
     }
 
-#define OPENCV_GPU_IMPLEMENT_HLS2RGB_TRAITS(name, scn, dcn, bidx) \
+#define OPENCV_CUDA_IMPLEMENT_HLS2RGB_TRAITS(name, scn, dcn, bidx) \
     template <typename T> struct name ## _traits \
     { \
-        typedef ::cv::gpu::cudev::color_detail::HLS2RGB<T, scn, dcn, bidx, 180> functor_type; \
+        typedef ::cv::cuda::device::color_detail::HLS2RGB<T, scn, dcn, bidx, 180> functor_type; \
         static __host__ __device__ __forceinline__ functor_type create_functor() \
         { \
             return functor_type(); \
@@ -1488,7 +1490,7 @@ namespace cv { namespace gpu { namespace cudev
     }; \
     template <typename T> struct name ## _full_traits \
     { \
-        typedef ::cv::gpu::cudev::color_detail::HLS2RGB<T, scn, dcn, bidx, 255> functor_type; \
+        typedef ::cv::cuda::device::color_detail::HLS2RGB<T, scn, dcn, bidx, 255> functor_type; \
         static __host__ __device__ __forceinline__ functor_type create_functor() \
         { \
             return functor_type(); \
@@ -1496,7 +1498,7 @@ namespace cv { namespace gpu { namespace cudev
     }; \
     template <> struct name ## _traits<float> \
     { \
-        typedef ::cv::gpu::cudev::color_detail::HLS2RGB<float, scn, dcn, bidx, 360> functor_type; \
+        typedef ::cv::cuda::device::color_detail::HLS2RGB<float, scn, dcn, bidx, 360> functor_type; \
         static __host__ __device__ __forceinline__ functor_type create_functor() \
         { \
             return functor_type(); \
@@ -1504,7 +1506,7 @@ namespace cv { namespace gpu { namespace cudev
     }; \
     template <> struct name ## _full_traits<float> \
     { \
-        typedef ::cv::gpu::cudev::color_detail::HLS2RGB<float, scn, dcn, bidx, 360> functor_type; \
+        typedef ::cv::cuda::device::color_detail::HLS2RGB<float, scn, dcn, bidx, 360> functor_type; \
         static __host__ __device__ __forceinline__ functor_type create_functor() \
         { \
             return functor_type(); \
@@ -1646,10 +1648,10 @@ namespace cv { namespace gpu { namespace cudev
         };
     }
 
-#define OPENCV_GPU_IMPLEMENT_RGB2Lab_TRAITS(name, scn, dcn, srgb, blueIdx) \
+#define OPENCV_CUDA_IMPLEMENT_RGB2Lab_TRAITS(name, scn, dcn, srgb, blueIdx) \
     template <typename T> struct name ## _traits \
     { \
-        typedef ::cv::gpu::cudev::color_detail::RGB2Lab<T, scn, dcn, srgb, blueIdx> functor_type; \
+        typedef ::cv::cuda::device::color_detail::RGB2Lab<T, scn, dcn, srgb, blueIdx> functor_type; \
         static __host__ __device__ __forceinline__ functor_type create_functor() \
         { \
             return functor_type(); \
@@ -1759,10 +1761,10 @@ namespace cv { namespace gpu { namespace cudev
         };
     }
 
-#define OPENCV_GPU_IMPLEMENT_Lab2RGB_TRAITS(name, scn, dcn, srgb, blueIdx) \
+#define OPENCV_CUDA_IMPLEMENT_Lab2RGB_TRAITS(name, scn, dcn, srgb, blueIdx) \
     template <typename T> struct name ## _traits \
     { \
-        typedef ::cv::gpu::cudev::color_detail::Lab2RGB<T, scn, dcn, srgb, blueIdx> functor_type; \
+        typedef ::cv::cuda::device::color_detail::Lab2RGB<T, scn, dcn, srgb, blueIdx> functor_type; \
         static __host__ __device__ __forceinline__ functor_type create_functor() \
         { \
             return functor_type(); \
@@ -1822,7 +1824,7 @@ namespace cv { namespace gpu { namespace cudev
 
             dst.x = saturate_cast<uchar>(dstf.x * 2.55f);
             dst.y = saturate_cast<uchar>(dstf.y * 0.72033898305084743f + 96.525423728813564f);
-            dst.z = saturate_cast<uchar>(dstf.z * 0.99609375f + 139.453125f);
+            dst.z = saturate_cast<uchar>(dstf.z * 0.9732824427480916f + 136.259541984732824f);
         }
 
         template <typename T, int scn, int dcn, bool srgb, int blueIdx> struct RGB2Luv;
@@ -1858,10 +1860,10 @@ namespace cv { namespace gpu { namespace cudev
         };
     }
 
-#define OPENCV_GPU_IMPLEMENT_RGB2Luv_TRAITS(name, scn, dcn, srgb, blueIdx) \
+#define OPENCV_CUDA_IMPLEMENT_RGB2Luv_TRAITS(name, scn, dcn, srgb, blueIdx) \
     template <typename T> struct name ## _traits \
     { \
-        typedef ::cv::gpu::cudev::color_detail::RGB2Luv<T, scn, dcn, srgb, blueIdx> functor_type; \
+        typedef ::cv::cuda::device::color_detail::RGB2Luv<T, scn, dcn, srgb, blueIdx> functor_type; \
         static __host__ __device__ __forceinline__ functor_type create_functor() \
         { \
             return functor_type(); \
@@ -1916,7 +1918,7 @@ namespace cv { namespace gpu { namespace cudev
 
             srcf.x = src.x * (100.f / 255.f);
             srcf.y = src.y * 1.388235294117647f - 134.f;
-            srcf.z = src.z * 1.003921568627451f - 140.f;
+            srcf.z = src.z * 1.027450980392157f - 140.f;
 
             Luv2RGBConvert_f<srgb, blueIdx>(srcf, dstf);
 
@@ -1959,10 +1961,10 @@ namespace cv { namespace gpu { namespace cudev
         };
     }
 
-#define OPENCV_GPU_IMPLEMENT_Luv2RGB_TRAITS(name, scn, dcn, srgb, blueIdx) \
+#define OPENCV_CUDA_IMPLEMENT_Luv2RGB_TRAITS(name, scn, dcn, srgb, blueIdx) \
     template <typename T> struct name ## _traits \
     { \
-        typedef ::cv::gpu::cudev::color_detail::Luv2RGB<T, scn, dcn, srgb, blueIdx> functor_type; \
+        typedef ::cv::cuda::device::color_detail::Luv2RGB<T, scn, dcn, srgb, blueIdx> functor_type; \
         static __host__ __device__ __forceinline__ functor_type create_functor() \
         { \
             return functor_type(); \
@@ -1971,6 +1973,8 @@ namespace cv { namespace gpu { namespace cudev
 
     #undef CV_DESCALE
 
-}}} // namespace cv { namespace gpu { namespace cudev
+}}} // namespace cv { namespace cuda { namespace cudev
 
-#endif // __OPENCV_GPU_COLOR_DETAIL_HPP__
+//! @endcond
+
+#endif // __OPENCV_CUDA_COLOR_DETAIL_HPP__

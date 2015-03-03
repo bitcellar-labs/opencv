@@ -4,6 +4,7 @@
  * @author OpenCV team
  */
 
+#include "opencv2/imgcodecs.hpp"
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 #include <iostream>
@@ -92,4 +93,3 @@ void thresh_callback(int, void* )
        circle( drawing, mc[i], 4, color, -1, 8, 0 );
      }
 }
-

@@ -53,16 +53,15 @@ using cv::Ptr;
 
 CvLevMarq::CvLevMarq()
 {
-    mask = prevParam = param = J = err = JtJ = JtJN = JtErr = JtJV = JtJW = Ptr<CvMat>();
     lambdaLg10 = 0; state = DONE;
     criteria = cvTermCriteria(0,0,0);
     iters = 0;
     completeSymmFlag = false;
+    errNorm = prevErrNorm = DBL_MAX;
 }
 
 CvLevMarq::CvLevMarq( int nparams, int nerrs, CvTermCriteria criteria0, bool _completeSymmFlag )
 {
-    mask = prevParam = param = J = err = JtJ = JtJN = JtErr = JtJV = JtJW = Ptr<CvMat>();
     init(nparams, nerrs, criteria0, _completeSymmFlag);
 }
 
@@ -89,21 +88,21 @@ void CvLevMarq::init( int nparams, int nerrs, CvTermCriteria criteria0, bool _co
 {
     if( !param || param->rows != nparams || nerrs != (err ? err->rows : 0) )
         clear();
-    mask = cvCreateMat( nparams, 1, CV_8U );
+    mask.reset(cvCreateMat( nparams, 1, CV_8U ));
     cvSet(mask, cvScalarAll(1));
-    prevParam = cvCreateMat( nparams, 1, CV_64F );
-    param = cvCreateMat( nparams, 1, CV_64F );
-    JtJ = cvCreateMat( nparams, nparams, CV_64F );
-    JtJN = cvCreateMat( nparams, nparams, CV_64F );
-    JtJV = cvCreateMat( nparams, nparams, CV_64F );
-    JtJW = cvCreateMat( nparams, 1, CV_64F );
-    JtErr = cvCreateMat( nparams, 1, CV_64F );
+    prevParam.reset(cvCreateMat( nparams, 1, CV_64F ));
+    param.reset(cvCreateMat( nparams, 1, CV_64F ));
+    JtJ.reset(cvCreateMat( nparams, nparams, CV_64F ));
+    JtJN.reset(cvCreateMat( nparams, nparams, CV_64F ));
+    JtJV.reset(cvCreateMat( nparams, nparams, CV_64F ));
+    JtJW.reset(cvCreateMat( nparams, 1, CV_64F ));
+    JtErr.reset(cvCreateMat( nparams, 1, CV_64F ));
     if( nerrs > 0 )
     {
-        J = cvCreateMat( nerrs, nparams, CV_64F );
-        err = cvCreateMat( nerrs, 1, CV_64F );
+        J.reset(cvCreateMat( nerrs, nparams, CV_64F ));
+        err.reset(cvCreateMat( nerrs, 1, CV_64F ));
     }
-    prevErrNorm = DBL_MAX;
+    errNorm = prevErrNorm = DBL_MAX;
     lambdaLg10 = -3;
     criteria = criteria0;
     if( criteria.type & CV_TERMCRIT_ITER )
@@ -196,7 +195,7 @@ bool CvLevMarq::updateAlt( const CvMat*& _param, CvMat*& _JtJ, CvMat*& _JtErr, d
 {
     double change;
 
-    CV_Assert( err.empty() );
+    CV_Assert( !err );
     if( state == DONE )
     {
         _param = param;
@@ -300,7 +299,8 @@ CV_IMPL int cvRANSACUpdateNumIters( double p, double ep, int modelPoints, int ma
 
 
 CV_IMPL int cvFindHomography( const CvMat* _src, const CvMat* _dst, CvMat* __H, int method,
-                              double ransacReprojThreshold, CvMat* _mask )
+                              double ransacReprojThreshold, CvMat* _mask, int maxIters,
+                              double confidence)
 {
     cv::Mat src = cv::cvarrToMat(_src), dst = cv::cvarrToMat(_dst);
 
@@ -309,9 +309,20 @@ CV_IMPL int cvFindHomography( const CvMat* _src, const CvMat* _dst, CvMat* __H, 
     if( dst.channels() == 1 && (dst.rows == 2 || dst.rows == 3) && dst.cols > 3 )
         cv::transpose(dst, dst);
 
+    if ( maxIters < 0 )
+        maxIters = 0;
+    if ( maxIters > 2000 )
+        maxIters = 2000;
+
+    if ( confidence < 0 )
+        confidence = 0;
+    if ( confidence > 1 )
+        confidence = 1;
+
     const cv::Mat H = cv::cvarrToMat(__H), mask = cv::cvarrToMat(_mask);
     cv::Mat H0 = cv::findHomography(src, dst, method, ransacReprojThreshold,
-                                    _mask ? cv::_OutputArray(mask) : cv::_OutputArray());
+                                    _mask ? cv::_OutputArray(mask) : cv::_OutputArray(), maxIters,
+                                    confidence);
 
     if( H0.empty() )
     {
@@ -428,4 +439,3 @@ CV_IMPL void cvConvertPointsHomogeneous( const CvMat* _src, CvMat* _dst )
             dst.convertTo(dst0, dst0.type());
     }
 }
-

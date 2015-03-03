@@ -22,7 +22,7 @@ if __name__ == '__main__':
     try:
         fn = sys.argv[1]
     except:
-        fn = '../cpp/fruits.jpg'
+        fn = '../data/fruits.jpg'
     print __doc__
 
     img = cv2.imread(fn, 0)
@@ -67,4 +67,3 @@ if __name__ == '__main__':
         if need_update:
             update()
     cv2.destroyAllWindows()
-

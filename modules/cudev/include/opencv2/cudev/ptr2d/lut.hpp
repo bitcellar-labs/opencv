@@ -47,11 +47,15 @@
 #define __OPENCV_CUDEV_PTR2D_LUT_HPP__
 
 #include "../common.hpp"
+#include "../util/vec_traits.hpp"
 #include "../grid/copy.hpp"
 #include "traits.hpp"
 #include "gpumat.hpp"
 
 namespace cv { namespace cudev {
+
+//! @addtogroup cudev
+//! @{
 
 template <class SrcPtr, class TablePtr> struct LutPtr
 {
@@ -63,7 +67,8 @@ template <class SrcPtr, class TablePtr> struct LutPtr
 
     __device__ __forceinline__ typename PtrTraits<TablePtr>::value_type operator ()(typename PtrTraits<SrcPtr>::index_type y, typename PtrTraits<SrcPtr>::index_type x) const
     {
-        return tbl(0, src(y, x));
+        typedef typename PtrTraits<TablePtr>::index_type tbl_index_type;
+        return tbl(VecTraits<tbl_index_type>::all(0), src(y, x));
     }
 };
 
@@ -81,8 +86,6 @@ template <class SrcPtr, class TablePtr> struct LutPtrSz : LutPtr<SrcPtr, TablePt
 template <class SrcPtr, class TablePtr>
 __host__ LutPtrSz<typename PtrTraits<SrcPtr>::ptr_type, typename PtrTraits<TablePtr>::ptr_type> lutPtr(const SrcPtr& src, const TablePtr& tbl)
 {
-    CV_Assert( getRows(tbl) == 1 );
-
     LutPtrSz<typename PtrTraits<SrcPtr>::ptr_type, typename PtrTraits<TablePtr>::ptr_type> ptr;
     ptr.src = shrinkPtr(src);
     ptr.tbl = shrinkPtr(tbl);
@@ -94,6 +97,8 @@ __host__ LutPtrSz<typename PtrTraits<SrcPtr>::ptr_type, typename PtrTraits<Table
 template <class SrcPtr, class TablePtr> struct PtrTraits< LutPtrSz<SrcPtr, TablePtr> > : PtrTraitsBase<LutPtrSz<SrcPtr, TablePtr>, LutPtr<SrcPtr, TablePtr> >
 {
 };
+
+//! @}
 
 }}
 

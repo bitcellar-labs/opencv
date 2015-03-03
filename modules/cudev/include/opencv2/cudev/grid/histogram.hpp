@@ -54,9 +54,14 @@
 
 namespace cv { namespace cudev {
 
+//! @addtogroup cudev
+//! @{
+
 template <int BIN_COUNT, class Policy, class SrcPtr, typename ResType, class MaskPtr>
 __host__ void gridHistogram_(const SrcPtr& src, GpuMat_<ResType>& dst, const MaskPtr& mask, Stream& stream = Stream::Null())
 {
+    CV_Assert( deviceSupports(SHARED_ATOMICS) );
+
     const int rows = getRows(src);
     const int cols = getCols(src);
 
@@ -75,6 +80,8 @@ __host__ void gridHistogram_(const SrcPtr& src, GpuMat_<ResType>& dst, const Mas
 template <int BIN_COUNT, class Policy, class SrcPtr, typename ResType>
 __host__ void gridHistogram_(const SrcPtr& src, GpuMat_<ResType>& dst, Stream& stream = Stream::Null())
 {
+    CV_Assert( deviceSupports(SHARED_ATOMICS) );
+
     const int rows = getRows(src);
     const int cols = getCols(src);
 
@@ -109,6 +116,8 @@ __host__ void gridHistogram(const SrcPtr& src, GpuMat_<ResType>& dst, Stream& st
 {
     gridHistogram_<BIN_COUNT, DefaultHistogramPolicy>(src, dst, stream);
 }
+
+//! @}
 
 }}
 

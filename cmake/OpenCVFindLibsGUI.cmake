@@ -5,12 +5,11 @@
 #--- Win32 UI ---
 ocv_clear_vars(HAVE_WIN32UI)
 if(WITH_WIN32UI)
-  TRY_COMPILE(HAVE_WIN32UI
-    "${OPENCV_BINARY_DIR}/CMakeFiles/CMakeTmp"
+  try_compile(HAVE_WIN32UI
+    "${OpenCV_BINARY_DIR}"
     "${OpenCV_SOURCE_DIR}/cmake/checks/win32uitest.cpp"
-    CMAKE_FLAGS "\"user32.lib\" \"gdi32.lib\""
-    OUTPUT_VARIABLE OUTPUT)
-endif(WITH_WIN32UI)
+    CMAKE_FLAGS "-DLINK_LIBRARIES:STRING=user32;gdi32")
+endif()
 
 # --- QT4 ---
 ocv_clear_vars(HAVE_QT HAVE_QT5)
@@ -40,11 +39,26 @@ if(WITH_QT)
 endif()
 
 # --- GTK ---
-ocv_clear_vars(HAVE_GTK HAVE_GTHREAD HAVE_GTKGLEXT)
+ocv_clear_vars(HAVE_GTK HAVE_GTK3 HAVE_GTHREAD HAVE_GTKGLEXT)
 if(WITH_GTK AND NOT HAVE_QT)
-  CHECK_MODULE(gtk+-2.0 HAVE_GTK)
+  if(NOT WITH_GTK_2_X)
+    CHECK_MODULE(gtk+-3.0 HAVE_GTK3)
+    if(HAVE_GTK3)
+      set(HAVE_GTK TRUE)
+    endif()
+  endif()
+  if(NOT HAVE_GTK)
+    CHECK_MODULE(gtk+-2.0 HAVE_GTK)
+    if(HAVE_GTK AND (ALIASOF_gtk+-2.0_VERSION VERSION_LESS MIN_VER_GTK))
+      message (FATAL_ERROR "GTK support requires a minimum version of ${MIN_VER_GTK} (${ALIASOF_gtk+-2.0_VERSION} found)")
+      set(HAVE_GTK FALSE)
+    endif()
+  endif()
   CHECK_MODULE(gthread-2.0 HAVE_GTHREAD)
-  if(WITH_OPENGL)
+  if(HAVE_GTK AND NOT HAVE_GTHREAD)
+    message(FATAL_ERROR "gthread not found. This library is required when building with GTK support")
+  endif()
+  if(WITH_OPENGL AND NOT HAVE_GTK3)
     CHECK_MODULE(gtkglext-1.0 HAVE_GTKGLEXT)
   endif()
 endif()
@@ -70,7 +84,7 @@ endif(WITH_OPENGL)
 if(APPLE)
   if(WITH_CARBON)
     set(HAVE_CARBON YES)
-  elseif(NOT IOS)
+  elseif(NOT IOS AND CMAKE_COMPILER_IS_CLANGCXX)
     set(HAVE_COCOA YES)
   endif()
 endif()

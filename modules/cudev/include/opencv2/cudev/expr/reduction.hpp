@@ -47,7 +47,7 @@
 #define __OPENCV_CUDEV_EXPR_REDUCTION_HPP__
 
 #include "../common.hpp"
-#include "../grid/glob_reduce.hpp"
+#include "../grid/reduce.hpp"
 #include "../grid/histogram.hpp"
 #include "../grid/integral.hpp"
 #include "../grid/reduce_to_vec.hpp"
@@ -55,6 +55,9 @@
 #include "expr.hpp"
 
 namespace cv { namespace cudev {
+
+//! @addtogroup cudev
+//! @{
 
 // sum
 
@@ -253,6 +256,8 @@ integral_(const SrcPtr& src)
     body.src = src;
     return makeExpr(body);
 }
+
+//! @}
 
 }}
 

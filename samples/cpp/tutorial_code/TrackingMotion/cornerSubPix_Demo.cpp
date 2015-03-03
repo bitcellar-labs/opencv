@@ -4,6 +4,7 @@
  * @author OpenCV team
  */
 
+#include "opencv2/imgcodecs.hpp"
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 #include <iostream>
@@ -102,4 +103,3 @@ void goodFeaturesToTrack_Demo( int, void* )
   for( size_t i = 0; i < corners.size(); i++ )
      { cout<<" -- Refined Corner ["<<i<<"]  ("<<corners[i].x<<","<<corners[i].y<<")"<<endl; }
 }
-

@@ -113,12 +113,12 @@ public:
         int d1 = m1.channels() > 1 ? m1.channels() : m1.cols;
         int d2 = m2.channels() > 1 ? m2.channels() : m2.cols;
         int count = m1.checkVector(d1), count2 = m2.checkVector(d2);
-        const int *m1ptr = (const int*)m1.data, *m2ptr = (const int*)m2.data;
+        const int *m1ptr = m1.ptr<int>(), *m2ptr = m2.ptr<int>();
 
         ms1.create(modelPoints, 1, CV_MAKETYPE(m1.depth(), d1));
         ms2.create(modelPoints, 1, CV_MAKETYPE(m2.depth(), d2));
 
-        int *ms1ptr = (int*)ms1.data, *ms2ptr = (int*)ms2.data;
+        int *ms1ptr = ms1.ptr<int>(), *ms2ptr = ms2.ptr<int>();
 
         CV_Assert( count >= modelPoints && count == count2 );
         CV_Assert( (esz1 % sizeof(int)) == 0 && (esz2 % sizeof(int)) == 0 );
@@ -171,7 +171,7 @@ public:
 
         RNG rng((uint64)-1);
 
-        CV_Assert( !cb.empty() );
+        CV_Assert( cb );
         CV_Assert( confidence > 0 && confidence < 1 );
 
         CV_Assert( count >= 0 && count2 == count );
@@ -256,11 +256,8 @@ public:
 
     void setCallback(const Ptr<PointSetRegistrator::Callback>& _cb) { cb = _cb; }
 
-    AlgorithmInfo* info() const;
-
     Ptr<PointSetRegistrator::Callback> cb;
     int modelPoints;
-    int maxBasicSolutions;
     bool checkPartialSubsets;
     double threshold;
     double confidence;
@@ -288,7 +285,7 @@ public:
 
         RNG rng((uint64)-1);
 
-        CV_Assert( !cb.empty() );
+        CV_Assert( cb );
         CV_Assert( confidence > 0 && confidence < 1 );
 
         CV_Assert( count >= 0 && count2 == count );
@@ -344,7 +341,7 @@ public:
                 else
                     errf = err;
                 CV_Assert( errf.isContinuous() && errf.type() == CV_32F && (int)errf.total() == count );
-                std::sort((int*)errf.data, (int*)errf.data + count);
+                std::sort(errf.ptr<int>(), errf.ptr<int>() + count);
 
                 double median = count % 2 != 0 ?
                 errf.at<float>(count/2) : (errf.at<float>(count/2-1) + errf.at<float>(count/2))*0.5;
@@ -379,34 +376,24 @@ public:
         return result;
     }
 
-    AlgorithmInfo* info() const;
 };
-
-
-CV_INIT_ALGORITHM(RANSACPointSetRegistrator, "PointSetRegistrator.RANSAC",
-                  obj.info()->addParam(obj, "threshold", obj.threshold);
-                  obj.info()->addParam(obj, "confidence", obj.confidence);
-                  obj.info()->addParam(obj, "maxIters", obj.maxIters));
-
-CV_INIT_ALGORITHM(LMeDSPointSetRegistrator, "PointSetRegistrator.LMeDS",
-                  obj.info()->addParam(obj, "confidence", obj.confidence);
-                  obj.info()->addParam(obj, "maxIters", obj.maxIters));
 
 Ptr<PointSetRegistrator> createRANSACPointSetRegistrator(const Ptr<PointSetRegistrator::Callback>& _cb,
                                                          int _modelPoints, double _threshold,
                                                          double _confidence, int _maxIters)
 {
-    CV_Assert( !RANSACPointSetRegistrator_info_auto.name().empty() );
-    return new RANSACPointSetRegistrator(_cb, _modelPoints, _threshold, _confidence, _maxIters);
+    return Ptr<PointSetRegistrator>(
+        new RANSACPointSetRegistrator(_cb, _modelPoints, _threshold, _confidence, _maxIters));
 }
 
 
 Ptr<PointSetRegistrator> createLMeDSPointSetRegistrator(const Ptr<PointSetRegistrator::Callback>& _cb,
                              int _modelPoints, double _confidence, int _maxIters)
 {
-    CV_Assert( !LMeDSPointSetRegistrator_info_auto.name().empty() );
-    return new LMeDSPointSetRegistrator(_cb, _modelPoints, _confidence, _maxIters);
+    return Ptr<PointSetRegistrator>(
+        new LMeDSPointSetRegistrator(_cb, _modelPoints, _confidence, _maxIters));
 }
+
 
 class Affine3DEstimatorCallback : public PointSetRegistrator::Callback
 {
@@ -532,6 +519,5 @@ int cv::estimateAffine3D(InputArray _from, InputArray _to,
     param1 = param1 <= 0 ? 3 : param1;
     param2 = (param2 < epsilon) ? 0.99 : (param2 > 1 - epsilon) ? 0.99 : param2;
 
-    return createRANSACPointSetRegistrator(new Affine3DEstimatorCallback, 4, param1, param2)->run(dFrom, dTo, _out, _inliers);
+    return createRANSACPointSetRegistrator(makePtr<Affine3DEstimatorCallback>(), 4, param1, param2)->run(dFrom, dTo, _out, _inliers);
 }
-

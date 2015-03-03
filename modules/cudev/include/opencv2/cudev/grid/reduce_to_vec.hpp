@@ -49,6 +49,7 @@
 #include "../common.hpp"
 #include "../util/vec_traits.hpp"
 #include "../util/limits.hpp"
+#include "../util/saturate_cast.hpp"
 #include "../ptr2d/traits.hpp"
 #include "../ptr2d/gpumat.hpp"
 #include "../ptr2d/mask.hpp"
@@ -58,9 +59,17 @@
 
 namespace cv { namespace cudev {
 
+//! @addtogroup cudev
+//! @{
+
 template <typename T> struct Sum : plus<T>
 {
     typedef T work_type;
+
+    template <typename U> struct rebind
+    {
+        typedef Sum<U> other;
+    };
 
     __device__ __forceinline__ static T initialValue()
     {
@@ -77,20 +86,30 @@ template <typename T> struct Avg : plus<T>
 {
     typedef T work_type;
 
+    template <typename U> struct rebind
+    {
+        typedef Avg<U> other;
+    };
+
     __device__ __forceinline__ static T initialValue()
     {
         return VecTraits<T>::all(0);
     }
 
-    __device__ __forceinline__ static T result(T r, int sz)
+    __device__ __forceinline__ static T result(T r, float sz)
     {
-        return r / sz;
+        return saturate_cast<T>(r / sz);
     }
 };
 
 template <typename T> struct Min : minimum<T>
 {
     typedef T work_type;
+
+    template <typename U> struct rebind
+    {
+        typedef Min<U> other;
+    };
 
     __device__ __forceinline__ static T initialValue()
     {
@@ -106,6 +125,11 @@ template <typename T> struct Min : minimum<T>
 template <typename T> struct Max : maximum<T>
 {
     typedef T work_type;
+
+    template <typename U> struct rebind
+    {
+        typedef Max<U> other;
+    };
 
     __device__ __forceinline__ static T initialValue()
     {
@@ -158,7 +182,7 @@ __host__ void gridReduceToColumn_(const SrcPtr& src, GpuMat_<ResType>& dst, cons
 
     CV_Assert( getRows(mask) == rows && getCols(mask) == cols );
 
-    createContinuous(rows, 1, DataType<ResType>::type, dst);
+    dst.create(1, rows);
 
     grid_reduce_to_vec_detail::reduceToColumn<Reductor, Policy>(shrinkPtr(src),
                                                                 dst[0],
@@ -173,7 +197,7 @@ __host__ void gridReduceToColumn_(const SrcPtr& src, GpuMat_<ResType>& dst, Stre
     const int rows = getRows(src);
     const int cols = getCols(src);
 
-    createContinuous(rows, 1, DataType<ResType>::type, dst);
+    dst.create(1, rows);
 
     grid_reduce_to_vec_detail::reduceToColumn<Reductor, Policy>(shrinkPtr(src),
                                                                 dst[0],
@@ -203,6 +227,8 @@ __host__ void gridReduceToColumn(const SrcPtr& src, GpuMat_<ResType>& dst, Strea
 {
     gridReduceToColumn_<Reductor, DefaultReduceToVecPolicy>(src, dst, stream);
 }
+
+//! @}
 
 }}
 

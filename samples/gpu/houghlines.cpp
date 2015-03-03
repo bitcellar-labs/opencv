@@ -5,22 +5,22 @@
 #include <opencv2/core/utility.hpp>
 #include "opencv2/highgui.hpp"
 #include "opencv2/imgproc.hpp"
-#include "opencv2/gpu.hpp"
+#include "opencv2/cudaimgproc.hpp"
 
 using namespace std;
 using namespace cv;
-using namespace cv::gpu;
+using namespace cv::cuda;
 
 static void help()
 {
     cout << "This program demonstrates line finding with the Hough transform." << endl;
     cout << "Usage:" << endl;
-    cout << "./gpu-example-houghlines <image_name>, Default is pic1.png\n" << endl;
+    cout << "./gpu-example-houghlines <image_name>, Default is ../data/pic1.png\n" << endl;
 }
 
 int main(int argc, const char* argv[])
 {
-    const string filename = argc >= 2 ? argv[1] : "pic1.png";
+    const string filename = argc >= 2 ? argv[1] : "../data/pic1.png";
 
     Mat src = imread(filename, IMREAD_GRAYSCALE);
     if (src.empty())
@@ -59,7 +59,7 @@ int main(int argc, const char* argv[])
     {
         const int64 start = getTickCount();
 
-        Ptr<gpu::HoughSegmentDetector> hough = gpu::createHoughSegmentDetector(1.0f, (float) (CV_PI / 180.0f), 50, 5);
+        Ptr<cuda::HoughSegmentDetector> hough = cuda::createHoughSegmentDetector(1.0f, (float) (CV_PI / 180.0f), 50, 5);
 
         hough->detect(d_src, d_lines);
 
@@ -88,4 +88,3 @@ int main(int argc, const char* argv[])
 
     return 0;
 }
-

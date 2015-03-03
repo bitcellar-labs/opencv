@@ -51,6 +51,9 @@
 
 namespace cv { namespace cudev {
 
+//! @addtogroup cudev
+//! @{
+
 // saturate_cast
 
 namespace vec_math_detail
@@ -194,10 +197,23 @@ CV_CUDEV_IMPLEMENT_VEC_UNARY_OP(~, uint, uint)
         return VecTraits<output_type ## 4>::make(func (a.x), func (a.y), func (a.z), func (a.w)); \
     }
 
+namespace vec_math_detail
+{
+    __device__ __forceinline__ schar abs_(schar val)
+    {
+        return (schar) ::abs((int) val);
+    }
+
+    __device__ __forceinline__ short abs_(short val)
+    {
+        return (short) ::abs((int) val);
+    }
+}
+
 CV_CUDEV_IMPLEMENT_VEC_UNARY_FUNC(abs, /*::abs*/, uchar, uchar)
-CV_CUDEV_IMPLEMENT_VEC_UNARY_FUNC(abs, ::abs, char, char)
+CV_CUDEV_IMPLEMENT_VEC_UNARY_FUNC(abs, vec_math_detail::abs_, char, char)
 CV_CUDEV_IMPLEMENT_VEC_UNARY_FUNC(abs, /*::abs*/, ushort, ushort)
-CV_CUDEV_IMPLEMENT_VEC_UNARY_FUNC(abs, ::abs, short, short)
+CV_CUDEV_IMPLEMENT_VEC_UNARY_FUNC(abs, vec_math_detail::abs_, short, short)
 CV_CUDEV_IMPLEMENT_VEC_UNARY_FUNC(abs, ::abs, int, int)
 CV_CUDEV_IMPLEMENT_VEC_UNARY_FUNC(abs, /*::abs*/, uint, uint)
 CV_CUDEV_IMPLEMENT_VEC_UNARY_FUNC(abs, ::fabsf, float, float)
@@ -917,6 +933,8 @@ CV_CUDEV_IMPLEMENT_SCALAR_BINARY_FUNC(atan2, ::atan2, float, double, double)
 CV_CUDEV_IMPLEMENT_SCALAR_BINARY_FUNC(atan2, ::atan2, double, double, double)
 
 #undef CV_CUDEV_IMPLEMENT_SCALAR_BINARY_FUNC
+
+//! @}
 
 }}
 

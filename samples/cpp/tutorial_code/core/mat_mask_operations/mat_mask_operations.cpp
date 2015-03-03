@@ -1,5 +1,6 @@
 #include <opencv2/core.hpp>
 #include <opencv2/core/utility.hpp>
+#include <opencv2/imgcodecs.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 #include <iostream>
@@ -13,7 +14,7 @@ static void help(char* progName)
         <<  "This program shows how to filter images with mask: the write it yourself and the"
         << "filter2d way. " << endl
         <<  "Usage:"                                                                        << endl
-        << progName << " [image_name -- default lena.jpg] [G -- grayscale] "        << endl << endl;
+        << progName << " [image_name -- default ../data/lena.jpg] [G -- grayscale] "        << endl << endl;
 }
 
 
@@ -22,7 +23,7 @@ void Sharpen(const Mat& myImage,Mat& Result);
 int main( int argc, char* argv[])
 {
     help(argv[0]);
-    const char* filename = argc >=2 ? argv[1] : "lena.jpg";
+    const char* filename = argc >=2 ? argv[1] : "../data/lena.jpg";
 
     Mat I, J, K;
 
@@ -43,7 +44,7 @@ int main( int argc, char* argv[])
     cout << "Hand written function times passed in seconds: " << t << endl;
 
     imshow("Output", J);
-    waitKey();
+    waitKey(0);
 
     Mat kern = (Mat_<char>(3,3) <<  0, -1,  0,
                                    -1,  5, -1,
@@ -55,7 +56,7 @@ int main( int argc, char* argv[])
 
     imshow("Output", K);
 
-    waitKey();
+    waitKey(0);
     return 0;
 }
 void Sharpen(const Mat& myImage,Mat& Result)

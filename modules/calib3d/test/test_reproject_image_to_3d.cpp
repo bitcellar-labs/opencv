@@ -142,7 +142,7 @@ protected:
                 Mat_<double> res = Q * Mat_<double>(4, 1, from);
                 res /= res(3, 0);
 
-                out3d_t pixel_exp = *(Vec3d*)res.data;
+                out3d_t pixel_exp = *res.ptr<Vec3d>();
                 out3d_t pixel_out = _3dImg(y, x);
 
                 const int largeZValue = 10000; /* see documentation */
@@ -173,4 +173,3 @@ protected:
 };
 
 TEST(Calib3d_ReprojectImageTo3D, accuracy) { CV_ReprojectImageTo3DTest test; test.safe_run(); }
-

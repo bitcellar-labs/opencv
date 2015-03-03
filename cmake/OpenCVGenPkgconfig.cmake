@@ -37,6 +37,7 @@ ocv_list_reverse(OpenCV_EXTRA_COMPONENTS)
 #build the list of components
 set(OpenCV_LIB_COMPONENTS_ "")
 foreach(CVLib ${OpenCV_LIB_COMPONENTS})
+  if (TARGET ${CVLib})
   get_target_property(libpath ${CVLib} LOCATION_${CMAKE_BUILD_TYPE})
   get_filename_component(libname "${libpath}" NAME)
 
@@ -52,13 +53,23 @@ foreach(CVLib ${OpenCV_LIB_COMPONENTS})
   endif()
 
   set(OpenCV_LIB_COMPONENTS_ "${OpenCV_LIB_COMPONENTS_} \${exec_prefix}/${installDir}/${libname}")
+  endif()
 endforeach()
 
 # add extra dependencies required for OpenCV
 set(OpenCV_LIB_COMPONENTS ${OpenCV_LIB_COMPONENTS_})
 if(OpenCV_EXTRA_COMPONENTS)
-  string(REPLACE ";" " " OpenCV_EXTRA_COMPONENTS "${OpenCV_EXTRA_COMPONENTS}")
-  set(OpenCV_LIB_COMPONENTS "${OpenCV_LIB_COMPONENTS} ${OpenCV_EXTRA_COMPONENTS}")
+  foreach(extra_component ${OpenCV_EXTRA_COMPONENTS})
+
+    if(extra_component MATCHES "^-[lL]" OR extra_component MATCHES "[\\/]")
+      set(maybe_l_prefix "")
+    else()
+      set(maybe_l_prefix "-l")
+    endif()
+
+    set(OpenCV_LIB_COMPONENTS "${OpenCV_LIB_COMPONENTS} ${maybe_l_prefix}${extra_component}")
+
+  endforeach()
 endif()
 
 #generate the .pc file
@@ -67,8 +78,10 @@ if(INSTALL_TO_MANGLED_PATHS)
 else()
   set(OPENCV_PC_FILE_NAME opencv.pc)
 endif()
-configure_file("${OpenCV_SOURCE_DIR}/cmake/templates/opencv-XXX.pc.cmake.in" "${CMAKE_BINARY_DIR}/unix-install/${OPENCV_PC_FILE_NAME}" @ONLY IMMEDIATE)
+configure_file("${OpenCV_SOURCE_DIR}/cmake/templates/opencv-XXX.pc.in"
+               "${CMAKE_BINARY_DIR}/unix-install/${OPENCV_PC_FILE_NAME}"
+               @ONLY)
 
 if(UNIX AND NOT ANDROID)
-  install(FILES ${CMAKE_BINARY_DIR}/unix-install/${OPENCV_PC_FILE_NAME} DESTINATION ${OPENCV_LIB_INSTALL_PATH}/pkgconfig)
+  install(FILES ${CMAKE_BINARY_DIR}/unix-install/${OPENCV_PC_FILE_NAME} DESTINATION ${OPENCV_LIB_INSTALL_PATH}/pkgconfig COMPONENT dev)
 endif()

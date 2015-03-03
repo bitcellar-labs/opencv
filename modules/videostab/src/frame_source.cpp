@@ -45,8 +45,8 @@
 #include "opencv2/videostab/ring_buffer.hpp"
 
 #include "opencv2/opencv_modules.hpp"
-#ifdef HAVE_OPENCV_HIGHGUI
-#  include "opencv2/highgui.hpp"
+#ifdef HAVE_OPENCV_VIDEOIO
+#  include "opencv2/videoio.hpp"
 #endif
 
 namespace cv
@@ -64,26 +64,26 @@ public:
 
     virtual void reset()
     {
-#ifdef HAVE_OPENCV_HIGHGUI
+#ifdef HAVE_OPENCV_VIDEOIO
         vc.release();
         vc.open(path_);
         if (!vc.isOpened())
             CV_Error(0, "can't open file: " + path_);
 #else
-        CV_Error(CV_StsNotImplemented, "OpenCV has been compiled without video I/O support");
+        CV_Error(Error::StsNotImplemented, "OpenCV has been compiled without video I/O support");
 #endif
     }
 
     virtual Mat nextFrame()
     {
         Mat frame;
-#ifdef HAVE_OPENCV_HIGHGUI
+#ifdef HAVE_OPENCV_VIDEOIO
         vc >> frame;
 #endif
         return volatileFrame_ ? frame : frame.clone();
     }
 
-#ifdef HAVE_OPENCV_HIGHGUI
+#ifdef HAVE_OPENCV_VIDEOIO
     int width() {return static_cast<int>(vc.get(CAP_PROP_FRAME_WIDTH));}
     int height() {return static_cast<int>(vc.get(CAP_PROP_FRAME_HEIGHT));}
     int count() {return static_cast<int>(vc.get(CAP_PROP_FRAME_COUNT));}
@@ -98,7 +98,7 @@ public:
 private:
     String path_;
     bool volatileFrame_;
-#ifdef HAVE_OPENCV_HIGHGUI
+#ifdef HAVE_OPENCV_VIDEOIO
     VideoCapture vc;
 #endif
 };
@@ -111,10 +111,10 @@ VideoFileSource::VideoFileSource(const String &path, bool volatileFrame)
 void VideoFileSource::reset() { impl->reset(); }
 Mat VideoFileSource::nextFrame() { return impl->nextFrame(); }
 
-int VideoFileSource::width() { return ((VideoFileSourceImpl*)impl.obj)->width(); }
-int VideoFileSource::height() { return ((VideoFileSourceImpl*)impl.obj)->height(); }
-int VideoFileSource::count() { return ((VideoFileSourceImpl*)impl.obj)->count(); }
-double VideoFileSource::fps() { return ((VideoFileSourceImpl*)impl.obj)->fps(); }
+int VideoFileSource::width() { return ((VideoFileSourceImpl*)impl.get())->width(); }
+int VideoFileSource::height() { return ((VideoFileSourceImpl*)impl.get())->height(); }
+int VideoFileSource::count() { return ((VideoFileSourceImpl*)impl.get())->count(); }
+double VideoFileSource::fps() { return ((VideoFileSourceImpl*)impl.get())->fps(); }
 
 } // namespace videostab
 } // namespace cv

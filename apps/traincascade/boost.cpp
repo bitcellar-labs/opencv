@@ -1,4 +1,31 @@
 #include "opencv2/core.hpp"
+#include "opencv2/core/utility.hpp"
+
+using cv::Size;
+using cv::Mat;
+using cv::Point;
+using cv::FileStorage;
+using cv::Rect;
+using cv::Ptr;
+using cv::FileNode;
+using cv::Mat_;
+using cv::Range;
+using cv::FileNodeIterator;
+using cv::ParallelLoopBody;
+
+
+using cv::Size;
+using cv::Mat;
+using cv::Point;
+using cv::FileStorage;
+using cv::Rect;
+using cv::Ptr;
+using cv::FileNode;
+using cv::Mat_;
+using cv::Range;
+using cv::FileNodeIterator;
+using cv::ParallelLoopBody;
+
 
 #include "boost.h"
 #include "cascadeclassifier.h"
@@ -876,7 +903,7 @@ struct FeatureValAndIdxPrecalc : ParallelLoopBody
                     *(idst + fi*sample_count + si) = si;
             }
             if ( is_buf_16u )
-                std::sort(idst + fi*sample_count, idst + (fi + 1)*sample_count, LessThanIdx<float, unsigned short>(valCache->ptr<float>(fi)) );
+                std::sort(udst + fi*sample_count, udst + (fi + 1)*sample_count, LessThanIdx<float, unsigned short>(valCache->ptr<float>(fi)) );
             else
                 std::sort(idst + fi*sample_count, idst + (fi + 1)*sample_count, LessThanIdx<float, int>(valCache->ptr<float>(fi)) );
         }
@@ -957,7 +984,7 @@ void CvCascadeBoostTree::write( FileStorage &fs, const Mat& featureMap )
     int subsetN = (maxCatCount + 31)/32;
     queue<CvDTreeNode*> internalNodesQueue;
     int size = (int)pow( 2.f, (float)ensemble->get_params().max_depth);
-    Ptr<float> leafVals = new float[size];
+    std::vector<float> leafVals(size);
     int leafValIdx = 0;
     int internalNodeIdx = 1;
     CvDTreeNode* tempNode;

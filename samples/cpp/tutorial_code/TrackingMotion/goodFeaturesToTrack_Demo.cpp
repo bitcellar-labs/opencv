@@ -4,6 +4,7 @@
  * @author OpenCV team
  */
 
+#include "opencv2/imgcodecs.hpp"
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 #include <iostream>
@@ -90,4 +91,3 @@ void goodFeaturesToTrack_Demo( int, void* )
   namedWindow( source_window, WINDOW_AUTOSIZE );
   imshow( source_window, copy );
 }
-

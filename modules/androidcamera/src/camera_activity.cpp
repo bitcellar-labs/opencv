@@ -272,7 +272,7 @@ void CameraWrapperConnector::fillListWrapperLibs(const cv::String& folderPath, s
 
 cv::String CameraWrapperConnector::getDefaultPathLibFolder()
 {
-    #define BIN_PACKAGE_NAME(x) "org.opencv.lib_v" CVAUX_STR(CV_VERSION_EPOCH) CVAUX_STR(CV_VERSION_MAJOR) "_" x
+    #define BIN_PACKAGE_NAME(x) "org.opencv.lib_v" CVAUX_STR(CV_VERSION_MAJOR) CVAUX_STR(CV_VERSION_MINOR) "_" x
     const char* const packageList[] = {BIN_PACKAGE_NAME("armv7a"), OPENCV_ENGINE_PACKAGE};
     for (size_t i = 0; i < sizeof(packageList)/sizeof(packageList[0]); i++)
     {
@@ -309,13 +309,13 @@ cv::String CameraWrapperConnector::getPathLibFolder()
 
         const char* libName=dl_info.dli_fname;
         while( ((*libName)=='/') || ((*libName)=='.') )
-        libName++;
+            libName++;
 
-        char lineBuf[2048];
         FILE* file = fopen("/proc/self/smaps", "rt");
 
         if(file)
         {
+            char lineBuf[2048];
             while (fgets(lineBuf, sizeof lineBuf, file) != NULL)
             {
                 //verify that line ends with library name

@@ -40,12 +40,18 @@
 //
 //M*/
 
-#ifndef __OPENCV_GPU_TYPE_TRAITS_HPP__
-#define __OPENCV_GPU_TYPE_TRAITS_HPP__
+#ifndef __OPENCV_CUDA_TYPE_TRAITS_HPP__
+#define __OPENCV_CUDA_TYPE_TRAITS_HPP__
 
 #include "detail/type_traits_detail.hpp"
 
-namespace cv { namespace gpu { namespace cudev
+/** @file
+ * @deprecated Use @ref cudev instead.
+ */
+
+//! @cond IGNORED
+
+namespace cv { namespace cuda { namespace device
 {
     template <typename T> struct IsSimpleParameter
     {
@@ -79,4 +85,6 @@ namespace cv { namespace gpu { namespace cudev
     };
 }}}
 
-#endif // __OPENCV_GPU_TYPE_TRAITS_HPP__
+//! @endcond
+
+#endif // __OPENCV_CUDA_TYPE_TRAITS_HPP__

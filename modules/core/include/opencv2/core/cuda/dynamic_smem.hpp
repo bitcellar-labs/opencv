@@ -40,10 +40,16 @@
 //
 //M*/
 
-#ifndef __OPENCV_GPU_DYNAMIC_SMEM_HPP__
-#define __OPENCV_GPU_DYNAMIC_SMEM_HPP__
+#ifndef __OPENCV_CUDA_DYNAMIC_SMEM_HPP__
+#define __OPENCV_CUDA_DYNAMIC_SMEM_HPP__
 
-namespace cv { namespace gpu { namespace cudev
+/** @file
+ * @deprecated Use @ref cudev instead.
+ */
+
+//! @cond IGNORED
+
+namespace cv { namespace cuda { namespace device
 {
     template<class T> struct DynamicSharedMem
     {
@@ -77,4 +83,6 @@ namespace cv { namespace gpu { namespace cudev
     };
 }}}
 
-#endif // __OPENCV_GPU_DYNAMIC_SMEM_HPP__
+//! @endcond
+
+#endif // __OPENCV_CUDA_DYNAMIC_SMEM_HPP__

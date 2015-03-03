@@ -50,6 +50,9 @@
 
 namespace cv { namespace cudev {
 
+//! @addtogroup cudev
+//! @{
+
 // atomicAdd
 
 __device__ __forceinline__ int atomicAdd(int* address, int val)
@@ -64,11 +67,23 @@ __device__ __forceinline__ uint atomicAdd(uint* address, uint val)
 
 __device__ __forceinline__ float atomicAdd(float* address, float val)
 {
+#if CV_CUDEV_ARCH >= 200
     return ::atomicAdd(address, val);
+#else
+    int* address_as_i = (int*) address;
+    int old = *address_as_i, assumed;
+    do {
+        assumed = old;
+        old = ::atomicCAS(address_as_i, assumed,
+            __float_as_int(val + __int_as_float(assumed)));
+    } while (assumed != old);
+    return __int_as_float(old);
+#endif
 }
 
 __device__ static double atomicAdd(double* address, double val)
 {
+#if CV_CUDEV_ARCH >= 130
     unsigned long long int* address_as_ull = (unsigned long long int*) address;
     unsigned long long int old = *address_as_ull, assumed;
     do {
@@ -77,6 +92,11 @@ __device__ static double atomicAdd(double* address, double val)
             __double_as_longlong(val + __longlong_as_double(assumed)));
     } while (assumed != old);
     return __longlong_as_double(old);
+#else
+    (void) address;
+    (void) val;
+    return 0.0;
+#endif
 }
 
 // atomicMin
@@ -93,6 +113,7 @@ __device__ __forceinline__ uint atomicMin(uint* address, uint val)
 
 __device__ static float atomicMin(float* address, float val)
 {
+#if CV_CUDEV_ARCH >= 120
     int* address_as_i = (int*) address;
     int old = *address_as_i, assumed;
     do {
@@ -101,10 +122,16 @@ __device__ static float atomicMin(float* address, float val)
             __float_as_int(::fminf(val, __int_as_float(assumed))));
     } while (assumed != old);
     return __int_as_float(old);
+#else
+    (void) address;
+    (void) val;
+    return 0.0f;
+#endif
 }
 
 __device__ static double atomicMin(double* address, double val)
 {
+#if CV_CUDEV_ARCH >= 130
     unsigned long long int* address_as_ull = (unsigned long long int*) address;
     unsigned long long int old = *address_as_ull, assumed;
     do {
@@ -113,6 +140,11 @@ __device__ static double atomicMin(double* address, double val)
             __double_as_longlong(::fmin(val, __longlong_as_double(assumed))));
     } while (assumed != old);
     return __longlong_as_double(old);
+#else
+    (void) address;
+    (void) val;
+    return 0.0;
+#endif
 }
 
 // atomicMax
@@ -129,6 +161,7 @@ __device__ __forceinline__ uint atomicMax(uint* address, uint val)
 
 __device__ static float atomicMax(float* address, float val)
 {
+#if CV_CUDEV_ARCH >= 120
     int* address_as_i = (int*) address;
     int old = *address_as_i, assumed;
     do {
@@ -137,10 +170,16 @@ __device__ static float atomicMax(float* address, float val)
             __float_as_int(::fmaxf(val, __int_as_float(assumed))));
     } while (assumed != old);
     return __int_as_float(old);
+#else
+    (void) address;
+    (void) val;
+    return 0.0f;
+#endif
 }
 
 __device__ static double atomicMax(double* address, double val)
 {
+#if CV_CUDEV_ARCH >= 130
     unsigned long long int* address_as_ull = (unsigned long long int*) address;
     unsigned long long int old = *address_as_ull, assumed;
     do {
@@ -149,7 +188,14 @@ __device__ static double atomicMax(double* address, double val)
             __double_as_longlong(::fmax(val, __longlong_as_double(assumed))));
     } while (assumed != old);
     return __longlong_as_double(old);
+#else
+    (void) address;
+    (void) val;
+    return 0.0;
+#endif
 }
+
+//! @}
 
 }}
 

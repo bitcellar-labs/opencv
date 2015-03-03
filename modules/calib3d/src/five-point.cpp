@@ -61,7 +61,7 @@ public:
         Mat EE = Mat(Vt.t()).colRange(5, 9) * 1.0;
         Mat A(10, 20, CV_64F);
         EE = EE.t();
-        getCoeffMat((double*)EE.data, (double*)A.data);
+        getCoeffMat(EE.ptr<double>(), A.ptr<double>());
         EE = EE.t();
 
         A = A.colRange(0, 10).inv() * A.colRange(10, 20);
@@ -137,7 +137,7 @@ public:
             cv::Mat Evec = EE.col(0) * xs.back() + EE.col(1) * ys.back() + EE.col(2) * zs.back() + EE.col(3);
             Evec /= norm(Evec);
 
-            memcpy(e + count * 9, Evec.data, 9 * sizeof(double));
+            memcpy(e + count * 9, Evec.ptr(), 9 * sizeof(double));
             count++;
         }
 
@@ -436,9 +436,9 @@ cv::Mat cv::findEssentialMat( InputArray _points1, InputArray _points2, double f
 
     Mat E;
     if( method == RANSAC )
-        createRANSACPointSetRegistrator(new EMEstimatorCallback, 5, threshold, prob)->run(points1, points2, E, _mask);
+        createRANSACPointSetRegistrator(makePtr<EMEstimatorCallback>(), 5, threshold, prob)->run(points1, points2, E, _mask);
     else
-        createLMeDSPointSetRegistrator(new EMEstimatorCallback, 5, prob)->run(points1, points2, E, _mask);
+        createLMeDSPointSetRegistrator(makePtr<EMEstimatorCallback>(), 5, prob)->run(points1, points2, E, _mask);
 
     return E;
 }
@@ -529,16 +529,16 @@ int cv::recoverPose( InputArray E, InputArray _points1, InputArray _points2, Out
     mask4 = (Q.row(2) > 0) & mask4;
     mask4 = (Q.row(2) < dist) & mask4;
 
-    mask1 = mask1.t(); 
-    mask2 = mask2.t(); 
-    mask3 = mask3.t(); 
-    mask4 = mask4.t(); 
+    mask1 = mask1.t();
+    mask2 = mask2.t();
+    mask3 = mask3.t();
+    mask4 = mask4.t();
 
     // If _mask is given, then use it to filter outliers.
     if (!_mask.empty())
     {
         Mat mask = _mask.getMat();
-        CV_Assert(mask.size() == mask1.size()); 
+        CV_Assert(mask.size() == mask1.size());
         bitwise_and(mask, mask1, mask1);
         bitwise_and(mask, mask2, mask2);
         bitwise_and(mask, mask3, mask3);
@@ -546,7 +546,7 @@ int cv::recoverPose( InputArray E, InputArray _points1, InputArray _points2, Out
     }
     if (_mask.empty() && _mask.needed())
     {
-        _mask.create(mask1.size(), CV_8U); 
+        _mask.create(mask1.size(), CV_8U);
     }
 
     CV_Assert(_R.needed() && _t.needed());

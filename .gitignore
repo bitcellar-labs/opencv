@@ -1,11 +1,10 @@
+*.autosave
 *.pyc
-.DS_Store
-refman.rst
-OpenCV4Tegra/
-tegra/
 *.user
-.sw[a-z]
+*~
 .*.swp
-tags
-build/
+.DS_Store
+.sw[a-z]
 Thumbs.db
+tags
+tegra/

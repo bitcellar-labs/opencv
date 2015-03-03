@@ -149,7 +149,7 @@ if(WITH_JASPER)
 endif()
 
 # --- libpng (optional, should be searched after zlib) ---
-if(WITH_PNG AND NOT IOS)
+if(WITH_PNG)
   if(BUILD_PNG)
     ocv_clear_vars(PNG_FOUND)
   else()
@@ -197,4 +197,16 @@ if(WITH_OPENEXR)
   endif()
 
   set(HAVE_OPENEXR YES)
+endif()
+
+# --- GDAL (optional) ---
+if(WITH_GDAL)
+    find_package(GDAL)
+
+    if(NOT GDAL_FOUND)
+        ocv_clear_vars(GDAL_LIBRARY GDAL_INCLUDE_DIR)
+        set(HAVE_GDAL NO)
+    else()
+        set(HAVE_GDAL YES)
+    endif()
 endif()
