@@ -10,8 +10,10 @@
 //                           License Agreement
 //                For Open Source Computer Vision Library
 //
-// Copyright (C) 2000-2008, Intel Corporation, all rights reserved.
+// Copyright (C) 2000-2015, Intel Corporation, all rights reserved.
 // Copyright (C) 2009-2011, Willow Garage Inc., all rights reserved.
+// Copyright (C) 2015, OpenCV Foundation, all rights reserved.
+// Copyright (C) 2015, Itseez Inc., all rights reserved.
 // Third party copyrights are property of their respective owners.
 //
 // Redistribution and use in source and binary forms, with or without modification,
@@ -517,7 +519,7 @@ The function LUT fills the output array with values from the look-up table. Indi
 are taken from the input array. That is, the function processes each element of src as follows:
 \f[\texttt{dst} (I)  \leftarrow \texttt{lut(src(I) + d)}\f]
 where
-\f[d =  \fork{0}{if \texttt{src} has depth \texttt{CV\_8U}}{128}{if \texttt{src} has depth \texttt{CV\_8S}}\f]
+\f[d =  \fork{0}{if \(\texttt{src}\) has depth \(\texttt{CV_8U}\)}{128}{if \(\texttt{src}\) has depth \(\texttt{CV_8S}\)}\f]
 @param src input array of 8-bit elements.
 @param lut look-up table of 256 elements; in case of multi-channel input array, the table should
 either have a single channel (in this case the same table is used for all channels) or the same
@@ -615,21 +617,21 @@ relative difference norm.
 The functions norm calculate an absolute norm of src1 (when there is no
 src2 ):
 
-\f[norm =  \forkthree{\|\texttt{src1}\|_{L_{\infty}} =  \max _I | \texttt{src1} (I)|}{if  \(\texttt{normType} = \texttt{NORM\_INF}\) }
-{ \| \texttt{src1} \| _{L_1} =  \sum _I | \texttt{src1} (I)|}{if  \(\texttt{normType} = \texttt{NORM\_L1}\) }
-{ \| \texttt{src1} \| _{L_2} =  \sqrt{\sum_I \texttt{src1}(I)^2} }{if  \(\texttt{normType} = \texttt{NORM\_L2}\) }\f]
+\f[norm =  \forkthree{\|\texttt{src1}\|_{L_{\infty}} =  \max _I | \texttt{src1} (I)|}{if  \(\texttt{normType} = \texttt{NORM_INF}\) }
+{ \| \texttt{src1} \| _{L_1} =  \sum _I | \texttt{src1} (I)|}{if  \(\texttt{normType} = \texttt{NORM_L1}\) }
+{ \| \texttt{src1} \| _{L_2} =  \sqrt{\sum_I \texttt{src1}(I)^2} }{if  \(\texttt{normType} = \texttt{NORM_L2}\) }\f]
 
 or an absolute or relative difference norm if src2 is there:
 
-\f[norm =  \forkthree{\|\texttt{src1}-\texttt{src2}\|_{L_{\infty}} =  \max _I | \texttt{src1} (I) -  \texttt{src2} (I)|}{if  \(\texttt{normType} = \texttt{NORM\_INF}\) }
-{ \| \texttt{src1} - \texttt{src2} \| _{L_1} =  \sum _I | \texttt{src1} (I) -  \texttt{src2} (I)|}{if  \(\texttt{normType} = \texttt{NORM\_L1}\) }
-{ \| \texttt{src1} - \texttt{src2} \| _{L_2} =  \sqrt{\sum_I (\texttt{src1}(I) - \texttt{src2}(I))^2} }{if  \(\texttt{normType} = \texttt{NORM\_L2}\) }\f]
+\f[norm =  \forkthree{\|\texttt{src1}-\texttt{src2}\|_{L_{\infty}} =  \max _I | \texttt{src1} (I) -  \texttt{src2} (I)|}{if  \(\texttt{normType} = \texttt{NORM_INF}\) }
+{ \| \texttt{src1} - \texttt{src2} \| _{L_1} =  \sum _I | \texttt{src1} (I) -  \texttt{src2} (I)|}{if  \(\texttt{normType} = \texttt{NORM_L1}\) }
+{ \| \texttt{src1} - \texttt{src2} \| _{L_2} =  \sqrt{\sum_I (\texttt{src1}(I) - \texttt{src2}(I))^2} }{if  \(\texttt{normType} = \texttt{NORM_L2}\) }\f]
 
 or
 
-\f[norm =  \forkthree{\frac{\|\texttt{src1}-\texttt{src2}\|_{L_{\infty}}    }{\|\texttt{src2}\|_{L_{\infty}} }}{if  \(\texttt{normType} = \texttt{NORM\_RELATIVE\_INF}\) }
-{ \frac{\|\texttt{src1}-\texttt{src2}\|_{L_1} }{\|\texttt{src2}\|_{L_1}} }{if  \(\texttt{normType} = \texttt{NORM\_RELATIVE\_L1}\) }
-{ \frac{\|\texttt{src1}-\texttt{src2}\|_{L_2} }{\|\texttt{src2}\|_{L_2}} }{if  \(\texttt{normType} = \texttt{NORM\_RELATIVE\_L2}\) }\f]
+\f[norm =  \forkthree{\frac{\|\texttt{src1}-\texttt{src2}\|_{L_{\infty}}    }{\|\texttt{src2}\|_{L_{\infty}} }}{if  \(\texttt{normType} = \texttt{NORM_RELATIVE_INF}\) }
+{ \frac{\|\texttt{src1}-\texttt{src2}\|_{L_1} }{\|\texttt{src2}\|_{L_1}} }{if  \(\texttt{normType} = \texttt{NORM_RELATIVE_L1}\) }
+{ \frac{\|\texttt{src1}-\texttt{src2}\|_{L_2} }{\|\texttt{src2}\|_{L_2}} }{if  \(\texttt{normType} = \texttt{NORM_RELATIVE_L2}\) }\f]
 
 The functions norm return the calculated norm.
 
@@ -985,22 +987,131 @@ horizontal axis.
   */
 CV_EXPORTS Mat repeat(const Mat& src, int ny, int nx);
 
-/** @brief concatenate matrices horizontally
-@todo document
+/** @brief Applies horizontal concatenation to given matrices.
+
+The function horizontally concatenates two or more cv::Mat matrices (with the same number of rows).
+@code{.cpp}
+    cv::Mat matArray[] = { cv::Mat(4, 1, CV_8UC1, cv::Scalar(1)),
+                           cv::Mat(4, 1, CV_8UC1, cv::Scalar(2)),
+                           cv::Mat(4, 1, CV_8UC1, cv::Scalar(3)),};
+
+    cv::Mat out;
+    cv::hconcat( matArray, 3, out );
+    //out:
+    //[1, 2, 3;
+    // 1, 2, 3;
+    // 1, 2, 3;
+    // 1, 2, 3]
+@endcode
+@param src input array or vector of matrices. all of the matrices must have the same number of rows and the same depth.
+@param nsrc number of matrices in src.
+@param dst output array. It has the same number of rows and depth as the src, and the sum of cols of the src.
+@sa cv::vconcat(const Mat*, size_t, OutputArray), @sa cv::vconcat(InputArrayOfArrays, OutputArray) and @sa cv::vconcat(InputArray, InputArray, OutputArray)
 */
 CV_EXPORTS void hconcat(const Mat* src, size_t nsrc, OutputArray dst);
-/** @overload */
+/** @overload
+ @code{.cpp}
+    cv::Mat_<float> A = (cv::Mat_<float>(3, 2) << 1, 4,
+                                                  2, 5,
+                                                  3, 6);
+    cv::Mat_<float> B = (cv::Mat_<float>(3, 2) << 7, 10,
+                                                  8, 11,
+                                                  9, 12);
+
+    cv::Mat C;
+    cv::hconcat(A, B, C);
+    //C:
+    //[1, 4, 7, 10;
+    // 2, 5, 8, 11;
+    // 3, 6, 9, 12]
+ @endcode
+ @param src1 first input array to be considered for horizontal concatenation.
+ @param src2 second input array to be considered for horizontal concatenation.
+ @param dst output array. It has the same number of rows and depth as the src1 and src2, and the sum of cols of the src1 and src2.
+ */
 CV_EXPORTS void hconcat(InputArray src1, InputArray src2, OutputArray dst);
-/** @overload */
+/** @overload
+ @code{.cpp}
+    std::vector<cv::Mat> matrices = { cv::Mat(4, 1, CV_8UC1, cv::Scalar(1)),
+                                      cv::Mat(4, 1, CV_8UC1, cv::Scalar(2)),
+                                      cv::Mat(4, 1, CV_8UC1, cv::Scalar(3)),};
+
+    cv::Mat out;
+    cv::hconcat( matrices, out );
+    //out:
+    //[1, 2, 3;
+    // 1, 2, 3;
+    // 1, 2, 3;
+    // 1, 2, 3]
+ @endcode
+ @param src input array or vector of matrices. all of the matrices must have the same number of rows and the same depth.
+ @param dst output array. It has the same number of rows and depth as the src, and the sum of cols of the src.
+same depth.
+ */
 CV_EXPORTS_W void hconcat(InputArrayOfArrays src, OutputArray dst);
 
-/** @brief concatenate matrices vertically
-@todo document
+/** @brief Applies vertical concatenation to given matrices.
+
+The function vertically concatenates two or more cv::Mat matrices (with the same number of cols).
+@code{.cpp}
+    cv::Mat matArray[] = { cv::Mat(1, 4, CV_8UC1, cv::Scalar(1)),
+                           cv::Mat(1, 4, CV_8UC1, cv::Scalar(2)),
+                           cv::Mat(1, 4, CV_8UC1, cv::Scalar(3)),};
+
+    cv::Mat out;
+    cv::vconcat( matArray, 3, out );
+    //out:
+    //[1,   1,   1,   1;
+    // 2,   2,   2,   2;
+    // 3,   3,   3,   3]
+@endcode
+@param src input array or vector of matrices. all of the matrices must have the same number of cols and the same depth.
+@param nsrc number of matrices in src.
+@param dst output array. It has the same number of cols and depth as the src, and the sum of rows of the src.
+@sa cv::hconcat(const Mat*, size_t, OutputArray), @sa cv::hconcat(InputArrayOfArrays, OutputArray) and @sa cv::hconcat(InputArray, InputArray, OutputArray)
 */
 CV_EXPORTS void vconcat(const Mat* src, size_t nsrc, OutputArray dst);
-/** @overload */
+/** @overload
+ @code{.cpp}
+    cv::Mat_<float> A = (cv::Mat_<float>(3, 2) << 1, 7,
+                                                  2, 8,
+                                                  3, 9);
+    cv::Mat_<float> B = (cv::Mat_<float>(3, 2) << 4, 10,
+                                                  5, 11,
+                                                  6, 12);
+
+    cv::Mat C;
+    cv::vconcat(A, B, C);
+    //C:
+    //[1, 7;
+    // 2, 8;
+    // 3, 9;
+    // 4, 10;
+    // 5, 11;
+    // 6, 12]
+ @endcode
+ @param src1 first input array to be considered for vertical concatenation.
+ @param src2 second input array to be considered for vertical concatenation.
+ @param dst output array. It has the same number of cols and depth as the src1 and src2, and the sum of rows of the src1 and src2.
+ */
 CV_EXPORTS void vconcat(InputArray src1, InputArray src2, OutputArray dst);
-/** @overload */
+/** @overload
+ @code{.cpp}
+    std::vector<cv::Mat> matrices = { cv::Mat(1, 4, CV_8UC1, cv::Scalar(1)),
+                                      cv::Mat(1, 4, CV_8UC1, cv::Scalar(2)),
+                                      cv::Mat(1, 4, CV_8UC1, cv::Scalar(3)),};
+
+    cv::Mat out;
+    cv::vconcat( matrices, out );
+    //out:
+    //[1,   1,   1,   1;
+    // 2,   2,   2,   2;
+    // 3,   3,   3,   3]
+ @endcode
+ @param src input array or vector of matrices. all of the matrices must have the same number of cols and the same depth
+ @param dst output array. It has the same number of cols and depth as the src, and the sum of rows of the src.
+same depth.
+ */
 CV_EXPORTS_W void vconcat(InputArrayOfArrays src, OutputArray dst);
 
 /** @brief computes bitwise conjunction of the two arrays (dst = src1 & src2)
@@ -1171,7 +1282,8 @@ equivalent matrix expressions:
 @endcode
 @param src1 first input array or a scalar; when it is an array, it must have a single channel.
 @param src2 second input array or a scalar; when it is an array, it must have a single channel.
-@param dst output array that has the same size and type as the input arrays.
+@param dst output array of type ref CV_8U that has the same size and the same number of channels as
+    the input arrays.
 @param cmpop a flag, that specifies correspondence between the arrays (cv::CmpTypes)
 @sa checkRange, min, max, threshold
 */
@@ -1233,7 +1345,7 @@ CV_EXPORTS_W void sqrt(InputArray src, OutputArray dst);
 /** @brief Raises every array element to a power.
 
 The function pow raises every element of the input array to power :
-\f[\texttt{dst} (I) =  \fork{\texttt{src}(I)^power}{if \texttt{power} is integer}{|\texttt{src}(I)|^power}{otherwise}\f]
+\f[\texttt{dst} (I) =  \fork{\texttt{src}(I)^{power}}{if \(\texttt{power}\) is integer}{|\texttt{src}(I)|^{power}}{otherwise}\f]
 
 So, for a non-integer power exponent, the absolute values of input array
 elements are used. However, it is possible to get true values for
@@ -2340,9 +2452,7 @@ matrix. The Singular Value Decomposition is used to solve least-square
 problems, under-determined linear systems, invert matrices, compute
 condition numbers, and so on.
 
-For a faster operation, you can pass flags=SVD::MODIFY_A|... to modify
-the decomposed matrix when it is not necessary to preserve it. If you
-want to compute a condition number of a matrix or an absolute value of
+If you want to compute a condition number of a matrix or an absolute value of
 its determinant, you do not need `u` and `vt`. You can pass
 flags=SVD::NO_UV|... . Another flag SVD::FULL_UV indicates that full-size u
 and vt must be computed, which is not necessary most of the time.
@@ -2353,8 +2463,8 @@ class CV_EXPORTS SVD
 {
 public:
     enum Flags {
-        /** use the algorithm to modify the decomposed matrix; it can save space and speed up
-            processing */
+        /** allow the algorithm to modify the decomposed matrix; it can save space and speed up
+            processing. currently ignored. */
         MODIFY_A = 1,
         /** indicates that only a vector of singular values `w` is to be processed, while u and vt
             will be set to empty matrices */
@@ -2812,6 +2922,10 @@ public:
     Algorithm();
     virtual ~Algorithm();
 
+    /** @brief Clears the algorithm state
+    */
+    CV_WRAP virtual void clear() {}
+
     /** @brief Stores algorithm parameters in a file storage
     */
     virtual void write(FileStorage& fs) const { (void)fs; }
@@ -2819,42 +2933,76 @@ public:
     /** @brief Reads algorithm parameters from a file storage
     */
     virtual void read(const FileNode& fn) { (void)fn; }
+
+    /** @brief Returns true if the Algorithm is empty (e.g. in the very beginning or after unsuccessful read
+     */
+    virtual bool empty() const { return false; }
+
+    /** @brief Reads algorithm from the file node
+
+     This is static template method of Algorithm. It's usage is following (in the case of SVM):
+     @code
+     Ptr<SVM> svm = Algorithm::read<SVM>(fn);
+     @endcode
+     In order to make this method work, the derived class must overwrite Algorithm::read(const
+     FileNode& fn) and also have static create() method without parameters
+     (or with all the optional parameters)
+     */
+    template<typename _Tp> static Ptr<_Tp> read(const FileNode& fn)
+    {
+        Ptr<_Tp> obj = _Tp::create();
+        obj->read(fn);
+        return !obj->empty() ? obj : Ptr<_Tp>();
+    }
+
+    /** @brief Loads algorithm from the file
+
+     @param filename Name of the file to read.
+     @param objname The optional name of the node to read (if empty, the first top-level node will be used)
+
+     This is static template method of Algorithm. It's usage is following (in the case of SVM):
+     @code
+     Ptr<SVM> svm = Algorithm::load<SVM>("my_svm_model.xml");
+     @endcode
+     In order to make this method work, the derived class must overwrite Algorithm::read(const
+     FileNode& fn).
+     */
+    template<typename _Tp> static Ptr<_Tp> load(const String& filename, const String& objname=String())
+    {
+        FileStorage fs(filename, FileStorage::READ);
+        FileNode fn = objname.empty() ? fs.getFirstTopLevelNode() : fs[objname];
+        Ptr<_Tp> obj = _Tp::create();
+        obj->read(fn);
+        return !obj->empty() ? obj : Ptr<_Tp>();
+    }
+
+    /** @brief Loads algorithm from a String
+
+     @param strModel The string variable containing the model you want to load.
+     @param objname The optional name of the node to read (if empty, the first top-level node will be used)
+
+     This is static template method of Algorithm. It's usage is following (in the case of SVM):
+     @code
+     Ptr<SVM> svm = Algorithm::loadFromString<SVM>(myStringModel);
+     @endcode
+     */
+    template<typename _Tp> static Ptr<_Tp> loadFromString(const String& strModel, const String& objname=String())
+    {
+        FileStorage fs(strModel, FileStorage::READ + FileStorage::MEMORY);
+        FileNode fn = objname.empty() ? fs.getFirstTopLevelNode() : fs[objname];
+        Ptr<_Tp> obj = _Tp::create();
+        obj->read(fn);
+        return !obj->empty() ? obj : Ptr<_Tp>();
+    }
+
+    /** Saves the algorithm to a file.
+     In order to make this method work, the derived class must implement Algorithm::write(FileStorage& fs). */
+    CV_WRAP virtual void save(const String& filename) const;
+
+    /** Returns the algorithm string identifier.
+     This string is used as top level xml/yml node tag when the object is saved to a file or string. */
+    CV_WRAP virtual String getDefaultName() const;
 };
-
-// define properties
-
-#define CV_PURE_PROPERTY(type, name) \
-    CV_WRAP virtual type get##name() const = 0; \
-    CV_WRAP virtual void set##name(type val) = 0;
-
-#define CV_PURE_PROPERTY_S(type, name) \
-    CV_WRAP virtual type get##name() const = 0; \
-    CV_WRAP virtual void set##name(const type & val) = 0;
-
-#define CV_PURE_PROPERTY_RO(type, name) \
-    CV_WRAP virtual type get##name() const = 0;
-
-// basic property implementation
-
-#define CV_IMPL_PROPERTY_RO(type, name, member) \
-    inline type get##name() const { return member; }
-
-#define CV_HELP_IMPL_PROPERTY(r_type, w_type, name, member) \
-    CV_IMPL_PROPERTY_RO(r_type, name, member) \
-    inline void set##name(w_type val) { member = val; }
-
-#define CV_HELP_WRAP_PROPERTY(r_type, w_type, name, internal_name, internal_obj) \
-    r_type get##name() const { return internal_obj.get##internal_name(); } \
-    void set##name(w_type val) { internal_obj.set##internal_name(val); }
-
-#define CV_IMPL_PROPERTY(type, name, member) CV_HELP_IMPL_PROPERTY(type, type, name, member)
-#define CV_IMPL_PROPERTY_S(type, name, member) CV_HELP_IMPL_PROPERTY(type, const type &, name, member)
-
-#define CV_WRAP_PROPERTY(type, name, internal_name, internal_obj)  CV_HELP_WRAP_PROPERTY(type, type, name, internal_name, internal_obj)
-#define CV_WRAP_PROPERTY_S(type, name, internal_name, internal_obj) CV_HELP_WRAP_PROPERTY(type, const type &, name, internal_name, internal_obj)
-
-#define CV_WRAP_SAME_PROPERTY(type, name, internal_obj) CV_WRAP_PROPERTY(type, name, name, internal_obj)
-#define CV_WRAP_SAME_PROPERTY_S(type, name, internal_obj) CV_WRAP_PROPERTY_S(type, name, name, internal_obj)
 
 struct Param {
     enum { INT=0, BOOLEAN=1, REAL=2, STRING=3, MAT=4, MAT_VECTOR=5, ALGORITHM=6, FLOAT=7,

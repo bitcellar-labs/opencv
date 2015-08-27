@@ -10,6 +10,7 @@ endif()
 set(the_description "The java bindings")
 ocv_add_module(java BINDINGS opencv_core opencv_imgproc)
 ocv_module_include_directories("${CMAKE_CURRENT_SOURCE_DIR}/generator/src/cpp")
+ocv_module_include_directories("${OpenCV_SOURCE_DIR}/include")
 
 if(NOT ANDROID)
   include_directories(${JNI_INCLUDE_DIRS})
@@ -276,10 +277,12 @@ endif(ANDROID AND ANDROID_EXECUTABLE)
 set(step3_depends ${step2_depends} ${step3_input_files} ${copied_files})
 
 if(ANDROID)
-  set(LIB_NAME_SUFIX "")
+  set(LIB_NAME_SUFIX "${OPENCV_VERSION_MAJOR}")
 else()
   set(LIB_NAME_SUFIX "${OPENCV_VERSION_MAJOR}${OPENCV_VERSION_MINOR}${OPENCV_VERSION_PATCH}")
 endif()
+
+file(MAKE_DIRECTORY "${OpenCV_BINARY_DIR}/bin")
 
 # step 4: build jar
 if(ANDROID)
@@ -318,12 +321,7 @@ else(ANDROID)
                      COMMENT "Generating ${JAR_NAME}"
                     )
 
-  if(WIN32)
-    set(JAR_INSTALL_DIR java)
-  else(WIN32)
-    set(JAR_INSTALL_DIR share/OpenCV/java)
-  endif(WIN32)
-  install(FILES ${JAR_FILE} OPTIONAL DESTINATION ${JAR_INSTALL_DIR} COMPONENT java)
+  install(FILES ${JAR_FILE} OPTIONAL DESTINATION ${OPENCV_JAR_INSTALL_PATH} COMPONENT java)
 endif(ANDROID)
 
 # step 5: build native part
@@ -361,18 +359,6 @@ else()
   ocv_target_link_libraries(${the_module} ${OPENCV_MODULE_${the_module}_DEPS} ${OPENCV_LINKER_LIBS})
 endif()
 
-if(ANDROID)
-  ocv_target_link_libraries(${the_module} jnigraphics) # for Mat <=> Bitmap converters
-
-  # force strip library after the build command
-  # because samples and tests will make a copy of the library before install
-  get_target_property(__opencv_java_location ${the_module} LOCATION)
-  # Turn off stripping in debug build
-  if ( NOT (CMAKE_BUILD_TYPE MATCHES "Debug"))
-    add_custom_command(TARGET ${the_module} POST_BUILD COMMAND ${CMAKE_STRIP} --strip-unneeded "${__opencv_java_location}")
-  endif()
-endif()
-
 # Additional target properties
 set_target_properties(${the_module} PROPERTIES
     OUTPUT_NAME "${the_module}${LIB_NAME_SUFIX}"
@@ -382,6 +368,19 @@ set_target_properties(${the_module} PROPERTIES
     INSTALL_NAME_DIR ${OPENCV_LIB_INSTALL_PATH}
     LINK_INTERFACE_LIBRARIES ""
     )
+
+if(ANDROID)
+  ocv_target_link_libraries(${the_module} jnigraphics) # for Mat <=> Bitmap converters
+  ocv_target_link_libraries(${the_module} LINK_INTERFACE_LIBRARIES ${OPENCV_LINKER_LIBS} jnigraphics)
+
+  # force strip library after the build command
+  # because samples and tests will make a copy of the library before install
+  get_target_property(__opencv_java_location ${the_module} LOCATION)
+  # Turn off stripping in debug build
+  if ( NOT (CMAKE_BUILD_TYPE MATCHES "Debug"))
+    add_custom_command(TARGET ${the_module} POST_BUILD COMMAND ${CMAKE_STRIP} --strip-unneeded "${__opencv_java_location}")
+  endif()
+endif()
 
 if(WIN32)
   set_target_properties(${the_module} PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${EXECUTABLE_OUTPUT_PATH})
@@ -398,12 +397,12 @@ if(ANDROID)
 else()
   if(NOT INSTALL_CREATE_DISTRIB)
     ocv_install_target(${the_module} OPTIONAL EXPORT OpenCVModules
-            RUNTIME DESTINATION ${JAR_INSTALL_DIR} COMPONENT java
-            LIBRARY DESTINATION ${JAR_INSTALL_DIR} COMPONENT java)
+            RUNTIME DESTINATION ${OPENCV_JAR_INSTALL_PATH} COMPONENT java
+            LIBRARY DESTINATION ${OPENCV_JAR_INSTALL_PATH} COMPONENT java)
   else()
     ocv_install_target(${the_module} OPTIONAL EXPORT OpenCVModules
-            RUNTIME DESTINATION ${JAR_INSTALL_DIR}/${OpenCV_ARCH} COMPONENT java
-            LIBRARY DESTINATION ${JAR_INSTALL_DIR}/${OpenCV_ARCH} COMPONENT java)
+            RUNTIME DESTINATION ${OPENCV_JAR_INSTALL_PATH}/${OpenCV_ARCH} COMPONENT java
+            LIBRARY DESTINATION ${OPENCV_JAR_INSTALL_PATH}/${OpenCV_ARCH} COMPONENT java)
   endif()
 endif()
 

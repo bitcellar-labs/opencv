@@ -1839,6 +1839,8 @@ bool videoInput::setVideoSettingCamera(int deviceID, long Property, long lValue,
         hr = VDList[deviceID]->pVideoInputFilter->QueryInterface(IID_IAMCameraControl, (void**)&pIAMCameraControl);
         if (FAILED(hr)) {
             DebugPrintOut("Error\n");
+            if(VDList[deviceID]->pVideoInputFilter)VDList[deviceID]->pVideoInputFilter->Release();
+            if(VDList[deviceID]->pVideoInputFilter)VDList[deviceID]->pVideoInputFilter = NULL;
             return false;
         }
         else
@@ -1857,6 +1859,8 @@ bool videoInput::setVideoSettingCamera(int deviceID, long Property, long lValue,
                 pIAMCameraControl->Set(Property, lValue, Flags);
             }
             pIAMCameraControl->Release();
+            if(VDList[deviceID]->pVideoInputFilter)VDList[deviceID]->pVideoInputFilter->Release();
+            if(VDList[deviceID]->pVideoInputFilter)VDList[deviceID]->pVideoInputFilter = NULL;
             return true;
         }
     }
@@ -2257,7 +2261,7 @@ int videoInput::getVideoPropertyFromCV(int cv_property){
         case CV_CAP_PROP_GAMMA:
             return VideoProcAmp_Gamma;
 
-        case CV_CAP_PROP_MONOCROME:
+        case CV_CAP_PROP_MONOCHROME:
             return VideoProcAmp_ColorEnable;
 
         case CV_CAP_PROP_WHITE_BALANCE_BLUE_U:
@@ -3170,7 +3174,7 @@ double VideoCapture_DShow::getProperty(int propIdx) const
     case CV_CAP_PROP_SATURATION:
     case CV_CAP_PROP_SHARPNESS:
     case CV_CAP_PROP_GAMMA:
-    case CV_CAP_PROP_MONOCROME:
+    case CV_CAP_PROP_MONOCHROME:
     case CV_CAP_PROP_WHITE_BALANCE_BLUE_U:
     case CV_CAP_PROP_BACKLIGHT:
     case CV_CAP_PROP_GAIN:
@@ -3273,7 +3277,7 @@ bool VideoCapture_DShow::setProperty(int propIdx, double propVal)
     case CV_CAP_PROP_SATURATION:
     case CV_CAP_PROP_SHARPNESS:
     case CV_CAP_PROP_GAMMA:
-    case CV_CAP_PROP_MONOCROME:
+    case CV_CAP_PROP_MONOCHROME:
     case CV_CAP_PROP_WHITE_BALANCE_BLUE_U:
     case CV_CAP_PROP_BACKLIGHT:
     case CV_CAP_PROP_GAIN:
